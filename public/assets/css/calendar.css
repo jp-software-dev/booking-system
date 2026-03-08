@@ -1,0 +1,242 @@
+:root {
+    --calendar-bg: #ffffff;
+    --calendar-border: #dadce0;
+    --calendar-header-bg: #f1f3f4;
+    --slot-available: #ffffff;
+    --slot-hover: #e8f0fe;
+    --slot-disabled: #f1f3f4;
+    --slot-booked: #fce8e8;
+    --primary: #1a73e8;
+}
+
+.booking-interface {
+    display: flex;
+    background: var(--calendar-bg);
+    border: 1px solid var(--calendar-border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    min-height: 600px;
+    flex-wrap: wrap;
+}
+
+.booking-sidebar {
+    width: 320px;
+    background: #f8f9fa;
+    border-right: 1px solid var(--calendar-border);
+    padding: 2rem;
+    flex-shrink: 0;
+}
+
+.booking-main {
+    flex: 1;
+    padding: 2rem;
+    overflow-x: auto;
+    background: var(--calendar-bg);
+    min-width: 0;
+}
+
+.agenda-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.agenda-header h5 {
+    font-weight: 600;
+    color: #202124;
+    margin: 0;
+}
+
+.agenda-grid {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 8px 0;
+    width: 100%;
+}
+
+.agenda-col {
+    flex: 1 1 180;
+    min-width: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-right: 1px solid var(--calendar-border);
+    padding: 0 4px;
+}
+.agenda-col:last-child {
+    border-right: none;
+}
+
+.day-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #5f6368;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.date-circle {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: #3c4043;
+    margin-bottom: 16px;
+    transition: all 0.2s;
+}
+
+.agenda-col.active .date-circle {
+    background-color: var(--primary);
+    color: white;
+}
+
+.time-slot {
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid var(--calendar-border);
+    border-radius: 50px;
+    padding: 10px 0;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--primary);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.time-slot:hover:not(:disabled) {
+    background: #e8f0fe;
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.time-slot:disabled {
+    background: #f1f3f4;
+    color: #adb5bd;
+    border-color: transparent;
+    cursor: not-allowed;
+}
+
+.time-slot.booked:disabled {
+    background: #fce8e8;
+    color: #d93025;
+}
+
+.mini-cal {
+    background: #ffffff;
+    border: 1px solid var(--calendar-border);
+    border-radius: 12px;
+    padding: 1rem;
+    width: 100%;
+}
+
+.mini-cal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: #202124;
+}
+
+.mini-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    text-align: center;
+}
+
+.mini-cal-day {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #5f6368;
+    padding: 4px 0;
+}
+
+.mini-cal-date {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.mini-cal-date:hover {
+    background: #e8f0fe;
+}
+
+.mini-cal-date.active {
+    background: var(--primary);
+    color: white;
+}
+
+.mini-cal-date.today {
+    border: 2px solid var(--primary);
+    font-weight: 600;
+}
+
+.mini-cal-date.text-muted.opacity-50 {
+    background: transparent;
+    color: #adb5bd !important;
+    cursor: default;
+    pointer-events: none;
+    border: none;
+}
+
+#mini-prev-month, #mini-next-month {
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+#mini-prev-month:hover, #mini-next-month:hover {
+    background: #e8f0fe;
+}
+
+@media (max-width: 1024px) {
+    .booking-sidebar {
+        width: 280px;
+        padding: 1.5rem;
+    }
+    .agenda-col {
+        min-width: 150px;
+    }
+}
+
+@media (max-width: 768px) {
+    .booking-interface {
+        flex-direction: column;
+        min-height: auto;
+    }
+    .booking-sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--calendar-border);
+    }
+    .agenda-col {
+        min-width: 130px;
+    }
+}
+
+@media (max-width: 480px) {
+    .agenda-col {
+        min-width: 110px;
+    }
+    .time-slot {
+        font-size: 0.75rem;
+        padding: 6px 0;
+    }
+}

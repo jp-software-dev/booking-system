@@ -1,0 +1,45 @@
+# Archivos de configuración locales (con credenciales)
+config/config.php
+config/Database.php
+config/conexion.php
+config/mail.php
+.env
+
+# Dependencias
+vendor/
+node_modules/
+
+# Archivos de bloqueo
+composer.lock
+package-lock.json
+
+# Archivos de caché y logs
+*.log
+*.cache
+*.lock
+logs/
+
+# Archivos temporales del sistema
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+~$*
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Archivos de base de datos locales
+*.sql
+*.sqlite
+*.db
+
+# Scripts de prueba temporales
+test_*.php
+hash_*.php
+fix_*.php
+nuevo_*.php
+verificar.php
