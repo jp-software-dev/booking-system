@@ -1,4 +1,4 @@
-# Archivos de configuración locales (con credenciales)
+# Archivos de configuración locales
 config/config.php
 config/Database.php
 config/conexion.php
