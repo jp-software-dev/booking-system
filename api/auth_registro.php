@@ -1,6 +1,9 @@
 <?php
 session_start();
 require_once '../config/Database.php';
+require_once '../src/Helpers/ValidationHelper.php';
+
+use Helpers\ValidationHelper;
 
 header('Content-Type: application/json');
 
@@ -19,7 +22,7 @@ $curp = strtoupper(trim($_POST['curp'] ?? ''));
 $password = $_POST['password'] ?? '';
 $confirm_password = $_POST['confirm_password'] ?? '';
 
-// FIX: Generamos un teléfono falso internamente para evitar el error UNIQUE de la base de datos
+// Teléfono ficticio para evitar error UNIQUE
 $telefono = '00' . rand(10000000, 99999999);
 
 if (empty($nombre) || empty($apellido_paterno) || empty($email) || empty($edad) || empty($genero) || empty($curp) || empty($password) || empty($confirm_password)) {
@@ -27,8 +30,9 @@ if (empty($nombre) || empty($apellido_paterno) || empty($email) || empty($edad) 
     exit;
 }
 
-if (!preg_match('/^[A-Z0-9]{18}$/', $curp)) {
-    echo json_encode(['status' => 'error', 'message' => 'Formato de CURP inválido.']);
+// Validar CURP con algoritmo oficial
+if (!ValidationHelper::validateCURP($curp)) {
+    echo json_encode(['status' => 'error', 'message' => 'Formato de CURP inválido o dígito verificador incorrecto.']);
     exit;
 }
 
@@ -82,4 +86,3 @@ try {
     error_log("Error en registro: " . $e->getMessage());
     echo json_encode(['status' => 'error', 'message' => 'Error interno del servidor: ' . $e->getMessage()]);
 }
-?>
