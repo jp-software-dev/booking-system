@@ -1,56 +1,52 @@
 <?php
-require_once __DIR__ . '/../../vendor/autoload.php';
+namespace Helpers;
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-class Mailer {
-    
-    private static $config;
-
-    private static function init() {
-        if (self::$config === null) {
-            self::$config = include __DIR__ . '/../../config/mail.php';
-        }
-    }
-
-    public static function enviarCorreo($destinatario, $asunto, $mensaje, $isHtml = true) {
-        
-        self::init();
+class Mailer
+{
+    /**
+     * Envía un correo electrónico usando la configuración SMTP.
+     *
+     * @param string $destinatario Correo del destinatario
+     * @param string $asunto       Asunto del mensaje
+     * @param string $mensaje      Cuerpo del mensaje
+     * @param bool   $isHtml       Si el mensaje es HTML (true) o texto plano (false)
+     * @return bool                True si se envió correctamente, False en caso de error
+     */
+    public static function enviarCorreo(string $destinatario, string $asunto, string $mensaje, bool $isHtml = false): bool
+    {
+        $config = include __DIR__ . '/../../config/mail.php';
         
         $mail = new PHPMailer(true);
         
         try {
-            $mail->SMTPOptions = array(
-                'ssl' => array(
-                    'verify_peer' => false,
-                    'verify_peer_name' => false,
-                    'allow_self_signed' => true
-                )
-            );
-
+            // Configuración del servidor SMTP
             $mail->isSMTP();
-            $mail->CharSet    = 'UTF-8'; 
-            $mail->Host       = self::$config['host'];
+            $mail->Host       = $config['host'];
             $mail->SMTPAuth   = true;
-            $mail->Username   = self::$config['username'];
-            $mail->Password   = self::$config['password'];
+            $mail->Username   = $config['username'];
+            $mail->Password   = $config['password'];
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port       = self::$config['port'];
-
-            $mail->setFrom(self::$config['from_email'], self::$config['from_name']);
+            $mail->Port       = $config['port'];
+            
+            // Remitente y destinatario
+            $mail->setFrom($config['from_email'], $config['from_name']);
             $mail->addAddress($destinatario);
-
+            
+            // Contenido
             $mail->isHTML($isHtml);
             $mail->Subject = $asunto;
-            $mail->Body    = $mensaje;
-
+            $mail->Body    = $isHtml ? $mensaje : nl2br($mensaje);
+            $mail->AltBody = $isHtml ? strip_tags($mensaje) : $mensaje;
+            
             $mail->send();
             return true;
             
         } catch (Exception $e) {
-            return $mail->ErrorInfo; 
+            error_log("Error enviando correo a $destinatario: " . $mail->ErrorInfo);
+            return false;
         }
     }
 }
-?>
