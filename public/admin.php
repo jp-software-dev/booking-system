@@ -80,7 +80,7 @@ $pendientes = count(array_filter($citas, fn($c) => $c['estado_cita'] === 'Pendie
                         <label class="form-label text-secondary fw-bold small">ID / Turno</label>
                         <div class="input-group input-group-sm">
                             <span class="input-group-text bg-white border-end-0"><i class="bi bi-hash text-primary"></i></span>
-                            <input type="number" name="search_id" class="form-control border-start-0" placeholder="Ej: 86" value="<?php echo htmlspecialchars($search_id); ?>">
+                            <input type="number" name="search_id" class="form-control border-start-0" placeholder="Ej: 86" value="<?php echo htmlspecialchars($search_id, ENT_QUOTES, 'UTF-8'); ?>">
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -89,7 +89,7 @@ $pendientes = count(array_filter($citas, fn($c) => $c['estado_cita'] === 'Pendie
                             <option value="">Todos los doctores</option>
                             <?php foreach ($lista_doctores as $doc): ?>
                                 <option value="<?php echo $doc['id_doctor']; ?>" <?php echo ($filtro_doctor == $doc['id_doctor']) ? 'selected' : ''; ?>>
-                                    Dr. <?php echo htmlspecialchars($doc['nombre'] . ' ' . $doc['apellido_paterno']); ?>
+                                    Dr. <?php echo htmlspecialchars($doc['nombre'] . ' ' . $doc['apellido_paterno'], ENT_QUOTES, 'UTF-8'); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -146,10 +146,10 @@ $pendientes = count(array_filter($citas, fn($c) => $c['estado_cita'] === 'Pendie
                                     <div class="bg-light rounded-circle p-2 me-2">
                                         <i class="bi bi-person-fill text-secondary"></i>
                                     </div>
-                                    <span class="fw-medium"><?php echo htmlspecialchars(strtoupper($cita['paciente'])); ?></span>
+                                    <span class="fw-medium"><?php echo htmlspecialchars(strtoupper($cita['paciente']), ENT_QUOTES, 'UTF-8'); ?></span>
                                 </div>
                             </td>
-                            <td class="text-secondary">Dr. <?php echo htmlspecialchars($cita['doctor'] . ' ' . $cita['doctor_ap']); ?></td>
+                            <td class="text-secondary">Dr. <?php echo htmlspecialchars($cita['doctor'] . ' ' . $cita['doctor_ap'], ENT_QUOTES, 'UTF-8'); ?></td>
                             <td>
                                 <div class="small fw-bold"><i class="bi bi-calendar3 me-1 text-primary"></i> <?php echo $cita['fecha_cita']; ?></div>
                                 <div class="text-muted small"><i class="bi bi-clock me-1"></i> <?php echo date('h:i A', strtotime($cita['hora_inicio'])); ?></div>
@@ -166,7 +166,7 @@ $pendientes = count(array_filter($citas, fn($c) => $c['estado_cita'] === 'Pendie
                             <td class="text-center">
                                 <button class="btn btn-primary btn-sm rounded-circle me-1 shadow-sm" 
                                         style="width: 35px; height: 35px; padding: 0; display: inline-flex; align-items: center; justify-content: center;"
-                                        onclick="abrirModalEditar(<?php echo $cita['id_cita']; ?>, '<?php echo $cita['fecha_cita']; ?>', '<?php echo $cita['hora_inicio']; ?>')"
+                                        onclick="abrirModalEditar(<?php echo $cita['id_cita']; ?>, '<?php echo htmlspecialchars($cita['fecha_cita'], ENT_QUOTES, 'UTF-8'); ?>', '<?php echo htmlspecialchars($cita['hora_inicio'], ENT_QUOTES, 'UTF-8'); ?>')"
                                         title="Editar cita">
                                     <i class="bi bi-pencil-fill"></i>
                                 </button>
