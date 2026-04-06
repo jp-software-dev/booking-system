@@ -137,8 +137,8 @@ try {
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Error de base de datos.']);
     }
-} catch (Exception $e) {
+} catch (Throwable $e) { // 👇 AQUÍ ESTÁ LA CORRECCIÓN: Throwable atrapa errores fatales de código 👇
     if ($db->inTransaction()) $db->rollBack();
-    error_log("Error en create_cita.php: " . $e->getMessage());
-    echo json_encode(['status' => 'error', 'message' => 'Error interno.']);
+    error_log("Error crítico en create_cita.php: " . $e->getMessage());
+    echo json_encode(['status' => 'error', 'message' => 'Error interno procesando la solicitud.']);
 }

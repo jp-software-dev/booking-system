@@ -8,6 +8,9 @@ session_start();
 require_once '../config/Database.php';
 require_once '../src/Helpers/Mailer.php';
 
+// 👇 AQUÍ ESTÁ LA CORRECCIÓN: Declaramos el namespace de Mailer 👇
+use Helpers\Mailer;
+
 // FORMATO DE RESPUESTA: Configura la cabecera HTTP para asegurar que el frontend procese la respuesta estructurada en formato JSON.
 header('Content-Type: application/json');
 

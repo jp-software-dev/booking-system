@@ -4,6 +4,9 @@ session_start();
 require_once '../config/Database.php';
 require_once '../src/Helpers/Mailer.php';
 
+// 👇 CORRECCIÓN 1: Importamos la clase Mailer correctamente 👇
+use Helpers\Mailer;
+
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -82,7 +85,8 @@ try {
                 </div>
             </div>';
 
-            $mailEnviado = Mailer::enviarCorreo($info['email'], $asunto, $mensajeHTML);
+            // 👇 CORRECCIÓN 2: Agregamos "true" al final para que PHPMailer sepa que es formato HTML 👇
+            $mailEnviado = Mailer::enviarCorreo($info['email'], $asunto, $mensajeHTML, true);
             
             if($mailEnviado !== true) {
                 error_log("Error enviando correo de confirmación a " . $info['email'] . ": " . $mailEnviado);
@@ -93,9 +97,12 @@ try {
     $db->commit();
     echo json_encode(['status' => 'success', 'message' => 'Estado actualizado y notificado']);
 
-} catch (Exception $e) {
-    $db->rollBack();
-    error_log("Error en update_status.php: " . $e->getMessage());
-    echo json_encode(['status' => 'error', 'message' => 'Error interno del servidor']);
+// 👇 CORRECCIÓN 3: Cambiamos Exception por Throwable 👇
+} catch (Throwable $e) {
+    if ($db->inTransaction()) {
+        $db->rollBack();
+    }
+    error_log("Error crítico en update_status.php: " . $e->getMessage());
+    echo json_encode(['status' => 'error', 'message' => 'Error interno del servidor procesando el estado.']);
 }
 ?>

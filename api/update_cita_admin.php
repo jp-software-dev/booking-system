@@ -65,7 +65,8 @@ try {
 
     echo json_encode(['status' => 'success', 'message' => 'Cita actualizada correctamente']);
 
-} catch (Exception $e) {
-    error_log("Error en update_cita_admin.php: " . $e->getMessage());
+// 👇 CORRECCIÓN: Throwable para mayor seguridad de ejecución 👇
+} catch (Throwable $e) {
+    error_log("Error crítico en update_cita_admin.php: " . $e->getMessage());
     echo json_encode(['status' => 'error', 'message' => 'Error interno del servidor']);
 }
