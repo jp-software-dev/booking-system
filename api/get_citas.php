@@ -1,4 +1,16 @@
 <?php
+/**
+ * ENDPOINT DE RECUPERACIÓN DE CITAS PARA CALENDARIO
+ *
+ * Proporciona los datos de las citas en un formato específico para ser consumido
+ * por un componente de calendario (FullCalendar). Incluye citas con estado
+ * 'Pendiente' o 'Confirmada'.
+ *
+ * @requires session_start
+ * @requires config/Database.php
+ * @response application/json
+ */
+
 session_start();
 require_once '../config/Database.php';
 

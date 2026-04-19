@@ -1,12 +1,21 @@
 <?php
-// Clase Database con patrón Singleton para conexión PDO
+/**
+ * CLASE DATABASE (PATRÓN SINGLETON)
+ *
+ * Gestiona la conexión a la base de datos usando el patrón Singleton para asegurar
+ * que solo exista una instancia activa de PDO durante toda la ejecución del script.
+ *
+ * @requires config/config.php
+ * @throws PDOException Si falla la conexión a la base de datos.
+ */
+
 require_once __DIR__ . '/config.php';
 
 class Database {
     private static $instance = null;
     private $conn;
 
-    // Constructor privado: evita instanciación directa
+    // Constructor privado: evita la instanciación directa desde fuera de la clase.
     private function __construct() {
         try {
             $this->conn = new PDO(
@@ -25,7 +34,7 @@ class Database {
         }
     }
 
-    // Obtiene la instancia única de la conexión
+    // Obtiene la instancia única de la conexión.
     public static function getInstance() {
         if (self::$instance === null) {
             self::$instance = new self();

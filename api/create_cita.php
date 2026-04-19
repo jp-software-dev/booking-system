@@ -1,13 +1,20 @@
 <?php
+/**
+ * ENDPOINT DE CREACIÓN DE CITAS (VERSIÓN SIMPLIFICADA SIN CORREOS)
+ */
+
 session_start();
 require_once '../config/Database.php';
 require_once '../src/Helpers/ValidationHelper.php';
-require_once '../src/Services/EmailService.php';
 
 use Helpers\ValidationHelper;
-use Services\EmailService;
 
 header('Content-Type: application/json');
+
+// Mostrar errores temporalmente
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['status' => 'error', 'message' => 'Método no permitido']);
@@ -36,7 +43,6 @@ if (!$id_doctor || !$fecha || !$hora || !$email) {
     exit;
 }
 
-// Validaciones centralizadas
 if (!ValidationHelper::validateDate($fecha)) {
     echo json_encode(['status' => 'error', 'message' => 'Fecha inválida']);
     exit;
@@ -51,6 +57,7 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 }
 
 $db = Database::getInstance();
+
 try {
     $db->beginTransaction();
 
@@ -106,39 +113,16 @@ try {
 
     $db->commit();
 
-    // Obtener datos del doctor para el correo
-    $docStmt = $db->prepare("SELECT nombre, apellido_paterno FROM doctores WHERE id_doctor = ?");
-    $docStmt->execute([$id_doctor]);
-    $doctor = $docStmt->fetch();
-    $doctor_nombre = $doctor['nombre'] . ' ' . $doctor['apellido_paterno'];
-
-    // Preparar datos para el servicio de correo
-    $datosCita = [
-        'paciente_nombre' => $paciente_nombre,
-        'paciente_email'  => $email,
-        'doctor_nombre'   => $doctor_nombre,
-        'fecha'           => $fecha,
-        'hora'            => $hora,
-        'motivo'          => $motivo
-    ];
-
-    // Enviar correos usando el servicio
-    EmailService::enviarConfirmacionCita($email, $datosCita);
-    EmailService::notificarAdminNuevaCita($datosCita);
-
     echo json_encode(['status' => 'success', 'message' => 'Cita creada exitosamente', 'id_cita' => $id_cita]);
 
 } catch (PDOException $e) {
     if ($db->inTransaction()) $db->rollBack();
-    error_log("Error en create_cita.php: " . $e->getMessage());
+    error_log("Error PDO en create_cita.php: " . $e->getMessage());
+    echo json_encode(['status' => 'error', 'message' => 'Error de base de datos: ' . $e->getMessage()]);
     
-    if ($e->getCode() == 23000) {
-        echo json_encode(['status' => 'error', 'message' => 'El horario seleccionado acaba de ser ocupado. Intenta con otro.']);
-    } else {
-        echo json_encode(['status' => 'error', 'message' => 'Error de base de datos.']);
-    }
-} catch (Throwable $e) { // 👇 AQUÍ ESTÁ LA CORRECCIÓN: Throwable atrapa errores fatales de código 👇
+} catch (Exception $e) {
     if ($db->inTransaction()) $db->rollBack();
-    error_log("Error crítico en create_cita.php: " . $e->getMessage());
-    echo json_encode(['status' => 'error', 'message' => 'Error interno procesando la solicitud.']);
+    error_log("Error en create_cita.php: " . $e->getMessage());
+    echo json_encode(['status' => 'error', 'message' => 'Error: ' . $e->getMessage()]);
 }
+?>

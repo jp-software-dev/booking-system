@@ -1,4 +1,18 @@
 <?php
+/**
+ * ENDPOINT DE ACTUALIZACIÓN DE CITA (ADMIN)
+ *
+ * Permite a un administrador modificar la fecha y hora de una cita existente.
+ * Incluye verificación de disponibilidad para evitar conflictos de horario.
+ *
+ * @requires session_start
+ * @requires config/Database.php
+ * @requires src/Helpers/ValidationHelper.php
+ * @requires method POST
+ * @requires admin role
+ * @response application/json
+ */
+
 session_start();
 require_once '../config/Database.php';
 require_once '../src/Helpers/ValidationHelper.php';
@@ -27,7 +41,7 @@ if (!$id_cita || empty($fecha) || empty($hora)) {
     exit;
 }
 
-$hora = substr($hora, 0, 5); // normalizar
+$hora = substr($hora, 0, 5);
 
 if (!ValidationHelper::validateDate($fecha)) {
     echo json_encode(['status' => 'error', 'message' => 'Fecha inválida']);
@@ -65,8 +79,8 @@ try {
 
     echo json_encode(['status' => 'success', 'message' => 'Cita actualizada correctamente']);
 
-// 👇 CORRECCIÓN: Throwable para mayor seguridad de ejecución 👇
 } catch (Throwable $e) {
     error_log("Error crítico en update_cita_admin.php: " . $e->getMessage());
     echo json_encode(['status' => 'error', 'message' => 'Error interno del servidor']);
 }
+?>

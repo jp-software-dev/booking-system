@@ -1,4 +1,16 @@
 <?php
+/**
+ * PÁGINA PRINCIPAL (LANDING PAGE)
+ *
+ * Vista pública de inicio del sistema. Muestra información sobre los servicios,
+ * las próximas citas del paciente (si está autenticado) y un llamado a la acción
+ * para registrarse o iniciar sesión.
+ *
+ * @requires session_start
+ * @requires src/views/layout/header.php
+ * @requires config/Database.php
+ */
+
 session_start();
 
 require_once '../src/views/layout/header.php';
@@ -105,7 +117,7 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'paciente') {
     <div class="container text-center py-4">
         <h2 class="fw-bold mb-3 text-white">¿Listo para transformar tu experiencia médica?</h2>
         <p class="mb-4 lead text-white-50">Únete a nuestra plataforma y toma el control de tu agenda hoy mismo.</p>
-        <a href="registro.php" class="btn btn-light btn-lg rounded-pill px-5 py-3 fw-bold shadow-lg text-primary">Crear cuenta gratuita</a>
+        <a href="registro.php" class="btn btn-light btn-lg rounded-pill px-5 py-3 fw-bold text-primary" style="transition: none; box-shadow: none;">Crear cuenta gratuita</a>
     </div>
 </section>
 

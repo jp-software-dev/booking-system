@@ -1,4 +1,13 @@
 <?php
+/**
+ * VALIDADOR DE DATOS
+ *
+ * Clase estática con funciones reutilizables para validar formatos comunes
+ * como fechas, horas y CURP mexicana, incluyendo el cálculo del dígito verificador.
+ *
+ * @namespace Helpers
+ */
+
 namespace Helpers;
 
 class ValidationHelper
@@ -60,3 +69,4 @@ class ValidationHelper
         return $digitoEsperado === $digitoReal;
     }
 }
+?>

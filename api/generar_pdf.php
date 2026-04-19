@@ -1,20 +1,32 @@
 <?php
-// REPORTE PDF: Script que transforma el historial de citas en un documento PDF profesional para descarga administrativa.
+/**
+ * GENERADOR DE REPORTE PDF
+ *
+ * Script que transforma el historial de citas en un documento PDF profesional
+ * para su descarga por parte del administrador. Utiliza la librería Dompdf.
+ *
+ * @requires session_start
+ * @requires vendor/autoload.php
+ * @requires config/Database.php
+ * @requires admin role
+ * @output application/pdf (download)
+ */
+
 session_start();
 
-// DEPENDENCIAS: Carga la librería Dompdf para la generación de documentos y la conexión a la base de datos.
+date_default_timezone_set('America/Mexico_City');
+
 require_once '../vendor/autoload.php';
 require_once '../config/Database.php';
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
-// VALIDADOR DE ACCESO: Restringe la generación del reporte exclusivamente a usuarios con rol de administrador.
+// VALIDADOR DE ACCESO: Restringe la generación del reporte a usuarios administradores.
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     die("Acceso denegado.");
 }
 
-// CONEXIÓN DB: Obtiene la instancia única para realizar consultas a la base de datos.
 $db = Database::getInstance();
 
 // CONSULTA DE DATOS: Recupera la información detallada de citas, pacientes y doctores para el informe.
@@ -27,10 +39,10 @@ $query = "SELECT c.id_cita, p.nombre AS paciente, p.curp, d.nombre AS doctor, d.
 $stmt = $db->query($query);
 $citas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// METADATOS: Captura la fecha y hora exacta en la que se está emitiendo el reporte.
+// METADATOS: Captura la fecha y hora exacta de emisión del reporte.
 $fecha_reporte = date('d/m/Y H:i');
 
-// ESTRUCTURA HTML: Define la plantilla visual con estilos CSS internos para dar formato al documento PDF.
+// ESTRUCTURA HTML: Define la plantilla visual con estilos CSS internos para el PDF.
 $html = '
 <!DOCTYPE html>
 <html lang="es">
@@ -70,7 +82,7 @@ $html = '
         </thead>
         <tbody>';
 
-// CICLO DE DATOS: Recorre los registros de la base de datos e inserta cada fila en la tabla del reporte.
+// CICLO DE DATOS: Recorre los registros e inserta cada fila en la tabla, aplicando protección XSS.
 foreach ($citas as $cita) {
     $estado_clase = strtolower($cita['estado_cita']);
     $html .= '<tr>
@@ -89,17 +101,17 @@ $html .= '</tbody>
 </body>
 </html>';
 
-// CONFIGURACIÓN DOMPDF: Habilita el motor de renderizado y el soporte para imágenes o contenido remoto.
+// CONFIGURACIÓN DOMPDF: Habilita el motor de renderizado y el soporte para contenido remoto.
 $options = new Options();
 $options->set('isHtml5ParserEnabled', true);
 $options->set('isRemoteEnabled', true);
 
-// PROCESAMIENTO: Inicializa Dompdf, carga el contenido HTML y establece la hoja en tamaño A4 horizontal.
+// PROCESAMIENTO: Inicializa Dompdf, carga el HTML y establece el tamaño de página A4 horizontal.
 $dompdf = new Dompdf($options);
 $dompdf->loadHtml($html);
 $dompdf->setPaper('A4', 'landscape');
 $dompdf->render();
 
-// DESCARGA AUTOMÁTICA: Envía el archivo generado al navegador para forzar su descarga inmediata.
+// DESCARGA AUTOMÁTICA: Envía el archivo generado al navegador para forzar su descarga.
 $dompdf->stream("Historial_Medico_MediAgenda.pdf", ["Attachment" => true]);
 ?>

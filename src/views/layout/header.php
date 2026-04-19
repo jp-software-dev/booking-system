@@ -1,20 +1,25 @@
 <?php
-// CONTROL DE NAVEGACIÓN: Script ligero que gestiona el estado de la sesión, identifica la página actual y define rutas dinámicas para la interfaz.
+/**
+ * CABECERA GLOBAL (HEADER)
+ *
+ * Control de navegación que gestiona el estado de la sesión, identifica la página
+ * actual y define rutas dinámicas para la interfaz. Renderiza el navbar principal
+ * y el modal de contacto.
+ *
+ * @requires session_start (si no se ha iniciado)
+ * @requires basename($_SERVER['PHP_SELF']) para detectar la página actual.
+ */
 
-// INICIALIZACIÓN SEGURA: Verifica si no existe una sesión activa antes de llamar a session_start() para evitar errores (warnings) en pantalla.
 if (session_status() === PHP_SESSION_NONE) session_start();
 
-// PÁGINA ACTUAL: Extrae únicamente el nombre del archivo en ejecución (ej. 'index.php') para poder resaltar el menú activo en la barra de navegación.
 $current_page = basename($_SERVER['PHP_SELF']);
 
-// REDIRECCIÓN INTELIGENTE: Evalúa si el usuario está autenticado; si lo está, el botón de "Agendar" lo lleva a su panel, si no, lo manda a iniciar sesión.
 if (isset($_SESSION['user_id'])) {
     $ruta_agendar = 'agenda.php';
 } else {
     $ruta_agendar = 'login_paciente.php';
 }
 
-// VERIFICACIÓN DE ROL: Crea una variable booleana rápida que devuelve 'true' solo si el usuario actual tiene privilegios de administrador.
 $es_admin = ($_SESSION['role'] ?? '') === 'admin';
 ?>
 
@@ -27,10 +32,7 @@ $es_admin = ($_SESSION['role'] ?? '') === 'admin';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="assets/css/styles.css">
-    <?php 
-    // IMPORTACIÓN CONDICIONAL: Carga los estilos CSS específicos del calendario únicamente cuando el usuario se encuentra navegando en la vista de la agenda.
-    if ($current_page === 'agenda.php'): 
-    ?>
+    <?php if ($current_page === 'agenda.php'): ?>
         <link rel="stylesheet" href="assets/css/calendar.css">
     <?php endif; ?>
 </head>
@@ -51,38 +53,23 @@ $es_admin = ($_SESSION['role'] ?? '') === 'admin';
                     <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#contactoModal">Contacto</a>
                 </li>
                 <li class="nav-item ms-lg-3">
-                    <a href="<?php 
-                    // RUTA DINÁMICA: Utiliza la variable calculada en la cabecera para dirigir al usuario a su panel o al inicio de sesión.
-                    echo $ruta_agendar; 
-                    ?>" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                    <a href="<?php echo $ruta_agendar; ?>" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
                         <i class="bi bi-calendar-check me-2"></i>Agendar Cita
                     </a>
                 </li>
             </ul>
             <div class="d-flex align-items-center mt-3 mt-lg-0">
-                <?php 
-                // MENÚ DE USUARIO: Verifica si existe un nombre en sesión para mostrar el menú desplegable con las opciones de cuenta; de lo contrario, muestra el acceso.
-                if (isset($_SESSION['user_name'])): 
-                ?>
+                <?php if (isset($_SESSION['user_name'])): ?>
                     <div class="dropdown">
                         <button class="btn btn-outline-primary dropdown-toggle rounded-pill px-4 fw-bold" type="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle me-2"></i> Hola, <?php 
-                            // FORMATO DE NOMBRE: Limpia de código malicioso e inyecta el nombre del usuario capitalizando correctamente las iniciales.
-                            echo htmlspecialchars(ucwords(strtolower($_SESSION['user_name']))); 
-                            ?>
+                            <i class="bi bi-person-circle me-2"></i> Hola, <?php echo htmlspecialchars(ucwords(strtolower($_SESSION['user_name']))); ?>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2 p-2">
                             <li><a class="dropdown-item rounded-3" href="agenda.php"><i class="bi bi-calendar-week me-2 text-primary"></i>Mi Agenda</a></li>
-                            <?php 
-                            // RUTAS POR ROL: Renderiza los enlaces exclusivos de administración si la variable '$es_admin' es verdadera.
-                            if ($es_admin): 
-                            ?>
+                            <?php if ($es_admin): ?>
                                 <li><a class="dropdown-item rounded-3" href="admin.php"><i class="bi bi-shield-lock me-2 text-primary"></i>Panel Admin</a></li>
                                 <li><a class="dropdown-item rounded-3" href="admin_historial.php"><i class="bi bi-clock-history me-2 text-primary"></i>Historial de Citas</a></li>
-                            <?php 
-                            // VISTA DE PACIENTE: Muestra el historial médico estándar si el usuario conectado no es un administrador.
-                            else: 
-                            ?>
+                            <?php else: ?>
                                 <li><a class="dropdown-item rounded-3" href="historial.php"><i class="bi bi-clock-history me-2 text-primary"></i>Historial Médico</a></li>
                             <?php endif; ?>
                             <li><hr class="dropdown-divider"></li>
@@ -90,10 +77,7 @@ $es_admin = ($_SESSION['role'] ?? '') === 'admin';
                         </ul>
                     </div>
                 <?php else: ?>
-                    <?php 
-                    // BOTÓN DE LOGIN CONDICIONAL: Oculta el botón de "Iniciar Sesión" si el visitante ya se encuentra en las páginas de login, evitando redundancias.
-                    if ($current_page !== 'login_paciente.php' && $current_page !== 'login.php'): 
-                    ?>
+                    <?php if ($current_page !== 'login_paciente.php' && $current_page !== 'login.php'): ?>
                         <a href="login_paciente.php" class="btn btn-outline-primary rounded-pill px-4 fw-bold">INICIAR SESIÓN</a>
                     <?php endif; ?>
                 <?php endif; ?>
@@ -167,10 +151,7 @@ $es_admin = ($_SESSION['role'] ?? '') === 'admin';
             </div>
             <div class="modal-footer border-0 p-3">
                 <button type="button" class="btn btn-outline-secondary rounded-pill px-4 py-1 fw-bold" data-bs-dismiss="modal">Cerrar</button>
-                <a href="<?php 
-                // ENLACE MODAL: Reutiliza la variable calculada para mantener la misma lógica de redirección en el botón del modal de contacto.
-                echo $ruta_agendar; 
-                ?>" class="btn btn-primary rounded-pill px-4 py-1 fw-bold shadow-sm">Agendar Cita</a>
+                <a href="<?php echo $ruta_agendar; ?>" class="btn btn-primary rounded-pill px-4 py-1 fw-bold shadow-sm">Agendar Cita</a>
             </div>
         </div>
     </div>

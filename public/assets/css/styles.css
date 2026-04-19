@@ -165,9 +165,13 @@ body {
     padding: 0.75rem 2.5rem;
     font-weight: 600;
 }
+
+/* DESHABILITADA LA ANIMACIÓN DEL BOTÓN CTA */
 .cta-section .btn-light:hover {
-    background-color: var(--primary);
-    color: var(--white);
+    background-color: var(--white);
+    color: var(--primary);
+    transform: none;
+    box-shadow: none;
 }
 
 /* Footer */

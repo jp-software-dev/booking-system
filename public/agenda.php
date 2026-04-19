@@ -1,4 +1,16 @@
 <?php
+/**
+ * VISTA DE AGENDA DE CITAS
+ *
+ * Interfaz principal para que los pacientes agenden nuevas citas. Muestra un
+ * calendario interactivo semanal con los horarios disponibles.
+ *
+ * @requires session_start
+ * @requires config/Database.php
+ * @requires paciente role
+ * @redirect login_paciente.php si no está autenticado o si es admin.
+ */
+
 session_start();
 
 require_once '../config/Database.php';

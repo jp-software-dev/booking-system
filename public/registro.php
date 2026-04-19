@@ -1,4 +1,16 @@
 <?php
+/**
+ * VISTA DE REGISTRO DE PACIENTES
+ *
+ * Interfaz para que los nuevos pacientes creen una cuenta en el sistema.
+ * Incluye validaciones frontend de CURP, edad, formato de teléfono y coincidencia
+ * de contraseñas.
+ *
+ * @requires session_start
+ * @requires src/views/layout/header.php
+ * @redirect agenda.php o admin.php si ya hay sesión activa.
+ */
+
 session_start();
 
 if (isset($_SESSION['user_id'])) {

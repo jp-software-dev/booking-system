@@ -1,10 +1,24 @@
 <?php
+/**
+ * ENDPOINT DE ACTUALIZACIÓN DE ESTADO DE CITA
+ *
+ * Permite a un administrador cambiar el estado de una cita (Pendiente, Confirmada,
+ * Cancelada, Completada). Al cambiar a 'Confirmada' o 'Cancelada', se dispara un
+ * correo electrónico de notificación al paciente.
+ *
+ * @requires session_start
+ * @requires config/Database.php
+ * @requires src/Helpers/Mailer.php
+ * @requires method POST
+ * @requires admin role
+ * @response application/json
+ */
+
 session_start();
 
 require_once '../config/Database.php';
 require_once '../src/Helpers/Mailer.php';
 
-// 👇 CORRECCIÓN 1: Importamos la clase Mailer correctamente 👇
 use Helpers\Mailer;
 
 header('Content-Type: application/json');
@@ -85,7 +99,6 @@ try {
                 </div>
             </div>';
 
-            // 👇 CORRECCIÓN 2: Agregamos "true" al final para que PHPMailer sepa que es formato HTML 👇
             $mailEnviado = Mailer::enviarCorreo($info['email'], $asunto, $mensajeHTML, true);
             
             if($mailEnviado !== true) {
@@ -97,7 +110,6 @@ try {
     $db->commit();
     echo json_encode(['status' => 'success', 'message' => 'Estado actualizado y notificado']);
 
-// 👇 CORRECCIÓN 3: Cambiamos Exception por Throwable 👇
 } catch (Throwable $e) {
     if ($db->inTransaction()) {
         $db->rollBack();

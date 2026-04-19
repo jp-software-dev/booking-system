@@ -1,4 +1,16 @@
 <?php
+/**
+ * VISTA DE HISTORIAL DE CITAS DEL PACIENTE
+ *
+ * Interfaz que muestra al paciente el listado de sus citas activas y pasadas,
+ * permitiéndole gestionar sus próximas consultas.
+ *
+ * @requires session_start
+ * @requires config/Database.php
+ * @requires paciente role
+ * @redirect login_paciente.php si no está autenticado.
+ */
+
 session_start();
 
 require_once '../config/Database.php';

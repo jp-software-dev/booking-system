@@ -1,4 +1,16 @@
 <?php
+/**
+ * PANEL DE CONTROL ADMINISTRATIVO
+ *
+ * Interfaz principal para la gestión centralizada de citas. Permite filtrar,
+ * editar, cambiar el estado y eliminar citas. Incluye métricas en tiempo real.
+ *
+ * @requires session_start
+ * @requires config/Database.php
+ * @requires admin role
+ * @redirect login.php si no está autenticado.
+ */
+
 session_start();
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
