@@ -1,25 +1,8 @@
 <?php
-/**
- * VISTA DE AGENDA DE CITAS
- *
- * Interfaz principal para que los pacientes agenden nuevas citas. Muestra un
- * calendario interactivo semanal con los horarios disponibles.
- *
- * @requires session_start
- * @requires config/Database.php
- * @requires paciente role
- * @redirect login_paciente.php si no está autenticado o si es admin.
- */
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../config/Database.php';
 
-session_start();
-
-require_once '../config/Database.php';
-
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login_paciente.php");
-    exit();
-}
-
+if (!isset($_SESSION['user_id'])) { header("Location: login.php"); exit(); }
 $db = Database::getInstance();
 
 if ($_SESSION['role'] === 'admin') {
@@ -28,147 +11,101 @@ if ($_SESSION['role'] === 'admin') {
     $stmt = $db->prepare("SELECT email, telefono FROM pacientes WHERE id_paciente = ?");
     $stmt->execute([$_SESSION['user_id']]);
     $paciente = $stmt->fetch();
-    
-    if (!$paciente) {
-        session_destroy();
-        header("Location: login_paciente.php");
-        exit();
-    }
+    if (!$paciente) { session_destroy(); header("Location: login.php"); exit(); }
 }
+$doctores = $db->query("SELECT id_doctor, nombre, apellido_paterno FROM doctores WHERE estado = 1 ORDER BY nombre")->fetchAll();
 
-$doctores_query = "SELECT id_doctor, nombre, apellido_paterno FROM doctores WHERE estado = 1 ORDER BY nombre";
-$doctores_stmt = $db->query($doctores_query);
-$doctores = $doctores_stmt->fetchAll();
+require_once __DIR__ . '/../src/views/layout/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agenda - MediAgenda</title>
+
+<div class="container py-5" style="min-height: 85vh;">
+    <h3 class="fw-bold text-dark-blue mb-4">Reserva tu Cita</h3>
     
-    <style>
-        /* FIX: Previene que el mini-calendario se recorte */
-        .booking-sidebar {
-            min-width: 320px !important;
-            padding-right: 20px !important;
-        }
-        .mini-cal {
-            width: 100% !important;
-            box-sizing: border-box;
-        }
-        .mini-cal-header {
-            padding: 0 10px;
-        }
-    </style>
-</head>
-<body>
-    <?php include '../src/views/layout/header.php'; ?>
-
-    <div class="container-fluid py-4 bg-light">
-        <div class="container">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h4 class="fw-bold text-dark">Selecciona un horario para tu cita</h4>
-                <span class="text-muted small">(GMT-06:00) Hora estándar central - CDMX</span>
-            </div>
-
-            <div class="booking-interface">
-                <div class="booking-sidebar">
-                    <div class="d-flex align-items-center mb-4">
-                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style="width: 50px; height: 50px;">
-                            MA
-                        </div>
-                        <div class="ms-3">
-                            <h5 class="fw-bold text-dark mb-0">Agenda Médica</h5>
-                            <small class="text-muted">Servicio General</small>
-                        </div>
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+        <div class="row g-0">
+            <div class="col-lg-4 col-md-5 bg-light p-4 border-end">
+                <div id="mini-calendar-wrapper" class="w-100 mb-4 mb-md-0"></div>
+                <div class="mt-4">
+                    <h6 class="fw-bold text-dark mb-3">Leyenda de Estados</h6>
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="rounded-circle me-2" style="width: 12px; height: 12px; background-color: #10b981;"></div>
+                        <span class="small text-secondary">Horarios disponibles</span>
                     </div>
-                    
-                    <div class="mb-4 text-muted small">
-                        <div class="mb-2"><i class="bi bi-clock me-2 text-primary"></i> Citas de 30 min</div>
-                        <div><i class="bi bi-geo-alt me-2 text-primary"></i> Consultorio Principal</div>
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="rounded-circle me-2" style="width: 12px; height: 12px; background-color: #f3f4f6; border: 1px solid #e5e7eb;"></div>
+                        <span class="small text-secondary">No disponible / Pasado</span>
                     </div>
-
-                    <div id="mini-calendar-wrapper"></div>
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle me-2" style="width: 12px; height: 12px; background-color: #fee2e2; border: 1px solid #fca5a5;"></div>
+                        <span class="small text-secondary">Horario reservado</span>
+                    </div>
                 </div>
-
-                <div class="booking-main">
-                    <div class="agenda-header d-flex justify-content-between align-items-center mb-4">
-                        <button class="btn btn-outline-secondary btn-sm rounded-circle" id="btn-prev-week">
-                            <i class="bi bi-chevron-left"></i>
+            </div>
+            
+            <div class="col-lg-8 col-md-7 p-4">
+                
+                <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                    <h5 id="agenda-current-range" class="fw-bold text-dark mb-0" style="font-size: 1.25rem;">Cargando...</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <button id="btn-prev-week" class="btn btn-white rounded-circle shadow-sm border d-flex justify-content-center align-items-center text-dark hover-effect" style="width:42px; height:42px;">
+                            <i class="bi bi-chevron-left fs-5"></i>
                         </button>
-                        <h5 class="m-0 fw-bold" id="current-month-display">Cargando...</h5>
-                        <button class="btn btn-outline-secondary btn-sm rounded-circle" id="btn-next-week">
-                            <i class="bi bi-chevron-right"></i>
+                        <button id="btn-next-week" class="btn btn-white rounded-circle shadow-sm border d-flex justify-content-center align-items-center text-dark hover-effect" style="width:42px; height:42px;">
+                            <i class="bi bi-chevron-right fs-5"></i>
                         </button>
                     </div>
-
-                    <div class="agenda-grid" id="agenda-grid-container"></div>
+                </div>
+                
+                <div class="overflow-auto pb-3 w-100">
+                    <div id="agenda-grid-container" class="agenda-grid" style="min-height: 400px;"></div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="modal fade" id="bookingModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
-                <div class="modal-header border-0 bg-primary text-white">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-calendar-check me-2"></i> Confirmar cita</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <form id="bookingForm">
-                    <div class="modal-body p-4">
-                        <div class="bg-light p-3 rounded-4 mb-4">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-calendar-event fs-2 text-primary me-3"></i>
-                                <div>
-                                    <span class="text-muted small">Fecha y hora seleccionadas</span>
-                                    <div class="fw-bold text-dark" id="modal-date-text">--</div>
-                                    <div class="text-muted" id="modal-time-text">--</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <input type="hidden" name="fecha_cita" id="form_fecha">
-                        <input type="hidden" name="hora_inicio" id="form_hora">
-
-                        <div class="mb-3">
-                            <label for="id_doctor" class="form-label fw-bold text-secondary">Especialista <span class="text-danger">*</span></label>
-                            <select id="id_doctor" name="id_doctor" class="form-select" required>
-                                <option value="" selected disabled>Seleccione un especialista</option>
-                                <?php foreach ($doctores as $doc): ?>
-                                    <option value="<?php echo $doc['id_doctor']; ?>">
-                                        Dr. <?php echo htmlspecialchars($doc['nombre'] . ' ' . $doc['apellido_paterno']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="email" class="form-label fw-bold text-secondary">Correo electrónico</label>
-                                <input type="email" id="email" name="email" class="form-control" value="<?php echo htmlspecialchars($paciente['email']); ?>" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="telefono" class="form-label fw-bold text-secondary">Teléfono</label>
-                                <input type="tel" id="telefono" name="telefono" class="form-control" value="<?php echo htmlspecialchars($paciente['telefono']); ?>" required>
-                            </div>
-                        </div>
-
-                        <div class="mb-2">
-                            <label for="motivo" class="form-label fw-bold text-secondary">Motivo (opcional)</label>
-                            <textarea id="motivo" name="motivo" class="form-control" rows="3" placeholder="Ej. Chequeo general..."></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer border-0">
-                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary rounded-pill px-4">Agendar cita</button>
-                    </div>
-                </form>
+<div class="modal fade" id="bookingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 bg-primary text-white rounded-top-4">
+                <h5 class="modal-title fw-bold"><i class="bi bi-calendar-plus me-2"></i> Confirmar Cita</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
+            <form id="bookingForm">
+                <input type="hidden" name="fecha_cita" id="booking_input_fecha">
+                <input type="hidden" name="hora_inicio" id="booking_input_hora">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small">Médico Especialista</label>
+                        <select name="id_doctor" id="booking_select_doctor" class="form-select" required>
+                            <option value="">Selecciona un especialista...</option>
+                            <?php foreach ($doctores as $doc): ?>
+                                <option value="<?php echo $doc['id_doctor']; ?>">Dr. <?php echo htmlspecialchars($doc['nombre'] . ' ' . $doc['apellido_paterno']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-secondary small">Correo de Contacto</label>
+                            <input type="email" name="email" class="form-control" value="<?php echo htmlspecialchars($paciente['email']); ?>" <?php echo empty($paciente['email']) ? 'required' : 'readonly'; ?>>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-secondary small">Teléfono Móvil</label>
+                            <input type="text" name="telefono" class="form-control" value="<?php echo htmlspecialchars($paciente['telefono']); ?>" <?php echo empty($paciente['telefono']) ? 'required' : 'readonly'; ?> maxlength="10">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small">Motivo de la consulta</label>
+                        <textarea name="motivo" class="form-control" rows="3" placeholder="Escribe brevemente los síntomas..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 bg-light rounded-bottom-4">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">Agendar Cita</button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
 
-    <?php include '../src/views/layout/footer.php'; ?>
-</body>
-</html>
+<?php require_once __DIR__ . '/../src/views/layout/footer.php'; ?>

@@ -1,12 +1,18 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-$current_page = basename($_SERVER['PHP_SELF']);
+$server_path = null;
+if (isset($_SERVER) && (isset($_SERVER['PHP_SELF']) || isset($_SERVER['SCRIPT_NAME']))) {
+    $server_path = $_SERVER['PHP_SELF'] ?? $_SERVER['SCRIPT_NAME'];
+}
+$current_page = basename($server_path ?: 'index.php');
 
 if (isset($_SESSION['user_id'])) {
     $ruta_agendar = 'agenda.php';
 } else {
-    $ruta_agendar = 'login_paciente.php';
+    $ruta_agendar = 'login.php';
 }
 
 $es_admin = ($_SESSION['role'] ?? '') === 'admin';
@@ -25,68 +31,132 @@ $es_admin = ($_SESSION['role'] ?? '') === 'admin';
         <link rel="stylesheet" href="assets/css/calendar.css">
     <?php endif; ?>
 </head>
-<body>
+<body class="d-flex flex-column min-height-100 bg-light">
 
-<nav class="navbar navbar-expand-lg bg-white sticky-top">
+<nav class="navbar navbar-expand-lg navbar-white bg-white sticky-top py-3 shadow-sm">
     <div class="container">
-        <a class="navbar-brand fw-bold" href="index.php">
-            <i class="bi bi-hospital-fill me-2 text-primary"></i> MEDI<span class="text-primary">AGENDA</span>
+        <a class="navbar-brand d-flex align-items-center" href="index.php">
+            <div class="bg-primary bg-opacity-10 rounded-3 p-2 me-2 text-primary d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                <i class="bi bi-hospital-fill fs-4"></i>
+            </div>
+            <span class="fw-bolder text-dark-blue fs-4 tracking-tight">MediAgenda</span>
         </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+        
+        <button class="navbar-toggler border-0 p-2 shadow-none d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMenu" aria-controls="offcanvasMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
-        <div class="collapse navbar-collapse" id="navbarMain">
-            <ul class="navbar-nav mx-auto">
-                <li class="nav-item"><a class="nav-link" href="index.php">Inicio</a></li>
+        
+        <div class="collapse navbar-collapse d-none d-lg-flex" id="navbarNavDesktop">
+            <ul class="navbar-nav mx-auto gap-2">
                 <li class="nav-item">
-                    <a class="nav-link" href="contacto.php">Contacto</a>
+                    <a class="nav-link rounded-pill px-3 fw-medium <?php echo $current_page === 'index.php' ? 'active text-primary bg-primary bg-opacity-10' : 'text-secondary'; ?>" href="index.php">Inicio</a>
                 </li>
-                <li class="nav-item ms-lg-3">
-                    <a href="<?php echo $ruta_agendar; ?>" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
-                        <i class="bi bi-calendar-check me-2"></i>Agendar Cita
-                    </a>
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill px-3 fw-medium <?php echo $current_page === 'contacto.php' ? 'active text-primary bg-primary bg-opacity-10' : 'text-secondary'; ?>" href="contacto.php">Contacto</a>
                 </li>
+                <?php if (isset($_SESSION['user_id']) && !$es_admin): ?>
+                    <li class="nav-item">
+                        <a class="nav-link rounded-pill px-3 fw-medium <?php echo $current_page === 'agenda.php' ? 'active text-primary bg-primary bg-opacity-10' : 'text-secondary'; ?>" href="agenda.php">Reservar Cita</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link rounded-pill px-3 fw-medium <?php echo $current_page === 'historial.php' ? 'active text-primary bg-primary bg-opacity-10' : 'text-secondary'; ?>" href="historial.php">Historial Médico</a>
+                    </li>
+                <?php endif; ?>
             </ul>
-            <div class="d-flex align-items-center mt-3 mt-lg-0">
-                <?php if (isset($_SESSION['user_name'])): ?>
+            
+            <div class="navbar-nav align-items-center">
+                <?php if (isset($_SESSION['user_id'])): ?>
                     <div class="dropdown">
-                        <button class="btn btn-outline-primary dropdown-toggle rounded-pill px-4 fw-bold"
-                                type="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle me-2"></i>
-                            Hola, <?php echo htmlspecialchars(ucwords(strtolower($_SESSION['user_name']))); ?>
+                        <button class="btn btn-light rounded-pill px-4 dropdown-toggle fw-bold d-flex align-items-center gap-2 border shadow-sm" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle text-primary fs-5"></i>
+                            <?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Usuario'); ?>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2 p-2">
-                            <li><a class="dropdown-item rounded-3" href="agenda.php">
-                                <i class="bi bi-calendar-week me-2 text-primary"></i>Mi Agenda
-                            </a></li>
+                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg mt-2 p-2 rounded-4" style="min-width: 220px;">
                             <?php if ($es_admin): ?>
-                                <li><a class="dropdown-item rounded-3" href="admin.php">
-                                    <i class="bi bi-shield-lock me-2 text-primary"></i>Panel Admin
-                                </a></li>
-                                <li><a class="dropdown-item rounded-3" href="admin_historial.php">
-                                    <i class="bi bi-clock-history me-2 text-primary"></i>Historial de Citas
-                                </a></li>
+                                <li><a class="dropdown-item rounded-3 py-2 fw-medium" href="admin.php"><i class="bi bi-speedometer2 me-2 text-primary"></i>Panel de Citas</a></li>
+                                <li><a class="dropdown-item rounded-3 py-2 fw-medium" href="admin_historial.php"><i class="bi bi-clock-history me-2 text-primary"></i>Historial de Citas</a></li>
+                                <li><a class="dropdown-item rounded-3 py-2 fw-medium" href="admin_consultorios.php"><i class="bi bi-door-open me-2 text-primary"></i>Consultorios</a></li>
+                                <li><a class="dropdown-item rounded-3 py-2 fw-medium" href="admin_equipo.php"><i class="bi bi-people me-2 text-primary"></i>Equipo Médico</a></li>
                             <?php else: ?>
-                                <li><a class="dropdown-item rounded-3" href="historial.php">
-                                    <i class="bi bi-clock-history me-2 text-primary"></i>Historial Médico
-                                </a></li>
+                                <li><a class="dropdown-item rounded-3 py-2 fw-medium" href="agenda.php"><i class="bi bi-calendar-plus me-2 text-primary"></i>Reservar Cita</a></li>
+                                <li><a class="dropdown-item rounded-3 py-2 fw-medium" href="historial.php"><i class="bi bi-clock-history me-2 text-primary"></i>Historial Médico</a></li>
                             <?php endif; ?>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger rounded-3" href="../api/logout.php">
-                                <i class="bi bi-power me-2"></i>Cerrar Sesión
-                            </a></li>
+                            <li><a class="dropdown-item text-danger rounded-3 py-2 fw-bold" href="../api/logout.php"><i class="bi bi-power me-2"></i>Cerrar Sesión</a></li>
                         </ul>
                     </div>
                 <?php else: ?>
-                    <?php if ($current_page !== 'login_paciente.php' && $current_page !== 'login.php'): ?>
-                        <a href="login_paciente.php" class="btn btn-outline-primary rounded-pill px-4 fw-bold">
-                            INICIAR SESIÓN
-                        </a>
+                    <?php if ($current_page !== 'login.php'): ?>
+                        <a href="login.php" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm">INICIAR SESIÓN</a>
                     <?php endif; ?>
                 <?php endif; ?>
             </div>
         </div>
     </div>
 </nav>
+
+<div class="offcanvas offcanvas-end d-lg-none" tabindex="-1" id="offcanvasMenu" aria-labelledby="offcanvasMenuLabel" style="width: 300px;">
+    <div class="offcanvas-header border-bottom bg-light p-4 d-flex flex-column align-items-start">
+        <div class="d-flex justify-content-between w-100 mb-4">
+            <h5 class="offcanvas-title fw-bolder text-primary d-flex align-items-center" id="offcanvasMenuLabel">
+                <i class="bi bi-hospital-fill me-2 fs-3"></i> MediAgenda
+            </h5>
+            <button type="button" class="btn-close shadow-none" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        
+        <?php if (isset($_SESSION['user_id'])): ?>
+        <div class="d-flex align-items-center w-100 mt-2">
+            <div class="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm" style="width: 55px; height: 55px;">
+                <i class="bi bi-person-fill fs-2"></i>
+            </div>
+            <div>
+                <h5 class="fw-bold text-dark mb-0 text-truncate" style="max-width: 170px;"><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Usuario'); ?></h5>
+                <small class="text-secondary fw-medium"><?php echo $es_admin ? 'Administrador' : 'Paciente'; ?></small>
+            </div>
+        </div>
+        <?php endif; ?>
+    </div>
+    
+    <div class="offcanvas-body p-3">
+        <ul class="nav flex-column gap-2">
+            <li class="nav-item">
+                <a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?php echo $current_page === 'index.php' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white'; ?>" href="index.php">
+                    <i class="bi bi-house-door-fill fs-5 me-3 <?php echo $current_page === 'index.php' ? 'text-primary' : 'text-secondary'; ?>"></i> Inicio
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?php echo $current_page === 'contacto.php' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white'; ?>" href="contacto.php">
+                    <i class="bi bi-telephone-fill fs-5 me-3 <?php echo $current_page === 'contacto.php' ? 'text-primary' : 'text-secondary'; ?>"></i> Contacto
+                </a>
+            </li>
+            
+            <?php if (isset($_SESSION['user_id'])): ?>
+                <div class="mt-4 mb-2 text-uppercase text-primary fw-bold small px-2" style="font-size: 0.75rem; letter-spacing: 1px;">Mis Opciones</div>
+                
+                <?php if ($es_admin): ?>
+                    <li class="nav-item"><a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?php echo $current_page === 'admin.php' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white'; ?>" href="admin.php"><i class="bi bi-speedometer2 fs-5 me-3 text-secondary"></i> Panel de Citas</a></li>
+                    <li class="nav-item"><a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?php echo $current_page === 'admin_historial.php' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white'; ?>" href="admin_historial.php"><i class="bi bi-clock-history fs-5 me-3 text-secondary"></i> Historial de Citas</a></li>
+                    <li class="nav-item"><a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?php echo $current_page === 'admin_consultorios.php' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white'; ?>" href="admin_consultorios.php"><i class="bi bi-door-open-fill fs-5 me-3 text-secondary"></i> Consultorios</a></li>
+                    <li class="nav-item"><a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?php echo $current_page === 'admin_equipo.php' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white'; ?>" href="admin_equipo.php"><i class="bi bi-people-fill fs-5 me-3 text-secondary"></i> Equipo Médico</a></li>
+                <?php else: ?>
+                    <li class="nav-item"><a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?php echo $current_page === 'agenda.php' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white'; ?>" href="agenda.php"><i class="bi bi-calendar-plus-fill fs-5 me-3 text-secondary"></i> Reservar Cita</a></li>
+                    <li class="nav-item"><a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?php echo $current_page === 'historial.php' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white'; ?>" href="historial.php"><i class="bi bi-journal-medical fs-5 me-3 text-secondary"></i> Historial Médico</a></li>
+                <?php endif; ?>
+            <?php endif; ?>
+        </ul>
+        
+        <?php if (!isset($_SESSION['user_id'])): ?>
+            <a href="login.php" class="btn btn-primary w-100 rounded-pill py-3 mt-4 fw-bold shadow-sm">INICIAR SESIÓN</a>
+        <?php endif; ?>
+    </div>
+    
+    <?php if (isset($_SESSION['user_id'])): ?>
+    <div class="offcanvas-footer p-4 border-top bg-light">
+         <a href="../api/logout.php" class="btn btn-danger w-100 rounded-pill py-3 fw-bold shadow d-flex align-items-center justify-content-center">
+             <i class="bi bi-power me-2 fs-5"></i> Cerrar Sesión
+         </a>
+    </div>
+    <?php endif; ?>
+</div>
 
 <main>
