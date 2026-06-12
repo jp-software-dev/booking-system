@@ -1,136 +1,63 @@
 <?php
-/**
- * ENDPOINT DE CREACIÓN DE CITAS (VERSIÓN SIMPLIFICADA SIN CORREOS)
- */
-
 session_start();
 require_once '../config/Database.php';
-require_once '../src/Helpers/ValidationHelper.php';
-
-use Helpers\ValidationHelper;
 
 header('Content-Type: application/json');
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
-if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['status' => 'error', 'message' => 'Método no permitido']);
-    exit;
-}
-
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
+    echo json_encode(['status' => 'error', 'message' => 'Sesión no iniciada']);
     exit;
 }
 
 $input = json_decode(file_get_contents('php://input'), true);
-if (!$input) {
-    echo json_encode(['status' => 'error', 'message' => 'Datos inválidos']);
-    exit;
-}
 
-$id_doctor = $input['id_doctor'] ?? 0;
-$id_consultorio = $input['id_consultorio'] ?? null;
-$fecha = $input['fecha_cita'] ?? '';
-$hora = $input['hora_inicio'] ?? ''; 
-$motivo = $input['motivo'] ?? 'Consulta general';
+$id_doctor = !empty($input['id_doctor']) ? (int)$input['id_doctor'] : 0;
+$fecha_cita = $input['fecha_cita'] ?? '';
+$hora_inicio = $input['hora_inicio'] ?? '';
+$motivo = trim($input['motivo'] ?? $input['motivo_consulta'] ?? '');
 $email = trim($input['email'] ?? '');
 
-if (!$id_doctor || !$fecha || !$hora || !$email) {
-    echo json_encode(['status' => 'error', 'message' => 'Datos incompletos']);
-    exit;
-}
-
-if (!ValidationHelper::validateDate($fecha)) {
-    echo json_encode(['status' => 'error', 'message' => 'Fecha inválida']);
-    exit;
-}
-if (!ValidationHelper::validateTime($hora)) {
-    echo json_encode(['status' => 'error', 'message' => 'Hora inválida (use HH:MM)']);
-    exit;
-}
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    echo json_encode(['status' => 'error', 'message' => 'Correo electrónico no válido']);
+if (empty($id_doctor) || empty($fecha_cita) || empty($hora_inicio) || empty($motivo)) {
+    echo json_encode(['status' => 'error', 'message' => 'Faltan datos obligatorios para agendar la cita']);
     exit;
 }
 
 $db = Database::getInstance();
 
 try {
-    $db->beginTransaction();
-
-    $id_paciente = null;
-    $paciente_nombre = '';
-
     if ($_SESSION['role'] === 'admin') {
-        $stmt = $db->prepare("SELECT id_paciente, nombre FROM pacientes WHERE email = ?");
-        $stmt->execute([$email]);
-        $pacienteExistente = $stmt->fetch();
-        if ($pacienteExistente) {
-            $id_paciente = $pacienteExistente['id_paciente'];
-            $paciente_nombre = $pacienteExistente['nombre'];
-        } else {
-            $curp_temp = 'ADMIN' . time() . rand(100, 999);
-            $insert = $db->prepare("INSERT INTO pacientes (curp, nombre, apellido_paterno, apellido_materno, fecha_nacimiento, genero, email) 
-                                    VALUES (?, 'Admin', 'Temp', '', '1990-01-01', 'Otro', ?)");
-            $insert->execute([$curp_temp, $email]);
-            $id_paciente = $db->lastInsertId();
-            $paciente_nombre = 'Admin Temp';
+        if (empty($email)) {
+            echo json_encode(['status' => 'error', 'message' => 'El correo del paciente es obligatorio para el administrador']);
+            exit;
         }
+        $stmtPac = $db->prepare("SELECT id_paciente FROM pacientes WHERE email = ?");
+        $stmtPac->execute([$email]);
+        $paciente = $stmtPac->fetch();
+        if (!$paciente) {
+            echo json_encode(['status' => 'error', 'message' => 'No se encontró ningún paciente registrado con ese correo electrónico']);
+            exit;
+        }
+        $id_paciente = (int)$paciente['id_paciente'];
     } else {
-        $id_paciente = $_SESSION['user_id'];
-        $stmtNom = $db->prepare("SELECT nombre FROM pacientes WHERE id_paciente = ?");
-        $stmtNom->execute([$id_paciente]);
-        $pac = $stmtNom->fetch();
-        $paciente_nombre = $pac['nombre'] ?? 'Paciente';
-
-        $checkEmail = $db->prepare("SELECT id_paciente FROM pacientes WHERE email = ? AND id_paciente != ?");
-        $checkEmail->execute([$email, $id_paciente]);
-        if ($checkEmail->fetch()) {
-            echo json_encode(['status' => 'error', 'message' => 'El correo ya está registrado por otro paciente']);
-            exit;
-        }
-        
-        $limitCheck = $db->prepare("SELECT COUNT(*) FROM citas WHERE id_paciente = ? AND estado_cita IN ('Pendiente', 'Confirmada')");
-        $limitCheck->execute([$id_paciente]);
-        $activeAppointments = $limitCheck->fetchColumn();
-        
-        if ($activeAppointments >= 2) {
-            echo json_encode(['status' => 'error', 'message' => 'Has alcanzado el límite máximo de citas activas permitidas.']);
-            exit;
-        }
-
-        $updatePaciente = $db->prepare("UPDATE pacientes SET email = ? WHERE id_paciente = ?");
-        $updatePaciente->execute([$email, $id_paciente]);
+        $id_paciente = (int)$_SESSION['user_id'];
     }
 
-    $checkDisponible = $db->prepare("SELECT id_cita FROM citas WHERE id_doctor = ? AND fecha_cita = ? AND hora_inicio = ? AND estado_cita != 'Cancelada'");
-    $checkDisponible->execute([$id_doctor, $fecha, $hora]);
-    if ($checkDisponible->fetch()) {
-        echo json_encode(['status' => 'error', 'message' => 'El horario ya no está disponible']);
+    $stmtDoc = $db->prepare("SELECT id_consultorio FROM doctores WHERE id_doctor = ?");
+    $stmtDoc->execute([$id_doctor]);
+    $doctorInfo = $stmtDoc->fetch();
+    $id_consultorio = $doctorInfo ? $doctorInfo['id_consultorio'] : null;
+
+    $stmtCheck = $db->prepare("SELECT COUNT(*) FROM citas WHERE id_doctor = ? AND fecha_cita = ? AND hora_inicio = ? AND estado_cita != 'Cancelada'");
+    $stmtCheck->execute([$id_doctor, $fecha_cita, $hora_inicio]);
+    if ($stmtCheck->fetchColumn() > 0) {
+        echo json_encode(['status' => 'error', 'message' => 'El médico seleccionado ya tiene una cita programada en ese horario']);
         exit;
     }
 
-    $query = "INSERT INTO citas (id_paciente, id_doctor, id_consultorio, fecha_cita, hora_inicio, motivo_consulta, estado_cita) 
-              VALUES (?, ?, ?, ?, ?, ?, 'Pendiente')";
-    $stmt = $db->prepare($query);
-    $stmt->execute([$id_paciente, $id_doctor, $id_consultorio, $fecha, $hora, $motivo]);
-    $id_cita = $db->lastInsertId();
+    $stmtInsert = $db->prepare("INSERT INTO citas (id_paciente, id_doctor, id_consultorio, fecha_cita, hora_inicio, motivo_consulta, estado_cita) VALUES (?, ?, ?, ?, ?, ?, 'Pendiente')");
+    $stmtInsert->execute([$id_paciente, $id_doctor, $id_consultorio, $fecha_cita, $hora_inicio, $motivo]);
 
-    $db->commit();
-
-    echo json_encode(['status' => 'success', 'message' => 'Cita creada exitosamente', 'id_cita' => $id_cita]);
-
-} catch (PDOException $e) {
-    if ($db->inTransaction()) $db->rollBack();
-    error_log("Error PDO en create_cita.php: " . $e->getMessage());
-    echo json_encode(['status' => 'error', 'message' => 'Error de base de datos: ' . $e->getMessage()]);
-    
+    echo json_encode(['status' => 'success', 'message' => 'Cita agendada exitosamente']);
 } catch (Exception $e) {
-    if ($db->inTransaction()) $db->rollBack();
-    error_log("Error en create_cita.php: " . $e->getMessage());
-    echo json_encode(['status' => 'error', 'message' => 'Error: ' . $e->getMessage()]);
+    echo json_encode(['status' => 'error', 'message' => 'Error en el servidor al crear la cita: ' . $e->getMessage()]);
 }
-?>
