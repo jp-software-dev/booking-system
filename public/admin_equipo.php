@@ -1,0 +1,189 @@
+<?php
+require_once __DIR__ . '/../config/config.php';
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') { header("Location: login"); exit(); }
+require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../src/Models/Personal.php';
+require_once __DIR__ . '/../src/views/layout/header.php';
+
+$db = Database::getInstance();
+$personalModel = new Personal($db);
+$equipo = $personalModel->listarEquipoCompleto();
+
+// Cargar catálogos para los selects del Modal
+$especialidades = $db->query("SELECT * FROM especialidades")->fetchAll();
+$consultorios = $db->query("SELECT * FROM consultorios")->fetchAll();
+?>
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <h2 class="fw-bold text-dark-blue mb-0"><i class="bi bi-people-fill text-primary me-2"></i>Equipo Médico y Enfermería</h2>
+            <p class="text-secondary mb-0 mt-1">Directorio y control visual del personal del hospital.</p>
+        </div>
+        <button class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalPersonal">
+            <i class="bi bi-person-plus-fill me-2"></i>Dar de alta
+        </button>
+    </div>
+    
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4 text-secondary fw-bold">Nombre Completo</th>
+                        <th class="text-secondary fw-bold">Puesto</th>
+                        <th class="text-secondary fw-bold">Especialidad / Turno</th>
+                        <th class="text-secondary fw-bold text-center">Consultorio</th>
+                        <th class="text-secondary fw-bold pe-4 text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="border-top-0">
+                    <?php foreach ($equipo as $miembro): 
+                        $badgeClass = $miembro['puesto'] === 'Doctor' ? 'bg-primary' : 'bg-info text-dark';
+                    ?>
+                    <tr>
+                        <td class="ps-4 py-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-light rounded-circle p-2 me-3 text-center" style="width: 40px; height: 40px;"><i class="bi <?php echo $miembro['puesto'] === 'Doctor' ? 'bi-heart-pulse-fill text-primary' : 'bi-bandaid-fill text-info'; ?>"></i></div>
+                                <span class="fw-bold text-dark"><?php echo htmlspecialchars($miembro['nombre'] . ' ' . $miembro['apellido_paterno']); ?></span>
+                            </div>
+                        </td>
+                        <td><span class="badge rounded-pill <?php echo $badgeClass; ?> px-3"><?php echo htmlspecialchars($miembro['puesto']); ?></span></td>
+                        <td class="text-secondary"><?php echo htmlspecialchars($miembro['detalle']); ?></td>
+                        <td class="text-center"><?php if ($miembro['id_consultorio']): ?><span class="fw-bold text-dark-blue">#<?php echo $miembro['id_consultorio']; ?></span><?php else: ?><span class="text-muted fst-italic">N/A</span><?php endif; ?></td>
+                        <td class="pe-4 text-end">
+                            <button class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="darDeBaja(<?php echo $miembro['id']; ?>, '<?php echo $miembro['puesto']; ?>')">
+                                <i class="bi bi-person-x-fill me-1"></i>Baja
+                            </button>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalPersonal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 bg-primary text-white rounded-top-4">
+                <h5 class="modal-title fw-bold"><i class="bi bi-person-plus-fill me-2"></i> Alta de Personal</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formAddPersonal">
+                <div class="modal-body p-4">
+                    <div id="alertaPersonal"></div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small">Tipo de Personal</label>
+                        <select name="tipo" id="select_tipo" class="form-select" onchange="toggleCampos()" required>
+                            <option value="doctor">Doctor(a)</option>
+                            <option value="enfermero">Enfermero(a)</option>
+                        </select>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-secondary small">Nombre(s)</label>
+                            <input type="text" name="nombre" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-secondary small">Apellido Paterno</label>
+                            <input type="text" name="apellido_paterno" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3" id="campo_especialidad">
+                        <label class="form-label fw-bold text-secondary small">Especialidad</label>
+                        <select name="id_especialidad" class="form-select">
+                            <?php foreach ($especialidades as $esp): ?>
+                                <option value="<?php echo $esp['id_especialidad']; ?>"><?php echo htmlspecialchars($esp['nombre_especialidad']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="mb-3 d-none" id="campo_turno">
+                        <label class="form-label fw-bold text-secondary small">Turno</label>
+                        <select name="turno" class="form-select">
+                            <option value="Matutino">Matutino</option>
+                            <option value="Vespertino">Vespertino</option>
+                            <option value="Nocturno">Nocturno</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary small">Consultorio Asignado (Opcional)</label>
+                        <select name="id_consultorio" class="form-select">
+                            <option value="">Sin asignar / Disponibilidad flotante</option>
+                            <?php foreach ($consultorios as $cons): ?>
+                                <option value="<?php echo $cons['id_consultorio']; ?>"><?php echo htmlspecialchars($cons['nombre']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 bg-light rounded-bottom-4">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" id="btnGuardarPersonal">Guardar Miembro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleCampos() {
+    const tipo = document.getElementById('select_tipo').value;
+    if (tipo === 'doctor') {
+        document.getElementById('campo_especialidad').classList.remove('d-none');
+        document.getElementById('campo_turno').classList.add('d-none');
+    } else {
+        document.getElementById('campo_especialidad').classList.add('d-none');
+        document.getElementById('campo_turno').classList.remove('d-none');
+    }
+}
+
+document.getElementById('formAddPersonal').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btnGuardarPersonal');
+    btn.disabled = true; btn.innerHTML = 'Guardando...';
+    
+    const formData = new FormData(e.target);
+    const dataObj = Object.fromEntries(formData);
+    
+    try {
+        const res = await fetch('../api/add_personal.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dataObj)
+        });
+        const data = await res.json();
+        
+        if (data.status === 'success') {
+            location.reload();
+        } else {
+            document.getElementById('alertaPersonal').innerHTML = `<div class="alert alert-danger py-2 small">${data.message}</div>`;
+        }
+    } catch(err) {
+        document.getElementById('alertaPersonal').innerHTML = `<div class="alert alert-danger py-2 small">Error de red</div>`;
+    }
+    btn.disabled = false; btn.innerHTML = 'Guardar Miembro';
+});
+
+async function darDeBaja(id, tipo) {
+    if (!confirm(`¿Estás seguro de que deseas dar de baja a este ${tipo}?`)) return;
+    
+    try {
+        const res = await fetch('../api/delete_personal.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id, tipo: tipo })
+        });
+        const data = await res.json();
+        if (data.status === 'success') location.reload();
+        else alert('Error: ' + data.message);
+    } catch(err) {
+        alert('Error de conexión');
+    }
+}
+</script>
+<?php require_once __DIR__ . '/../src/views/layout/footer.php'; ?>
