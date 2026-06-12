@@ -27,7 +27,7 @@ try {
               INNER JOIN pacientes p ON c.id_paciente = p.id_paciente
               INNER JOIN doctores d ON c.id_doctor = d.id_doctor
               WHERE c.estado_cita IN ('Pendiente', 'Confirmada')
-                AND c.fecha_cita >= CURDATE()";
+                AND (c.fecha_cita > CURDATE() OR (c.fecha_cita = CURDATE() AND c.hora_inicio > CURTIME()))";
 
     $stmt = $db->prepare($query);
     $stmt->execute();

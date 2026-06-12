@@ -14,7 +14,7 @@ require_once '../config/Database.php';
 header('Content-Type: application/json');
 
 // VALIDADOR DE MÉTODO: Bloquea accesos directos que no sean por POST.
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') { // @phpstan-ignore-line
     echo json_encode(['status' => 'error', 'message' => 'Método no permitido']);
     exit;
 }

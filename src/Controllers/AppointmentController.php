@@ -35,16 +35,14 @@ class AppointmentController {
         }
 
         if (!DateTime::createFromFormat('Y-m-d', $data['fecha_cita'])) {
-            return ['status' => 'error', 'message' => 'Fecha inválida'];
+            return ['status' => 'error', 'message' => 'Formato de fecha inválido'];
         }
-
-        if (!DateTime::createFromFormat('H:i', $data['hora_inicio'])) {
-            return ['status' => 'error', 'message' => 'Hora inválida (use HH:MM)'];
+        if (!preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $data['hora_inicio'])) {
+            return ['status' => 'error', 'message' => 'Formato de hora inválido'];
         }
 
         try {
-            // VERIFICACIÓN DE DISPONIBILIDAD: Consulta si el doctor tiene el horario libre.
-            $disponible = $this->citaModel->verificarDisponibilidad($data['id_doctor'], $data['fecha_cita'], $data['hora_inicio']);
+            $disponible = $this->citaModel->verificarDisponibilidad((int)$data['id_doctor'], $data['fecha_cita'], $data['hora_inicio']);
             
             if (!$disponible) {
                 return ['status' => 'error', 'message' => 'El horario ya no está disponible'];

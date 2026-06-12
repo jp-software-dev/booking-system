@@ -53,20 +53,23 @@ class ValidationHelper
             '4' => 4, '5' => 5, '6' => 6, '7' => 7, '8' => 8, '9' => 9
         ];
 
-        $digitos = substr($curp, 0, 17);
         $suma = 0;
         for ($i = 0; $i < 17; $i++) {
-            $caracter = $digitos[$i];
-            $valor = $valores[$caracter] ?? 0;
-            $factor = 18 - $i;
-            $suma += $valor * $factor;
+            $char = $curp[$i];
+            if (!isset($valores[$char])) {
+                return false;
+            }
+            $suma += $valores[$char] * (18 - $i);
         }
 
-        $residuo = $suma % 10;
-        $digitoEsperado = $residuo == 0 ? 0 : 10 - $residuo;
-        $digitoReal = intval(substr($curp, 17, 1));
+        $digitoCalculado = 10 - ($suma % 10);
+        if ($digitoCalculado == 10) {
+            $digitoCalculado = 0;
+        }
 
-        return $digitoEsperado === $digitoReal;
+        $digitoProporcionado = (int)$curp[17];
+
+        return $digitoCalculado === $digitoProporcionado;
     }
 }
 ?>

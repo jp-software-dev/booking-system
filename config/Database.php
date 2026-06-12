@@ -25,7 +25,8 @@ class Database {
                 [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES => false
+                    PDO::ATTR_EMULATE_PREPARES => false, // SEGURIDAD: Previene inyecciones SQL forzando consultas preparadas reales
+                    PDO::ATTR_PERSISTENT => true // SEGURIDAD/RENDIMIENTO: Conexiones persistentes para mitigar saturación por bots
                 ]
             );
         } catch (PDOException $e) {

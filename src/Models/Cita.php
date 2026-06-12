@@ -34,17 +34,17 @@ class Cita {
     // CREADOR DE CITAS: Recibe un arreglo de información validada e inserta un nuevo registro.
     public function agendar(array $data): bool {
         
-        $query = "INSERT INTO citas (id_paciente, id_doctor, fecha_cita, hora_inicio, motivo_consulta, estado_cita) 
-                  VALUES (?, ?, ?, ?, ?, 'Pendiente')";
-                  
-        $stmt = $this->conn->prepare($query);
+        $query = "INSERT INTO citas (id_paciente, id_doctor, id_consultorio, fecha_cita, hora_inicio, motivo_consulta, estado_cita) 
+                  VALUES (?, ?, ?, ?, ?, ?, 'Pendiente')";
         
+        $stmt = $this->conn->prepare($query);
         return $stmt->execute([
-            $data['id_paciente'],
-            $data['id_doctor'],
-            $data['fecha_cita'],
-            $data['hora_inicio'],
-            $data['motivo'] ?? ''
+            $data['id_paciente'], 
+            $data['id_doctor'], 
+            $data['id_consultorio'] ?? null,
+            $data['fecha_cita'], 
+            $data['hora_inicio'], 
+            $data['motivo_consulta'] ?? 'Consulta general'
         ]);
     }
 
@@ -59,9 +59,11 @@ class Cita {
     public function obtenerPorPaciente(int $id_paciente): array {
         
         $query = "SELECT c.id_cita, c.fecha_cita, c.hora_inicio, c.motivo_consulta, c.estado_cita,
-                         d.nombre AS doctor_nombre, d.apellido_paterno AS doctor_ap
+                         d.nombre AS doctor_nombre, d.apellido_paterno AS doctor_ap,
+                         co.nombre AS consultorio_nombre
                   FROM citas c
                   INNER JOIN doctores d ON c.id_doctor = d.id_doctor
+                  LEFT JOIN consultorios co ON c.id_consultorio = co.id_consultorio
                   WHERE c.id_paciente = ?
                   ORDER BY c.fecha_cita DESC, c.hora_inicio DESC";
                   
@@ -74,11 +76,10 @@ class Cita {
     // BORRADO LÓGICO: Modifica el estado de una cita a 'Cancelada' (Soft Delete).
     public function cancelar(int $id_cita, int $id_paciente): bool {
         
-        $query = "UPDATE citas SET estado_cita = 'Cancelada' WHERE id_cita = ? AND id_paciente = ? AND estado_cita != 'Cancelada'";
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute([$id_cita, $id_paciente]);
+        $query = "UPDATE citas SET estado_cita = 'Cancelada' WHERE id_cita = ? AND id_paciente = ?";
         
-        return $stmt->rowCount() > 0;
+        $stmt = $this->conn->prepare($query);
+        return $stmt->execute([$id_cita, $id_paciente]);
     }
 }
 ?>

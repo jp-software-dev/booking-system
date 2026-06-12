@@ -11,12 +11,11 @@ use Helpers\ValidationHelper;
 
 header('Content-Type: application/json');
 
-// Mostrar errores temporalmente
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['status' => 'error', 'message' => 'Método no permitido']);
     exit;
 }
@@ -33,6 +32,7 @@ if (!$input) {
 }
 
 $id_doctor = $input['id_doctor'] ?? 0;
+$id_consultorio = $input['id_consultorio'] ?? null;
 $fecha = $input['fecha_cita'] ?? '';
 $hora = $input['hora_inicio'] ?? ''; 
 $motivo = $input['motivo'] ?? 'Consulta general';
@@ -73,8 +73,8 @@ try {
             $paciente_nombre = $pacienteExistente['nombre'];
         } else {
             $curp_temp = 'ADMIN' . time() . rand(100, 999);
-            $insert = $db->prepare("INSERT INTO pacientes (curp, nombre, apellido_paterno, apellido_materno, edad, genero, email) 
-                                    VALUES (?, 'Admin', 'Temp', '', 0, 'Otro', ?)");
+            $insert = $db->prepare("INSERT INTO pacientes (curp, nombre, apellido_paterno, apellido_materno, fecha_nacimiento, genero, email) 
+                                    VALUES (?, 'Admin', 'Temp', '', '1990-01-01', 'Otro', ?)");
             $insert->execute([$curp_temp, $email]);
             $id_paciente = $db->lastInsertId();
             $paciente_nombre = 'Admin Temp';
@@ -92,11 +92,20 @@ try {
             echo json_encode(['status' => 'error', 'message' => 'El correo ya está registrado por otro paciente']);
             exit;
         }
+        
+        $limitCheck = $db->prepare("SELECT COUNT(*) FROM citas WHERE id_paciente = ? AND estado_cita IN ('Pendiente', 'Confirmada')");
+        $limitCheck->execute([$id_paciente]);
+        $activeAppointments = $limitCheck->fetchColumn();
+        
+        if ($activeAppointments >= 2) {
+            echo json_encode(['status' => 'error', 'message' => 'Has alcanzado el límite máximo de citas activas permitidas.']);
+            exit;
+        }
+
         $updatePaciente = $db->prepare("UPDATE pacientes SET email = ? WHERE id_paciente = ?");
         $updatePaciente->execute([$email, $id_paciente]);
     }
 
-    // Verificar disponibilidad
     $checkDisponible = $db->prepare("SELECT id_cita FROM citas WHERE id_doctor = ? AND fecha_cita = ? AND hora_inicio = ? AND estado_cita != 'Cancelada'");
     $checkDisponible->execute([$id_doctor, $fecha, $hora]);
     if ($checkDisponible->fetch()) {
@@ -104,11 +113,10 @@ try {
         exit;
     }
 
-    // Insertar cita
-    $query = "INSERT INTO citas (id_paciente, id_doctor, fecha_cita, hora_inicio, motivo_consulta, estado_cita) 
-              VALUES (?, ?, ?, ?, ?, 'Pendiente')";
+    $query = "INSERT INTO citas (id_paciente, id_doctor, id_consultorio, fecha_cita, hora_inicio, motivo_consulta, estado_cita) 
+              VALUES (?, ?, ?, ?, ?, ?, 'Pendiente')";
     $stmt = $db->prepare($query);
-    $stmt->execute([$id_paciente, $id_doctor, $fecha, $hora, $motivo]);
+    $stmt->execute([$id_paciente, $id_doctor, $id_consultorio, $fecha, $hora, $motivo]);
     $id_cita = $db->lastInsertId();
 
     $db->commit();

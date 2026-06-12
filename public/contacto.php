@@ -1,19 +1,9 @@
 <?php
-/**
- * VISTA DE CONTACTO
- *
- * Interfaz dedicada a mostrar la información de ubicación, medios de comunicación
- * y horarios de operación de la clínica.
- *
- * @requires session_start
- * @requires src/views/layout/header.php
- */
-
 session_start();
 
 require_once '../src/views/layout/header.php';
 
-$ruta_agendar = isset($_SESSION['user_id']) ? 'agenda.php' : 'login_paciente.php';
+$ruta_agendar = isset($_SESSION['user_id']) ? 'agenda.php' : 'login.php';
 ?>
 
 <div class="container py-5" style="min-height: 85vh;">
@@ -29,7 +19,6 @@ $ruta_agendar = isset($_SESSION['user_id']) ? 'agenda.php' : 'login_paciente.php
             <div class="card border-0 shadow-sm h-100 rounded-4 p-4">
                 <h4 class="fw-bold text-dark-blue mb-4">Detalles de Contacto</h4>
                 
-                <!-- UBICACIÓN CORREGIDA -->
                 <div class="d-flex align-items-center mb-4">
                     <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary me-4">
                         <i class="bi bi-geo-alt-fill fs-3"></i>
@@ -56,7 +45,7 @@ $ruta_agendar = isset($_SESSION['user_id']) ? 'agenda.php' : 'login_paciente.php
                     </div>
                     <div>
                         <h6 class="fw-bold text-dark mb-1">Correo Electrónico</h6>
-                        <p class="text-secondary mb-0 small">contacto@agendamedica.mx</p>
+                        <p class="text-secondary mb-0 small">sistema.mediagenda@gmail.com</p>
                     </div>
                 </div>
             </div>
@@ -69,11 +58,11 @@ $ruta_agendar = isset($_SESSION['user_id']) ? 'agenda.php' : 'login_paciente.php
                 
                 <div class="d-flex justify-content-between mb-3 border-bottom border-light border-opacity-25 pb-3">
                     <span class="fs-6 fw-medium">Lunes - Viernes</span>
-                    <span class="fw-bold fs-6">07:00 AM - 08:00 PM</span>
+                    <span class="fw-bold fs-6">07:00 AM - 12:00 PM</span>
                 </div>
                 <div class="d-flex justify-content-between mb-3 border-bottom border-light border-opacity-25 pb-3">
                     <span class="fs-6 fw-medium">Sábados</span>
-                    <span class="fw-bold fs-6">08:00 AM - 02:00 PM</span>
+                    <span class="fw-bold fs-6">07:00 AM - 12:00 PM</span>
                 </div>
                 <div class="d-flex justify-content-between mb-5">
                     <span class="fs-6 fw-medium">Domingos</span>

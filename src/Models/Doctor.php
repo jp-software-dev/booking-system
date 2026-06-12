@@ -19,13 +19,14 @@ class Doctor {
         $this->conn = $db;
     }
 
-    // MÉTODO DE LECTURA: Retorna un arreglo con los datos de los doctores disponibles.
+    // MÉTODO DE LECTURA: Retorna un arreglo con los datos de los doctores disponibles y su consultorio asignado.
     public function listarActivos(): array {
         
-        $query = "SELECT id_doctor, nombre, apellido_paterno 
-                  FROM doctores 
-                  WHERE estado = 1 
-                  ORDER BY nombre ASC";
+        $query = "SELECT d.id_doctor, d.nombre, d.apellido_paterno, c.nombre as consultorio_nombre 
+                  FROM doctores d
+                  LEFT JOIN consultorios c ON d.id_consultorio = c.id_consultorio
+                  WHERE d.estado = 1 
+                  ORDER BY d.nombre ASC";
                   
         $stmt = $this->conn->query($query);
         

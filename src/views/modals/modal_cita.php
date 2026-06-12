@@ -11,37 +11,39 @@
                 <div class="modal-body p-4">
                     <div class="row g-3">
                         <div class="col-md-12">
-                            <label for="curp" class="form-label fw-bold text-secondary">CURP</label>
-                            <input type="text" name="curp" id="curp" class="form-control" required>
+                            <label for="email" class="form-label fw-bold text-secondary">Correo Electrónico</label>
+                            <input type="email" name="email" id="email" class="form-control" required value="<?php echo htmlspecialchars(isset($_SESSION['role']) && $_SESSION['role'] === 'paciente' ? ($_SESSION['email'] ?? '') : ''); ?>">
                         </div>
-                        <div class="col-md-4">
-                            <label for="nombre" class="form-label fw-bold text-secondary">Nombre</label>
-                            <input type="text" name="nombre" id="nombre" class="form-control" required>
+                        <div class="col-md-12">
+                            <label for="id_doctor" class="form-label fw-bold text-secondary">Médico Especialista</label>
+                            <select name="id_doctor" id="id_doctor" class="form-select" required>
+                                <option value="">Seleccione un médico...</option>
+                                <?php if(isset($doctores)) { foreach ($doctores as $doc): ?>
+                                    <option value="<?php echo $doc['id_doctor']; ?>">
+                                        Dr. <?php echo htmlspecialchars($doc['nombre'] . ' ' . $doc['apellido_paterno']); ?>
+                                    </option>
+                                <?php endforeach; } ?>
+                            </select>
                         </div>
-                        <div class="col-md-4">
-                            <label for="apellido_p" class="form-label fw-bold text-secondary">Apellido Paterno</label>
-                            <input type="text" name="apellido_p" id="apellido_p" class="form-control" required>
+                        <?php if(isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                        <div class="col-md-12">
+                            <label for="id_consultorio" class="form-label fw-bold text-secondary">Asignar Consultorio</label>
+                            <select name="id_consultorio" id="id_consultorio" class="form-select" required>
+                                <option value="">Seleccione un consultorio...</option>
+                                <option value="1">Consultorio 1 (Habitación 101)</option>
+                                <option value="2">Consultorio 2 (Habitación 102)</option>
+                                <option value="3">Consultorio 3 (Habitación 103)</option>
+                                <option value="4">Consultorio 4 (Habitación 104)</option>
+                                <option value="5">Consultorio 5 (Habitación 105)</option>
+                            </select>
                         </div>
-                        <div class="col-md-4">
-                            <label for="apellido_m" class="form-label fw-bold text-secondary">Apellido Materno</label>
-                            <input type="text" name="apellido_m" id="apellido_m" class="form-control" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="edad" class="form-label fw-bold text-secondary">Edad</label>
-                            <input type="number" name="edad" id="edad" class="form-control" required>
-                        </div>
-                        <div class="col-md-9">
-                            <label for="email" class="form-label fw-bold text-secondary">Email</label>
-                            <input type="email" name="email" id="email" class="form-control" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="id_doctor" class="form-label fw-bold text-secondary">Doctor</label>
-                            <select name="id_doctor" id="id_doctor" class="form-select" required></select>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="hora_inicio" class="form-label fw-bold text-secondary">Hora</label>
+                        <?php endif; ?>
+                        <div class="col-md-12">
+                            <label for="form_hora" class="form-label fw-bold text-secondary">Horario Disponible</label>
                             <select name="hora_inicio" id="form_hora" class="form-select" required>
-                                <option value="">Selecciona una hora</option>
+                                <option value="">Seleccione una hora...</option>
+                                <option value="07:00">07:00 AM</option>
+                                <option value="07:30">07:30 AM</option>
                                 <option value="08:00">08:00 AM</option>
                                 <option value="08:30">08:30 AM</option>
                                 <option value="09:00">09:00 AM</option>
@@ -67,15 +69,17 @@
                                 <option value="19:00">07:00 PM</option>
                                 <option value="19:30">07:30 PM</option>
                                 <option value="20:00">08:00 PM</option>
-                                <option value="20:30">08:30 PM</option>
-                                <option value="21:00">09:00 PM</option>
                             </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="motivo" class="form-label fw-bold text-secondary">Motivo (opcional)</label>
+                            <textarea name="motivo" id="motivo" class="form-control" rows="3"></textarea>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4">Agendar</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">Agendar Cita</button>
                 </div>
             </form>
         </div>

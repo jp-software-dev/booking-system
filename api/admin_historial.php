@@ -31,6 +31,7 @@ try {
               FROM citas c
               JOIN pacientes p ON c.id_paciente = p.id_paciente
               JOIN doctores d ON c.id_doctor = d.id_doctor
+              WHERE c.estado_cita IN ('Completada', 'Cancelada')
               ORDER BY c.fecha_cita DESC, c.hora_inicio DESC";
     
     $stmt = $db->query($query);
@@ -38,10 +39,10 @@ try {
     
     echo json_encode(['status' => 'success', 'data' => $citas]);
 
-// MANEJO DE EXCEPCIONES: Captura fallos en la base de datos, registra el error interno y devuelve un mensaje genérico al cliente.
+// MANEJO DE EXCEPCIONES: Captura fallos en la base de datos, registra el error interno y...
 } catch (Exception $e) {
     error_log("Error en admin_historial.php: " . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['status' => 'error', 'message' => 'Error interno del servidor al procesar la solicitud.']);
+    echo json_encode(['error' => 'Error interno del servidor']);
 }
 ?>
