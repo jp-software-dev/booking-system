@@ -33,6 +33,7 @@ if (RateLimiter::tooManyAttempts($rateLimitKey, 3, 3600)) {
 if (!CsrfHelper::validateToken($_POST['csrf_token'] ?? null)) {
     http_response_code(403);
     echo json_encode(['status' => 'error', 'message' => 'Token de seguridad inválido. Recarga la página.']);
+    exit;
 }
 
 // === SANITIZACIÓN ===
