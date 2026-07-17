@@ -28,17 +28,15 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 $db = Database::getInstance();
 
 try {
-    // CONTEO TOTAL: Obtiene el número absoluto de todas las citas registradas.
-    $totalStmt = $db->query("SELECT COUNT(*) FROM citas");
-    $total = $totalStmt->fetchColumn();
-
-    // CONTEO PENDIENTES: Cuenta específicamente las citas que requieren atención.
-    $pendientesStmt = $db->prepare("SELECT COUNT(*) FROM citas WHERE estado_cita = 'Pendiente'");
-    $pendientesStmt->execute();
-    $pendientes = $pendientesStmt->fetchColumn();
+    // CONTEO EFICIENTE: Obtiene ambas métricas en una sola consulta.
+    $stmt = $db->query("SELECT 
+                            COUNT(*) AS total, 
+                            SUM(CASE WHEN estado_cita = 'Pendiente' THEN 1 ELSE 0 END) AS pendientes 
+                        FROM citas");
+    $metrics = $stmt->fetch(PDO::FETCH_ASSOC);
 
     // RESPUESTA EXITOSA: Convierte los resultados a enteros y los envía al frontend.
-    echo json_encode(['total' => (int)$total, 'pendientes' => (int)$pendientes]);
+    echo json_encode(['total' => (int)($metrics['total'] ?? 0), 'pendientes' => (int)($metrics['pendientes'] ?? 0)]);
 
 } catch (Exception $e) {
     // MANEJO DE ERRORES: Registra el fallo y envía un código de error HTTP 500.

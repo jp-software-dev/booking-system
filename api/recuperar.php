@@ -43,11 +43,11 @@ try {
 
     $resultadoEnvio = Mailer::enviarCorreo($email, $asunto, $mensaje);
     
-    if ($resultadoEnvio === true) {
-        echo json_encode(['status' => 'success', 'message' => 'Si el correo existe, se ha enviado un enlace para restablecer tu contraseña.']);
-    } else {
-        echo json_encode(['status' => 'error', 'message' => 'Error al enviar el correo de recuperación.']);
+    if ($resultadoEnvio !== true) {
+        // Es importante registrar el fallo, pero no exponerlo al cliente para no revelar si un correo existe o no.
+        error_log("Error al enviar el correo de recuperación para el email: " . $email);
     }
+    echo json_encode(['status' => 'success', 'message' => 'Si el correo existe, se ha enviado un enlace para restablecer tu contraseña.']);
 } catch (Exception $e) {
     error_log("Error en recuperar.php: " . $e->getMessage());
     echo json_encode(['status' => 'error', 'message' => 'Error interno del servidor']);

@@ -30,34 +30,45 @@ if (empty($token) || empty($password) || strlen($password) < 8) {
     exit;
 }
 
-$db = Database::getInstance();
+try {
+    $db = Database::getInstance();
+    $db->beginTransaction();
 
-// VERIFICACIÓN DE TOKEN: Consulta que el token exista, esté vigente y no se haya usado.
-$stmt = $db->prepare("SELECT email FROM password_resets WHERE token = ? AND expira > NOW() AND usado = 0");
-$stmt->execute([$token]);
-$reset = $stmt->fetch();
+    // VERIFICACIÓN DE TOKEN: Consulta que el token exista, esté vigente y no se haya usado.
+    $stmt = $db->prepare("SELECT email FROM password_resets WHERE token = ? AND expira > NOW() AND usado = 0 FOR UPDATE");
+    $stmt->execute([$token]);
+    $reset = $stmt->fetch();
 
-// PROTECCIÓN CONTRA REUSO: Bloquea el intento si el token es inválido, viejo o ya se usó.
-if (!$reset) {
-    echo json_encode(['status' => 'error', 'message' => 'El enlace es inválido o ha expirado.']);
-    exit;
+    // PROTECCIÓN CONTRA REUSO: Bloquea el intento si el token es inválido, viejo o ya se usó.
+    if (!$reset) {
+        $db->rollBack();
+        echo json_encode(['status' => 'error', 'message' => 'El enlace es inválido o ha expirado.']);
+        exit;
+    }
+
+    $email = $reset['email'];
+
+    // ENCRIPTACIÓN: Transforma la nueva contraseña en un hash criptográfico irreversible.
+    $hash = password_hash($password, PASSWORD_DEFAULT);
+
+    // ACTUALIZACIÓN DE CREDENCIALES: Actualiza la contraseña en la tabla de credenciales.
+    $update = $db->prepare("UPDATE pacientes_credenciales pc 
+                             JOIN pacientes p ON pc.id_paciente = p.id_paciente 
+                             SET pc.password_hash = ? 
+                             WHERE p.email = ?");
+    $update->execute([$hash, $email]);
+
+    // INVALIDACIÓN DE TOKEN: Marca el token como usado para que no pueda reutilizarse.
+    $usar = $db->prepare("UPDATE password_resets SET usado = 1 WHERE token = ?");
+    $usar->execute([$token]);
+
+    $db->commit();
+    echo json_encode(['status' => 'success', 'message' => 'Contraseña actualizada correctamente. Redirigiendo al login...']);
+} catch (Exception $e) {
+    if (isset($db) && $db->inTransaction()) {
+        $db->rollBack();
+    }
+    error_log("Error en restablecer.php: " . $e->getMessage());
+    echo json_encode(['status' => 'error', 'message' => 'Error al procesar la solicitud.']);
 }
-
-$email = $reset['email'];
-
-// ENCRIPTACIÓN: Transforma la nueva contraseña en un hash criptográfico irreversible.
-$hash = password_hash($password, PASSWORD_DEFAULT);
-
-// ACTUALIZACIÓN DE CREDENCIALES: Actualiza la contraseña en la tabla de credenciales.
-$update = $db->prepare("UPDATE pacientes_credenciales pc 
-                         JOIN pacientes p ON pc.id_paciente = p.id_paciente 
-                         SET pc.password_hash = ? 
-                         WHERE p.email = ?");
-$update->execute([$hash, $email]);
-
-// INVALIDACIÓN DE TOKEN: Marca el token como usado para que no pueda reutilizarse.
-$usar = $db->prepare("UPDATE password_resets SET usado = 1 WHERE token = ?");
-$usar->execute([$token]);
-
-echo json_encode(['status' => 'success', 'message' => 'Contraseña actualizada correctamente. Redirigiendo al login...']);
 ?>

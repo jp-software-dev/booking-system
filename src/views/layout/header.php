@@ -17,7 +17,7 @@ if (isset($_SESSION['user_id'])) {
 
 $es_admin = ($_SESSION['role'] ?? '') === 'admin';
 
-require_once __DIR__ . '/../../src/Helpers/CsrfHelper.php';
+require_once __DIR__ . '/../../Helpers/CsrfHelper.php';
 use Helpers\CsrfHelper;
 
 if (isset($_SESSION['user_id'])) {
