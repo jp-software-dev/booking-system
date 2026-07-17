@@ -6,10 +6,14 @@
  * con redacción optimizada y clara hacia el paciente.
  */
 
+session_start();
+
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../src/Helpers/Mailer.php';
+require_once __DIR__ . '/../src/Helpers/CsrfHelper.php';
 
+use Helpers\CsrfHelper;
 use Helpers\Mailer;
 
 header('Content-Type: application/json');
@@ -26,6 +30,14 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 
 $input = json_decode(file_get_contents('php://input'), true);
 $id_cita = $input['id_cita'] ?? 0;
+
+$headers = getallheaders();
+$csrfToken = $headers['X-CSRF-Token'] ?? ($input['csrf_token'] ?? null);
+if (!CsrfHelper::validateToken($csrfToken)) {
+    http_response_code(403);
+    echo json_encode(['status' => 'error', 'message' => 'Token de seguridad inválido']);
+    exit;
+}
 $estado = $input['estado'] ?? '';
 
 if (!$id_cita || empty($estado)) {
@@ -98,5 +110,6 @@ try {
     if (isset($db) && $db->inTransaction()) {
         $db->rollBack();
     }
-    echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    error_log("Error en update_status.php: " . $e->getMessage());
+    echo json_encode(['status' => 'error', 'message' => 'Error al actualizar el estado de la cita']);
 }

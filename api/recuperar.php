@@ -49,5 +49,6 @@ try {
         echo json_encode(['status' => 'error', 'message' => 'Error al enviar el correo de recuperación.']);
     }
 } catch (Exception $e) {
-    echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    error_log("Error en recuperar.php: " . $e->getMessage());
+    echo json_encode(['status' => 'error', 'message' => 'Error interno del servidor']);
 }
