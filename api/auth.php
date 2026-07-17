@@ -52,48 +52,52 @@ try {
         exit;
     }
 
-    // FLUJO DE ADMINISTRADOR: Detecta si la petición contiene un "usuario" para el panel de control.
+    // --- MITIGACIÓN DE ATAQUES DE TEMPORIZACIÓN ---
+    // 1. BUSCAR USUARIO Y OBTENER HASH
+    // Se intenta localizar al usuario (admin o paciente) y se obtiene su hash real.
+    // Si no se encuentra, se usa un hash falso para asegurar que la función password_verify() siempre se ejecute.
+    $user = null;
+    $hash_a_verificar = '$2y$10$N9qo8uLOickgx2ZMRZoMye.aA.dFcF/i5jP3l4vX2b8HYu34K9Q5u'; // Hash pre-generado de una cadena aleatoria.
+
     $stmtAdmin = $db->prepare("SELECT id_usuario, usuario, nombre, password_hash, rol 
                                FROM usuarios WHERE LOWER(usuario) = LOWER(?)");
     $stmtAdmin->execute([$identificador]);
-    $userAdmin = $stmtAdmin->fetch();
+    $user = $stmtAdmin->fetch();
 
-    // VERIFICACIÓN ADMIN: Evalúa si el usuario existe y si la contraseña coincide con el hash.
-    if ($userAdmin && password_verify($password, $userAdmin['password_hash'])) {
-        // SEGURIDAD DE SESIÓN: Regenera el ID de sesión para prevenir ataques de fijación.
-        session_regenerate_id(true);
-        $_SESSION['user_id'] = $userAdmin['id_usuario'];
-        $_SESSION['user_name'] = $userAdmin['nombre'];
-        $_SESSION['role'] = $userAdmin['rol'];
-        RateLimiter::resetAttempts($rateLimitKey);
-        
-        echo json_encode(['success' => true, 'role' => $userAdmin['rol'], 'redirect' => 'admin.php']);
-        exit;
+    if (!$user) {
+        $stmtPac = $db->prepare("SELECT p.id_paciente, p.nombre, pc.password_hash 
+                                 FROM pacientes p 
+                                 INNER JOIN pacientes_credenciales pc ON p.id_paciente = pc.id_paciente 
+                                 WHERE p.email = ?");
+        $stmtPac->execute([$identificador]);
+        $user = $stmtPac->fetch();
+        if ($user) {
+            $user['role'] = 'paciente'; // Se añade el rol para unificar la estructura del objeto.
+        }
     }
 
-    // FLUJO DE PACIENTE: Detecta si la petición contiene un "email" para el portal público.
-    // CONSULTA PACIENTE: Busca el correo uniendo la tabla de datos personales con la de credenciales.
-    $stmtPac = $db->prepare("SELECT p.id_paciente, p.nombre, pc.password_hash 
-                             FROM pacientes p 
-                             INNER JOIN pacientes_credenciales pc ON p.id_paciente = pc.id_paciente 
-                             WHERE p.email = ?");
-    $stmtPac->execute([$identificador]);
-    $userPac = $stmtPac->fetch();
-
-    // VERIFICACIÓN PACIENTE: Evalúa la contraseña y, si es correcta, crea la sesión correspondiente.
-    if ($userPac && password_verify($password, $userPac['password_hash'])) {
-        session_regenerate_id(true);
-        $_SESSION['user_id'] = $userPac['id_paciente'];
-        $_SESSION['user_name'] = $userPac['nombre'];
-        $_SESSION['role'] = 'paciente';
-        RateLimiter::resetAttempts($rateLimitKey);
-        
-        echo json_encode(['success' => true, 'role' => 'paciente', 'redirect' => 'agenda.php']);
-        exit;
+    if ($user) {
+        $hash_a_verificar = $user['password_hash'];
     }
 
-    RateLimiter::registerAttempt($rateLimitKey);
-    echo json_encode(['success' => false, 'message' => 'Credenciales incorrectas']);
+    // 2. VERIFICAR CONTRASEÑA (SIEMPRE)
+    // Esta función se ejecuta incondicionalmente para que el tiempo de respuesta sea similar
+    // tanto si el usuario existe como si no, frustrando los ataques de temporización.
+    if (password_verify($password, $hash_a_verificar) && $user) {
+        // 3. AUTENTICACIÓN EXITOSA
+        session_regenerate_id(true);
+        $_SESSION['user_id'] = $user['id_usuario'] ?? $user['id_paciente'];
+        $_SESSION['user_name'] = $user['nombre'];
+        $_SESSION['role'] = $user['role'];
+        RateLimiter::resetAttempts($rateLimitKey);
+        
+        $redirect = $user['role'] === 'admin' ? 'admin.php' : 'agenda.php';
+        echo json_encode(['success' => true, 'role' => $user['role'], 'redirect' => $redirect]);
+    } else {
+        // 4. AUTENTICACIÓN FALLIDA
+        RateLimiter::registerAttempt($rateLimitKey);
+        echo json_encode(['success' => false, 'message' => 'Credenciales incorrectas']);
+    }
 
 } catch (Exception $e) {
     // MANEJO DE ERRORES: Registra el error en el log y envía un mensaje seguro al cliente.
