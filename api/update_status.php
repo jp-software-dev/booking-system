@@ -49,23 +49,23 @@ try {
     $db = Database::getInstance();
     $db->beginTransaction();
 
-    $stmtInfo = $db->prepare("SELECT c.fecha_cita, c.hora_inicio, p.email, p.nombre AS paciente_nombre, d.nombre AS doctor_nombre, d.apellido_paterno AS doctor_ap 
-                              FROM citas c 
-                              JOIN pacientes p ON c.id_paciente = p.id_paciente 
-                              JOIN doctores d ON c.id_doctor = d.id_doctor 
-                              WHERE c.id_cita = ?");
-    $stmtInfo->execute([$id_cita]);
-    $info = $stmtInfo->fetch();
+    $stmtUpdate = $db->prepare("UPDATE citas SET estado_cita = ? WHERE id_cita = ?");
+    $stmtUpdate->execute([$estado, $id_cita]);
 
-    if (!$info) {
+    // Se verifica si la actualización afectó a alguna fila. Si no, la cita no existía.
+    if ($stmtUpdate->rowCount() === 0) {
+        $db->rollBack();
         echo json_encode(['status' => 'error', 'message' => 'Cita no encontrada']);
         exit;
     }
 
-    $stmtUpdate = $db->prepare("UPDATE citas SET estado_cita = ? WHERE id_cita = ?");
-    $stmtUpdate->execute([$estado, $id_cita]);
-
     if (in_array($estado, ['Confirmada', 'Cancelada'])) {
+        $stmtInfo = $db->prepare("SELECT p.email, p.nombre AS paciente_nombre, d.nombre AS doctor_nombre, d.apellido_paterno AS doctor_ap, c.fecha_cita, c.hora_inicio FROM citas c JOIN pacientes p ON c.id_paciente = p.id_paciente JOIN doctores d ON c.id_doctor = d.id_doctor WHERE c.id_cita = ?");
+        $stmtInfo->execute([$id_cita]);
+        $info = $stmtInfo->fetch();
+
+        if (!$info) { throw new Exception("No se pudo recuperar la información de la cita para notificar."); }
+
         $nombreDr = htmlspecialchars($info['doctor_nombre'] . ' ' . $info['doctor_ap']);
         $fechaFormato = date('d/m/Y', strtotime($info['fecha_cita']));
         $horaFormato = date('h:i A', strtotime($info['hora_inicio']));

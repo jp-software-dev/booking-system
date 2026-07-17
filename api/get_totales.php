@@ -27,76 +27,49 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 $db = Database::getInstance();
 
 try {
-    // CONTEO POR ESTADO: Cuenta cuántas citas hay en cada estado del sistema.
-    $estadosStmt = $db->query("
-        SELECT estado_cita, COUNT(*) as cantidad 
-        FROM citas 
-        GROUP BY estado_cita
+    // CONSULTA ÚNICA Y OPTIMIZADA: Calcula todas las métricas en una sola llamada a la base de datos.
+    // Utiliza agregación condicional para métricas escalares y subconsultas con agregación JSON para datos agrupados.
+    $stmt = $db->query("
+        SELECT
+            -- 1. Métricas escalares
+            COUNT(*) AS total_general,
+            SUM(CASE WHEN estado_cita = 'Cancelada' THEN 1 ELSE 0 END) AS total_canceladas,
+            SUM(CASE WHEN fecha_cita = CURDATE() THEN 1 ELSE 0 END) AS citas_hoy,
+            SUM(CASE WHEN YEARWEEK(fecha_cita, 1) = YEARWEEK(CURDATE(), 1) THEN 1 ELSE 0 END) AS citas_semana,
+            SUM(CASE WHEN YEAR(fecha_cita) = YEAR(CURDATE()) AND MONTH(fecha_cita) = MONTH(CURDATE()) THEN 1 ELSE 0 END) AS citas_mes,
+    
+            -- 2. Métricas agrupadas, convertidas a JSON
+            (SELECT JSON_ARRAYAGG(JSON_OBJECT('estado_cita', estado_cita, 'cantidad', COUNT(*)))
+             FROM citas GROUP BY estado_cita) AS por_estado,
+    
+            (SELECT JSON_ARRAYAGG(JSON_OBJECT('nombre_especialidad', e.nombre_especialidad, 'cantidad', COUNT(c.id_cita)))
+             FROM citas c
+             JOIN doctores d ON c.id_doctor = d.id_doctor
+             JOIN especialidades e ON d.id_especialidad = e.id_especialidad
+             GROUP BY e.id_especialidad ORDER BY COUNT(c.id_cita) DESC) AS por_especialidad,
+    
+            (SELECT JSON_ARRAYAGG(JSON_OBJECT('nombre', d.nombre, 'apellido_paterno', d.apellido_paterno, 'cantidad', COUNT(c.id_cita)))
+             FROM citas c
+             JOIN doctores d ON c.id_doctor = d.id_doctor
+             GROUP BY d.id_doctor ORDER BY COUNT(c.id_cita) DESC LIMIT 10) AS por_doctor
+        FROM citas
     ");
-    $porEstado = $estadosStmt->fetchAll(PDO::FETCH_ASSOC);
+    $metrics = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // CONTEO POR ESPECIALIDAD: Cuenta cuántas citas hay agrupadas por especialidad médica.
-    $especialidadesStmt = $db->query("
-        SELECT e.nombre_especialidad, COUNT(c.id_cita) as cantidad
-        FROM citas c
-        JOIN doctores d ON c.id_doctor = d.id_doctor
-        JOIN especialidades e ON d.id_especialidad = e.id_especialidad
-        GROUP BY e.id_especialidad
-        ORDER BY cantidad DESC
-    ");
-    $porEspecialidad = $especialidadesStmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // CONTEO POR DOCTOR: Cuenta cuántas citas tiene asignadas cada médico.
-    $doctoresStmt = $db->query("
-        SELECT d.nombre, d.apellido_paterno, COUNT(c.id_cita) as cantidad
-        FROM citas c
-        JOIN doctores d ON c.id_doctor = d.id_doctor
-        GROUP BY d.id_doctor
-        ORDER BY cantidad DESC
-        LIMIT 10
-    ");
-    $porDoctor = $doctoresStmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // MÉTRICAS TEMPORALES: Calcula citas del día actual, de la semana y del mes.
-    $hoyStmt = $db->prepare("SELECT COUNT(*) FROM citas WHERE fecha_cita = CURDATE()");
-    $hoyStmt->execute();
-    $citasHoy = $hoyStmt->fetchColumn();
-
-    $semanaStmt = $db->prepare("
-        SELECT COUNT(*) FROM citas 
-        WHERE YEARWEEK(fecha_cita) = YEARWEEK(CURDATE())
-    ");
-    $semanaStmt->execute();
-    $citasSemana = $semanaStmt->fetchColumn();
-
-    $mesStmt = $db->prepare("
-        SELECT COUNT(*) FROM citas 
-        WHERE MONTH(fecha_cita) = MONTH(CURDATE()) 
-        AND YEAR(fecha_cita) = YEAR(CURDATE())
-    ");
-    $mesStmt->execute();
-    $citasMes = $mesStmt->fetchColumn();
-
-    // TASA DE CANCELACIÓN: Calcula el porcentaje de citas que han sido canceladas.
-    $totalStmt = $db->query("SELECT COUNT(*) FROM citas");
-    $total = $totalStmt->fetchColumn();
-
-    $canceladasStmt = $db->prepare("SELECT COUNT(*) FROM citas WHERE estado_cita = 'Cancelada'");
-    $canceladasStmt->execute();
-    $canceladas = $canceladasStmt->fetchColumn();
-
+    $total = (int)($metrics['total_general'] ?? 0);
+    $canceladas = (int)($metrics['total_canceladas'] ?? 0);
     $tasaCancelacion = $total > 0 ? round(($canceladas / $total) * 100, 2) : 0;
 
     // RESPUESTA EXITOSA: Empaqueta todas las métricas en un solo objeto JSON.
     echo json_encode([
         'status' => 'success',
         'data' => [
-            'por_estado' => $porEstado,
-            'por_especialidad' => $porEspecialidad,
-            'por_doctor' => $porDoctor,
-            'citas_hoy' => (int)$citasHoy,
-            'citas_semana' => (int)$citasSemana,
-            'citas_mes' => (int)$citasMes,
+            'por_estado' => json_decode($metrics['por_estado'] ?? '[]', true),
+            'por_especialidad' => json_decode($metrics['por_especialidad'] ?? '[]', true),
+            'por_doctor' => json_decode($metrics['por_doctor'] ?? '[]', true),
+            'citas_hoy' => (int)($metrics['citas_hoy'] ?? 0),
+            'citas_semana' => (int)($metrics['citas_semana'] ?? 0),
+            'citas_mes' => (int)($metrics['citas_mes'] ?? 0),
             'tasa_cancelacion' => $tasaCancelacion,
             'total_general' => (int)$total
         ]
