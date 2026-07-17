@@ -16,12 +16,20 @@ if (isset($_SESSION['user_id'])) {
 }
 
 $es_admin = ($_SESSION['role'] ?? '') === 'admin';
+
+require_once __DIR__ . '/../../src/Helpers/CsrfHelper.php';
+use Helpers\CsrfHelper;
+
+if (isset($_SESSION['user_id'])) {
+    $csrfToken = CsrfHelper::generateToken();
+}
 ?>
 
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <?php if (isset($csrfToken)): ?><meta name="csrf-token" content="<?php echo htmlspecialchars($csrfToken); ?>"><?php endif; ?>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MediAgenda | Gestión Hospitalaria</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -81,8 +89,13 @@ $es_admin = ($_SESSION['role'] ?? '') === 'admin';
                                 <li><a class="dropdown-item rounded-3 py-2 fw-medium" href="agenda.php"><i class="bi bi-calendar-plus me-2 text-primary"></i>Reservar Cita</a></li>
                                 <li><a class="dropdown-item rounded-3 py-2 fw-medium" href="historial.php"><i class="bi bi-clock-history me-2 text-primary"></i>Historial Médico</a></li>
                             <?php endif; ?>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger rounded-3 py-2 fw-bold" href="../api/logout.php"><i class="bi bi-power me-2"></i>Cerrar Sesión</a></li>
+                            <li><hr class="dropdown-divider my-2"></li>
+                            <li>
+                                <form action="../api/logout.php" method="POST" class="px-0">
+                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+                                    <button type="submit" class="dropdown-item text-danger rounded-3 py-2 fw-bold border-0 bg-transparent w-100 text-start"><i class="bi bi-power me-2"></i>Cerrar Sesión</button>
+                                </form>
+                            </li>
                         </ul>
                     </div>
                 <?php else: ?>
@@ -152,9 +165,12 @@ $es_admin = ($_SESSION['role'] ?? '') === 'admin';
     
     <?php if (isset($_SESSION['user_id'])): ?>
     <div class="offcanvas-footer p-4 border-top bg-light">
-         <a href="../api/logout.php" class="btn btn-danger w-100 rounded-pill py-3 fw-bold shadow d-flex align-items-center justify-content-center">
-             <i class="bi bi-power me-2 fs-5"></i> Cerrar Sesión
-         </a>
+        <form action="../api/logout.php" method="POST">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+            <button type="submit" class="btn btn-danger w-100 rounded-pill py-3 fw-bold shadow d-flex align-items-center justify-content-center">
+                <i class="bi bi-power me-2 fs-5"></i> Cerrar Sesión
+            </button>
+        </form>
     </div>
     <?php endif; ?>
 </div>
