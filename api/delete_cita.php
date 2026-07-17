@@ -14,11 +14,15 @@
 
 session_start();
 require_once '../config/Database.php';
+require_once '../src/Controllers/AppointmentController.php';
+require_once '../src/Helpers/CsrfHelper.php';
+
+use Helpers\CsrfHelper;
 
 header('Content-Type: application/json');
 
 // VALIDADOR DE MÉTODO: Bloquea accesos que no utilicen el método POST.
-if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     echo json_encode(['status' => 'error', 'message' => 'Método no permitido']);
     exit;
 }
@@ -31,30 +35,21 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 
 // CAPTURA DE DATOS: Lee el cuerpo de la petición y extrae el ID de la cita.
 $input = json_decode(file_get_contents('php://input'), true);
-$id_cita = $input['id_cita'] ?? 0;
+$id_cita = (int)($input['id_cita'] ?? 0);
+
+$headers = getallheaders();
+$csrfToken = $headers['X-CSRF-Token'] ?? ($input['csrf_token'] ?? null);
+if (!CsrfHelper::validateToken($csrfToken)) {
+    http_response_code(403);
+    echo json_encode(['status' => 'error', 'message' => 'Token de seguridad inválido']);
+    exit;
+}
 
 // VALIDADOR DE PARÁMETROS: Verifica que se haya recibido un ID válido.
 if (!$id_cita) {
     echo json_encode(['status' => 'error', 'message' => 'ID de cita no proporcionado']);
     exit;
 }
-
-$db = Database::getInstance();
-
-try {
-    // EJECUCIÓN DE BORRADO: Prepara y lanza la instrucción SQL para remover la cita permanentemente.
-    $stmt = $db->prepare("DELETE FROM citas WHERE id_cita = ?");
-    $stmt->execute([$id_cita]);
-
-    // CONFIRMACIÓN DE ACCIÓN: Verifica si se borró un registro y responde en consecuencia.
-    if ($stmt->rowCount() > 0) {
-        echo json_encode(['status' => 'success', 'message' => 'Cita eliminada']);
-    } else {
-        echo json_encode(['status' => 'error', 'message' => 'Cita no encontrada']);
-    }
-} catch (Exception $e) {
-    // MANEJO DE EXCEPCIONES: Registra fallos en el log y devuelve un mensaje genérico.
-    error_log("Error en delete_cita.php: " . $e->getMessage());
-    echo json_encode(['status' => 'error', 'message' => 'Error interno del servidor']);
-}
-?>
+$controller = new AppointmentController();
+$resultado = $controller->delete($id_cita, $_SESSION['role']);
+echo json_encode($resultado);
