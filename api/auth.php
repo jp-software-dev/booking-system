@@ -14,21 +14,20 @@
 
 session_start();
 require_once '../config/Database.php';
+require_once __DIR__ . '/../src/Helpers/RateLimiter.php';
+
+use Helpers\RateLimiter;
 
 header('Content-Type: application/json');
 
 // VALIDADOR DE MÉTODO: Bloquea peticiones que no sean POST para evitar accesos directos.
-if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Método no permitido']);
     exit;
 }
 
-if (!isset($_SESSION['login_attempts'])) {
-    $_SESSION['login_attempts'] = 0;
-    $_SESSION['last_login_attempt'] = time();
-}
-
-if ($_SESSION['login_attempts'] >= 5 && (time() - $_SESSION['last_login_attempt']) < 300) {
+$rateLimitKey = 'login_' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+if (RateLimiter::tooManyAttempts($rateLimitKey, 5, 300)) {
     echo json_encode(['success' => false, 'message' => 'Demasiados intentos. Por seguridad, espera 5 minutos.']);
     exit;
 }
@@ -48,8 +47,7 @@ try {
 
     if (empty($identificador) || empty($password)) {
         // VALIDACIÓN DE CAMPOS: Rechaza la solicitud si faltan las credenciales clave.
-        $_SESSION['login_attempts']++;
-        $_SESSION['last_login_attempt'] = time();
+        RateLimiter::registerAttempt($rateLimitKey);
         echo json_encode(['success' => false, 'message' => 'Los campos no pueden estar vacíos']);
         exit;
     }
@@ -67,7 +65,7 @@ try {
         $_SESSION['user_id'] = $userAdmin['id_usuario'];
         $_SESSION['user_name'] = $userAdmin['nombre'];
         $_SESSION['role'] = $userAdmin['rol'];
-        $_SESSION['login_attempts'] = 0;
+        RateLimiter::resetAttempts($rateLimitKey);
         
         echo json_encode(['success' => true, 'role' => $userAdmin['rol'], 'redirect' => 'admin.php']);
         exit;
@@ -88,14 +86,13 @@ try {
         $_SESSION['user_id'] = $userPac['id_paciente'];
         $_SESSION['user_name'] = $userPac['nombre'];
         $_SESSION['role'] = 'paciente';
-        $_SESSION['login_attempts'] = 0;
+        RateLimiter::resetAttempts($rateLimitKey);
         
         echo json_encode(['success' => true, 'role' => 'paciente', 'redirect' => 'agenda.php']);
         exit;
     }
 
-    $_SESSION['login_attempts']++;
-    $_SESSION['last_login_attempt'] = time();
+    RateLimiter::registerAttempt($rateLimitKey);
     echo json_encode(['success' => false, 'message' => 'Credenciales incorrectas']);
 
 } catch (Exception $e) {

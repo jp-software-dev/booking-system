@@ -8,8 +8,12 @@
 session_start();
 require_once '../config/Database.php';
 require_once '../src/Helpers/ValidationHelper.php';
+require_once '../src/Helpers/RateLimiter.php';
+require_once '../src/Helpers/CsrfHelper.php';
 
 use Helpers\ValidationHelper;
+use Helpers\RateLimiter;
+use Helpers\CsrfHelper;
 
 header('Content-Type: application/json');
 
@@ -19,13 +23,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 }
 
 // === RATE LIMITING ===
-if (!isset($_SESSION['registro_attempts'])) {
-    $_SESSION['registro_attempts'] = 0;
-    $_SESSION['last_registro_attempt'] = time();
-}
-if ($_SESSION['registro_attempts'] >= 3 && (time() - $_SESSION['last_registro_attempt']) < 3600) {
+$rateLimitKey = 'register_' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+if (RateLimiter::tooManyAttempts($rateLimitKey, 3, 3600)) {
     echo json_encode(['status' => 'error', 'message' => 'Límite de registros alcanzado. Por favor, intenta más tarde.']);
     exit;
+}
+
+// === CSRF VALIDATION ===
+if (!CsrfHelper::validateToken($_POST['csrf_token'] ?? null)) {
+    http_response_code(403);
+    echo json_encode(['status' => 'error', 'message' => 'Token de seguridad inválido. Recarga la página.']);
 }
 
 // === SANITIZACIÓN ===
@@ -141,8 +148,7 @@ try {
     $_SESSION['user_id']   = $id_paciente;
     $_SESSION['user_name'] = $nombre;
     $_SESSION['role']      = 'paciente';
-    $_SESSION['registro_attempts']++;
-    $_SESSION['last_registro_attempt'] = time();
+    RateLimiter::registerAttempt($rateLimitKey); // Registra el intento exitoso para el rate limiting
 
     echo json_encode(['status' => 'success', 'message' => 'Registro exitoso', 'redirect' => 'agenda.php']);
 
