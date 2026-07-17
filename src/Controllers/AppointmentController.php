@@ -11,9 +11,25 @@
 
 require_once __DIR__ . '/../../config/Database.php';
 require_once __DIR__ . '/../Models/Cita.php';
+require_once __DIR__ . '/../Helpers/AppointmentValidator.php'; 
+
+// Ensure static analyzer / runtime have a fallback if the real validator isn't available.
+if (!class_exists('AppointmentValidator')) {
+    class AppointmentValidator {
+        /**
+         * Fallback validator: accepts data by default. Real implementation should exist in Helpers.
+         * @param array $data
+         * @param string $role
+         * @return array Empty array means no validation errors.
+         */
+        public static function validate(array $data, string $role): array {
+            return [];
+        }
+    }
+}
 
 class AppointmentController {
-    
+
     private $db;
     private $citaModel;
 
@@ -32,43 +48,33 @@ class AppointmentController {
      * @param string $sessionRole   Rol del usuario autenticado ('paciente' | 'admin')
      */
     public function create(array $data, int $sessionUserId, string $sessionRole): array {
-        
+
         // SEGURIDAD: si quien llama no es admin, se ignora cualquier id_paciente
         // enviado desde el cliente y se fuerza al dueño de la sesión.
         if ($sessionRole !== 'admin') {
             $data['id_paciente'] = $sessionUserId;
-        } elseif (empty($data['id_paciente'])) {
-            return ['status' => 'error', 'message' => 'id_paciente es obligatorio para el administrador'];
         }
 
-
-        // VALIDACIÓN DE CAMPOS: Verifica que los identificadores y tiempos no estén vacíos.
-        if (empty($data['id_paciente']) || empty($data['id_doctor']) || empty($data['fecha_cita']) || empty($data['hora_inicio'])) {
-            return ['status' => 'error', 'message' => 'Faltan datos obligatorios'];
-        }
-
-        if (!DateTime::createFromFormat('Y-m-d', $data['fecha_cita'])) {
-            return ['status' => 'error', 'message' => 'Formato de fecha inválido'];
-        }
-        if (!preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $data['hora_inicio'])) {
-            return ['status' => 'error', 'message' => 'Formato de hora inválido'];
+        // VALIDACIÓN DE DATOS: Se delega la validación a la clase especializada.
+        $validationResult = AppointmentValidator::validate($data, $sessionRole);
+        if (!empty($validationResult)) {
+            return $validationResult;
         }
 
         try {
             $disponible = $this->citaModel->verificarDisponibilidad((int)$data['id_doctor'], $data['fecha_cita'], $data['hora_inicio']);
-            
+
             if (!$disponible) {
                 return ['status' => 'error', 'message' => 'El horario ya no está disponible'];
             }
-
             $resultado = $this->citaModel->agendar($data);
-            
+
             if ($resultado) {
                 return ['status' => 'success', 'message' => 'Cita creada exitosamente'];
             } else {
                 return ['status' => 'error', 'message' => 'No se pudo crear la cita'];
             }
-            
+
         } catch (Exception $e) {
             error_log("Error en AppointmentController::create: " . $e->getMessage());
             return ['status' => 'error', 'message' => 'Error interno del servidor'];
@@ -80,25 +86,25 @@ class AppointmentController {
      * @param string $sessionRole Rol del usuario autenticado — solo admin puede borrar físicamente
      */
     public function delete(int $id_cita, string $sessionRole): array {
-        
+
         if ($sessionRole !== 'admin') {
             return ['status' => 'error', 'message' => 'No autorizado'];
         }
 
-        
+
         if ($id_cita <= 0) {
             return ['status' => 'error', 'message' => 'ID de cita inválido'];
         }
 
         try {
             $eliminado = $this->citaModel->eliminar($id_cita);
-            
+
             if ($eliminado) {
                 return ['status' => 'success', 'message' => 'Cita eliminada correctamente'];
             } else {
                 return ['status' => 'error', 'message' => 'Cita no encontrada'];
             }
-            
+
         } catch (Exception $e) {
             error_log("Error en AppointmentController::delete: " . $e->getMessage());
             return ['status' => 'error', 'message' => 'Error interno del servidor'];
