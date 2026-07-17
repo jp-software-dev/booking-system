@@ -26,9 +26,22 @@ class AppointmentController {
         $this->citaModel = new Cita($this->db);
     }
 
-    // MÉTODO DE CREACIÓN: Centraliza las reglas de negocio y validaciones antes de registrar una nueva cita.
-    public function create(array $data): array {
+    /**
+     * @param array  $data          Datos de la cita provenientes del cliente
+     * @param int    $sessionUserId ID del usuario autenticado (de $_SESSION['user_id'])
+     * @param string $sessionRole   Rol del usuario autenticado ('paciente' | 'admin')
+     */
+    public function create(array $data, int $sessionUserId, string $sessionRole): array {
         
+        // SEGURIDAD: si quien llama no es admin, se ignora cualquier id_paciente
+        // enviado desde el cliente y se fuerza al dueño de la sesión.
+        if ($sessionRole !== 'admin') {
+            $data['id_paciente'] = $sessionUserId;
+        } elseif (empty($data['id_paciente'])) {
+            return ['status' => 'error', 'message' => 'id_paciente es obligatorio para el administrador'];
+        }
+
+
         // VALIDACIÓN DE CAMPOS: Verifica que los identificadores y tiempos no estén vacíos.
         if (empty($data['id_paciente']) || empty($data['id_doctor']) || empty($data['fecha_cita']) || empty($data['hora_inicio'])) {
             return ['status' => 'error', 'message' => 'Faltan datos obligatorios'];
@@ -62,8 +75,16 @@ class AppointmentController {
         }
     }
 
-    // MÉTODO DE BORRADO FÍSICO: Gestiona la solicitud para eliminar permanentemente un registro.
-    public function delete(int $id_cita): array {
+    /**
+     * @param int    $id_cita
+     * @param string $sessionRole Rol del usuario autenticado — solo admin puede borrar físicamente
+     */
+    public function delete(int $id_cita, string $sessionRole): array {
+        
+        if ($sessionRole !== 'admin') {
+            return ['status' => 'error', 'message' => 'No autorizado'];
+        }
+
         
         if ($id_cita <= 0) {
             return ['status' => 'error', 'message' => 'ID de cita inválido'];
