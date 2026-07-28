@@ -101,10 +101,11 @@ $html .= '</tbody>
 </body>
 </html>';
 
-// CONFIGURACIÓN DOMPDF: Habilita el motor de renderizado y el soporte para contenido remoto.
+// CONFIGURACIÓN DOMPDF: Habilita el motor de renderizado. El contenido remoto queda deshabilitado
+// porque todo el contenido del reporte proviene de la base de datos, no de recursos externos.
 $options = new Options();
 $options->set('isHtml5ParserEnabled', true);
-$options->set('isRemoteEnabled', true);
+$options->set('isRemoteEnabled', false);
 
 // PROCESAMIENTO: Inicializa Dompdf, carga el HTML y establece el tamaño de página A4 horizontal.
 $dompdf = new Dompdf($options);
