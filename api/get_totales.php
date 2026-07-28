@@ -20,6 +20,7 @@ header('Content-Type: application/json');
 
 // VALIDADOR DE SEGURIDAD: Bloquea el acceso si no hay una sesión activa de administrador.
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    http_response_code(401);
     echo json_encode(['error' => 'No autorizado']);
     exit;
 }
@@ -77,7 +78,8 @@ try {
 
 } catch (Exception $e) {
     // MANEJO DE ERRORES: Registra el fallo y envía un código de error HTTP 500.
+    error_log("Error en get_totales.php: " . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    echo json_encode(['status' => 'error', 'message' => 'Error interno del servidor']);
 }
 ?>

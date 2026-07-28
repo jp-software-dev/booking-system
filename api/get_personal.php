@@ -19,7 +19,8 @@ try {
     $personal = array_merge($doctores, $enfermeros);
     echo json_encode(['status' => 'success', 'data' => $personal]);
 } catch (Exception $e) {
+    error_log("Error en get_personal.php: " . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Error al obtener datos del personal: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Error interno del servidor']);
 }
 ?>
