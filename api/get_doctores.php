@@ -26,7 +26,7 @@ try {
     // CONSULTA SQL: Selecciona ID y nombre de los doctores activos (estado = 1), ordenados alfabéticamente.
     $query = "SELECT id_doctor, nombre, apellido_paterno
               FROM doctores
-              WHERE estado = 1
+              WHERE estado = 1 AND id_consultorio IS NOT NULL
               ORDER BY nombre ASC";
 
     $stmt = $db->query($query);
