@@ -24,9 +24,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 
 // === RATE LIMITING ===
 $rateLimitKey = 'register_' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
-if (RateLimiter::tooManyAttempts($rateLimitKey, 3, 3600)) {
-    echo json_encode(['status' => 'error', 'message' => 'Límite de registros alcanzado. Por favor, intenta más tarde.']);
-    exit;
+try {
+    if (RateLimiter::tooManyAttempts($rateLimitKey, 3, 3600)) {
+        echo json_encode(['status' => 'error', 'message' => 'Límite de registros alcanzado. Por favor, intenta más tarde.']);
+        exit;
+    }
+} catch (Exception $e) {
+    error_log("Error en RateLimiter: " . $e->getMessage());
+    // No bloqueamos el registro por un fallo de infraestructura del rate limiter
 }
 
 // === CSRF VALIDATION ===

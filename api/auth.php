@@ -27,9 +27,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 }
 
 $rateLimitKey = 'login_' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
-if (RateLimiter::tooManyAttempts($rateLimitKey, 5, 300)) {
-    echo json_encode(['success' => false, 'message' => 'Demasiados intentos. Por seguridad, espera 5 minutos.']);
-    exit;
+try {
+    if (RateLimiter::tooManyAttempts($rateLimitKey, 5, 300)) {
+        echo json_encode(['success' => false, 'message' => 'Demasiados intentos. Por seguridad, espera 5 minutos.']);
+        exit;
+    }
+} catch (Exception $e) {
+    error_log("Error en RateLimiter: " . $e->getMessage());
+    // No bloqueamos el login por un fallo de infraestructura del rate limiter
 }
 
 // LECTOR DE DATOS: Captura y decodifica las credenciales enviadas desde el frontend.
