@@ -70,15 +70,17 @@ try {
     $user = $stmtAdmin->fetch();
 
     if (!$user) {
-        $stmtPac = $db->prepare("SELECT p.id_paciente, p.nombre, pc.password_hash 
-                                 FROM pacientes p 
-                                 INNER JOIN pacientes_credenciales pc ON p.id_paciente = pc.id_paciente 
-                                 WHERE p.email = ?");
+        $stmtPac = $db->prepare("SELECT p.id_paciente, p.nombre, pc.password_hash
+                                 FROM pacientes p
+                                 INNER JOIN pacientes_credenciales pc ON p.id_paciente = pc.id_paciente
+                                 WHERE p.email = ? AND p.cuenta_eliminada = 0");
         $stmtPac->execute([$identificador]);
         $user = $stmtPac->fetch();
         if ($user) {
             $user['role'] = 'paciente'; // Se añade el rol para unificar la estructura del objeto.
         }
+    } elseif ($user) {
+        $user['role'] = $user['rol']; // Unifica la clave 'rol' (columna de la BD) con 'role' (usada en el resto del sistema).
     }
 
     if ($user) {
