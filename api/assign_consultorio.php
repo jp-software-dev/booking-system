@@ -3,8 +3,14 @@
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../src/Helpers/CsrfHelper.php';
+require_once __DIR__ . '/../src/Helpers/Bitacora.php';
 
-session_start();
+use Helpers\CsrfHelper;
+use Helpers\Bitacora;
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 header('Content-Type: application/json');
 
@@ -33,8 +39,7 @@ if (is_array($data) && array_key_exists('csrf_token', $data)) {
     }
 }
 
-// Validate CsrfHelper existence and token
-if (!class_exists('CsrfHelper') || !CsrfHelper::validateToken($token)) {
+if (!CsrfHelper::validateToken($token)) {
     http_response_code(403);
     echo json_encode(['status' => 'error', 'message' => 'Token de seguridad inválido']);
     exit;
@@ -56,6 +61,9 @@ try {
     if (!empty($id_doctor)) {
         $stmt2 = $db->prepare("UPDATE doctores SET id_consultorio = ? WHERE id_doctor = ?");
         $stmt2->execute([$id_consultorio, $id_doctor]);
+        Bitacora::registrar('reasignar_consultorio', 'consultorio', (int)$id_consultorio, "Doctor #$id_doctor asignado");
+    } else {
+        Bitacora::registrar('reasignar_consultorio', 'consultorio', (int)$id_consultorio, 'Consultorio liberado');
     }
     $db->commit();
     echo json_encode(['status' => 'success', 'message' => 'Operación realizada con éxito']);

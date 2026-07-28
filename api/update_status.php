@@ -12,9 +12,11 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../src/Helpers/Mailer.php';
 require_once __DIR__ . '/../src/Helpers/CsrfHelper.php';
+require_once __DIR__ . '/../src/Helpers/Bitacora.php';
 
 use Helpers\CsrfHelper;
 use Helpers\Mailer;
+use Helpers\Bitacora;
 
 header('Content-Type: application/json');
 
@@ -102,6 +104,10 @@ try {
         </div>';
 
         Mailer::enviarCorreo($info['email'], $asunto, $mensajeHTML, true);
+    }
+
+    if ($estado === 'Cancelada') {
+        Bitacora::registrar('cancelar_cita', 'cita', (int)$id_cita);
     }
 
     $db->commit();

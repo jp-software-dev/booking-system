@@ -16,8 +16,10 @@ session_start();
 require_once '../config/Database.php';
 require_once '../src/Controllers/AppointmentController.php';
 require_once '../src/Helpers/CsrfHelper.php';
+require_once '../src/Helpers/Bitacora.php';
 
 use Helpers\CsrfHelper;
+use Helpers\Bitacora;
 
 header('Content-Type: application/json');
 
@@ -52,4 +54,9 @@ if (!$id_cita) {
 }
 $controller = new AppointmentController();
 $resultado = $controller->delete($id_cita, $_SESSION['role']);
+
+if (($resultado['status'] ?? '') === 'success') {
+    Bitacora::registrar('eliminar_cita', 'cita', $id_cita);
+}
+
 echo json_encode($resultado);

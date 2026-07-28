@@ -2,8 +2,10 @@
 session_start();
 require_once '../config/Database.php';
 require_once __DIR__ . '/../src/Helpers/CsrfHelper.php';
+require_once __DIR__ . '/../src/Helpers/Bitacora.php';
 
 use Helpers\CsrfHelper;
+use Helpers\Bitacora;
 
 header('Content-Type: application/json');
 
@@ -42,6 +44,8 @@ try {
         $stmt = $db->prepare("DELETE FROM enfermeros WHERE id_enfermero = ?");
         $stmt->execute([$id]);
     }
+
+    Bitacora::registrar('baja_personal', strtolower($tipo), $id);
 
     echo json_encode(['status' => 'success', 'message' => 'Baja procesada exitosamente']);
 } catch (Exception $e) {
