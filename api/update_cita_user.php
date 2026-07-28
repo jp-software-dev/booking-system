@@ -18,6 +18,9 @@ session_start();
 
 require_once '../config/Database.php';
 require_once '../src/Helpers/Mailer.php';
+require_once __DIR__ . '/../src/Helpers/CsrfHelper.php';
+
+use Helpers\CsrfHelper;
 
 header('Content-Type: application/json');
 
@@ -34,6 +37,14 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'paciente') {
 $input = json_decode(file_get_contents('php://input'), true);
 if (!$input) {
     echo json_encode(['status' => 'error', 'message' => 'Datos inválidos']);
+    exit;
+}
+
+$headers = getallheaders();
+$csrfToken = $headers['X-CSRF-Token'] ?? ($input['csrf_token'] ?? null);
+if (!CsrfHelper::validateToken($csrfToken)) {
+    http_response_code(403);
+    echo json_encode(['status' => 'error', 'message' => 'Token de seguridad inválido']);
     exit;
 }
 
@@ -60,18 +71,22 @@ if (!DateTime::createFromFormat('H:i', $hora)) {
 $db = Database::getInstance();
 
 try {
+    $db->beginTransaction();
+
     // PROTECCIÓN DE PROPIEDAD: Verifica que la cita pertenezca al paciente autenticado.
     $check = $db->prepare("SELECT id_cita, id_doctor, estado_cita FROM citas WHERE id_cita = ? AND id_paciente = ?");
     $check->execute([$id_cita, $_SESSION['user_id']]);
     $cita = $check->fetch();
-    
+
     if (!$cita) {
+        $db->rollBack();
         echo json_encode(['status' => 'error', 'message' => 'Cita no encontrada o no pertenece al paciente']);
         exit;
     }
 
     // RESTRICCIÓN DE ESTADO: Evita modificar citas canceladas o completadas.
     if ($cita['estado_cita'] === 'Cancelada' || $cita['estado_cita'] === 'Completada') {
+        $db->rollBack();
         echo json_encode(['status' => 'error', 'message' => 'No se puede modificar una cita cancelada o completada']);
         exit;
     }
@@ -80,6 +95,7 @@ try {
     $checkDisponible = $db->prepare("SELECT id_cita FROM citas WHERE id_doctor = ? AND fecha_cita = ? AND hora_inicio = ? AND estado_cita != 'Cancelada' AND id_cita != ?");
     $checkDisponible->execute([$cita['id_doctor'], $fecha, $hora, $id_cita]);
     if ($checkDisponible->fetch()) {
+        $db->rollBack();
         echo json_encode(['status' => 'error', 'message' => 'El horario seleccionado ya no está disponible']);
         exit;
     }
@@ -88,9 +104,15 @@ try {
     $update = $db->prepare("UPDATE citas SET fecha_cita = ?, hora_inicio = ?, motivo_consulta = ?, estado_cita = 'Pendiente' WHERE id_cita = ?");
     $update->execute([$fecha, $hora, $motivo, $id_cita]);
 
+    $db->commit();
+
     echo json_encode(['status' => 'success', 'message' => 'Cita actualizada correctamente']);
-    
+
 } catch (PDOException $e) {
+    if ($db->inTransaction()) {
+        $db->rollBack();
+    }
+    // SQLSTATE 23000: violación de la restricción única de slot (empalme concurrente).
     if ($e->getCode() == 23000) {
         echo json_encode(['status' => 'error', 'message' => 'El horario seleccionado acaba de ser ocupado por otro paciente. Intenta con otro.']);
     } else {
@@ -98,6 +120,9 @@ try {
         echo json_encode(['status' => 'error', 'message' => 'Error de base de datos']);
     }
 } catch (Exception $e) {
+    if ($db->inTransaction()) {
+        $db->rollBack();
+    }
     error_log("Error en update_cita_user.php: " . $e->getMessage());
     echo json_encode(['status' => 'error', 'message' => 'Error interno del servidor']);
 }

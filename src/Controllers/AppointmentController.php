@@ -62,12 +62,17 @@ class AppointmentController {
         }
 
         try {
+            $this->db->beginTransaction();
+
             $disponible = $this->citaModel->verificarDisponibilidad((int)$data['id_doctor'], $data['fecha_cita'], $data['hora_inicio']);
 
             if (!$disponible) {
+                $this->db->rollBack();
                 return ['status' => 'error', 'message' => 'El horario ya no está disponible'];
             }
             $resultado = $this->citaModel->agendar($data);
+
+            $this->db->commit();
 
             if ($resultado) {
                 return ['status' => 'success', 'message' => 'Cita creada exitosamente'];
@@ -75,7 +80,20 @@ class AppointmentController {
                 return ['status' => 'error', 'message' => 'No se pudo crear la cita'];
             }
 
+        } catch (\PDOException $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            // SQLSTATE 23000: violación de la restricción única de slot (empalme concurrente).
+            if ($e->getCode() == 23000) {
+                return ['status' => 'error', 'message' => 'El horario seleccionado acaba de ser ocupado por otro paciente. Intenta con otro horario.'];
+            }
+            error_log("Error en AppointmentController::create: " . $e->getMessage());
+            return ['status' => 'error', 'message' => 'Error interno del servidor'];
         } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log("Error en AppointmentController::create: " . $e->getMessage());
             return ['status' => 'error', 'message' => 'Error interno del servidor'];
         }

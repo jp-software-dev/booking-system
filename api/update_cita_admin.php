@@ -66,11 +66,14 @@ if (!ValidationHelper::validateTime($hora)) {
 $db = Database::getInstance();
 
 try {
+    $db->beginTransaction();
+
     $stmt = $db->prepare("SELECT id_doctor FROM citas WHERE id_cita = ?");
     $stmt->execute([$id_cita]);
     $cita = $stmt->fetch();
 
     if (!$cita) {
+        $db->rollBack();
         echo json_encode(['status' => 'error', 'message' => 'Cita no encontrada']);
         exit;
     }
@@ -81,6 +84,7 @@ try {
     $check->execute([$id_doctor, $fecha, $hora, $id_cita]);
 
     if ($check->fetch()) {
+        $db->rollBack();
         echo json_encode(['status' => 'error', 'message' => 'El horario seleccionado ya no está disponible']);
         exit;
     }
@@ -88,9 +92,25 @@ try {
     $update = $db->prepare("UPDATE citas SET fecha_cita = ?, hora_inicio = ? WHERE id_cita = ?");
     $update->execute([$fecha, $hora, $id_cita]);
 
+    $db->commit();
+
     echo json_encode(['status' => 'success', 'message' => 'Cita actualizada correctamente']);
 
+} catch (PDOException $e) {
+    if ($db->inTransaction()) {
+        $db->rollBack();
+    }
+    // SQLSTATE 23000: violación de la restricción única de slot (empalme concurrente).
+    if ($e->getCode() == 23000) {
+        echo json_encode(['status' => 'error', 'message' => 'El horario seleccionado acaba de ser ocupado por otra cita. Intenta con otro horario.']);
+        exit;
+    }
+    error_log("Error crítico en update_cita_admin.php: " . $e->getMessage());
+    echo json_encode(['status' => 'error', 'message' => 'Error interno del servidor']);
 } catch (Throwable $e) {
+    if ($db->inTransaction()) {
+        $db->rollBack();
+    }
     error_log("Error crítico en update_cita_admin.php: " . $e->getMessage());
     echo json_encode(['status' => 'error', 'message' => 'Error interno del servidor']);
 }
