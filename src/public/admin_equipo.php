@@ -151,17 +151,12 @@ document.getElementById('formAddPersonal').addEventListener('submit', async (e) 
     const dataObj = Object.fromEntries(formData);
     
     try {
-        const res = await fetch('../api/add_personal.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dataObj)
-        });
-        const data = await res.json();
-        
-        if (data.status === 'success') {
+        const data = await apiClient.post('add_personal.php', dataObj);
+
+        if (data && data.status === 'success') {
             location.reload();
         } else {
-            document.getElementById('alertaPersonal').innerHTML = `<div class="alert alert-danger py-2 small">${data.message}</div>`;
+            document.getElementById('alertaPersonal').innerHTML = `<div class="alert alert-danger py-2 small">${data ? data.message : 'Error de red'}</div>`;
         }
     } catch(err) {
         document.getElementById('alertaPersonal').innerHTML = `<div class="alert alert-danger py-2 small">Error de red</div>`;
@@ -173,14 +168,9 @@ async function darDeBaja(id, tipo) {
     if (!confirm(`¿Estás seguro de que deseas dar de baja a este ${tipo}?`)) return;
     
     try {
-        const res = await fetch('../api/delete_personal.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: id, tipo: tipo })
-        });
-        const data = await res.json();
-        if (data.status === 'success') location.reload();
-        else alert('Error: ' + data.message);
+        const data = await apiClient.post('delete_personal.php', { id: id, tipo: tipo });
+        if (data && data.status === 'success') location.reload();
+        else alert('Error: ' + (data ? data.message : 'Error de conexión'));
     } catch(err) {
         alert('Error de conexión');
     }

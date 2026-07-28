@@ -57,14 +57,9 @@ document.querySelectorAll('.form-asignar').forEach(f => f.addEventListener('subm
     const idDoctor = docSelect.value;
     
     try {
-        const res = await fetch('../api/assign_consultorio.php', { 
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify(dataObj) 
-        });
-        const data = await res.json();
-        
-        if(data.status === 'success') {
+        const data = await apiClient.post('assign_consultorio.php', dataObj);
+
+        if(data && data.status === 'success') {
             const card = f.closest('.card');
             const badge = card.querySelector('.badge');
             const docName = card.querySelector('.doc-name');
@@ -89,7 +84,7 @@ document.querySelectorAll('.form-asignar').forEach(f => f.addEventListener('subm
                 btn.disabled = false;
             }, 1500);
         } else {
-            alert(data.message);
+            alert(data ? data.message : 'Error de red al actualizar consultorio');
             btn.disabled = false;
             btn.innerHTML = 'Actualizar';
         }
