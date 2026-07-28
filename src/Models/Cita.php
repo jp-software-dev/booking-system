@@ -21,14 +21,16 @@ class Cita {
     }
 
     // VERIFICADOR DE EMPALMES: Consulta si un doctor ya tiene un espacio ocupado en esa fecha y hora.
+    // Usa COUNT(*) + fetchColumn() en vez de rowCount(), ya que PDO no garantiza que rowCount()
+    // devuelva el número de filas de un SELECT en todos los drivers.
     public function verificarDisponibilidad(int $id_doctor, string $fecha, string $hora): bool {
-        
-        $query = "SELECT id_cita FROM citas WHERE id_doctor = ? AND fecha_cita = ? AND hora_inicio = ? AND estado_cita != 'Cancelada'";
-        
+
+        $query = "SELECT COUNT(*) FROM citas WHERE id_doctor = ? AND fecha_cita = ? AND hora_inicio = ? AND estado_cita != 'Cancelada'";
+
         $stmt = $this->conn->prepare($query);
         $stmt->execute([$id_doctor, $fecha, $hora]);
-        
-        return $stmt->rowCount() === 0;
+
+        return ((int)$stmt->fetchColumn()) === 0;
     }
 
     // CREADOR DE CITAS: Recibe un arreglo de información validada e inserta un nuevo registro.

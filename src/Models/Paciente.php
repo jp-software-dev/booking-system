@@ -34,14 +34,16 @@ class Paciente {
     }
 
     // VERIFICADOR DE DUPLICADOS: Comprueba si un correo ya está registrado.
+    // Usa COUNT(*) + fetchColumn() en vez de rowCount(), ya que PDO no garantiza que rowCount()
+    // devuelva el número de filas de un SELECT en todos los drivers.
     public function existeEmail(string $email): bool {
-        
-        $query = "SELECT id_paciente FROM pacientes WHERE email = ?";
-        
+
+        $query = "SELECT COUNT(*) FROM pacientes WHERE email = ?";
+
         $stmt = $this->conn->prepare($query);
         $stmt->execute([$email]);
-        
-        return $stmt->rowCount() > 0;
+
+        return ((int)$stmt->fetchColumn()) > 0;
     }
 }
 ?>
