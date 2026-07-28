@@ -25,7 +25,7 @@ $ruta_agendar = isset($_SESSION['user_id']) ? 'agenda.php' : 'login.php';
                     </div>
                     <div>
                         <h6 class="fw-bold text-dark mb-1">Ubicación</h6>
-                        <p class="text-secondary mb-0 small">Toluca, Estado de México</p>
+                        <p class="text-secondary mb-0 small">Ciudad de México</p>
                     </div>
                 </div>
 
@@ -35,7 +35,8 @@ $ruta_agendar = isset($_SESSION['user_id']) ? 'agenda.php' : 'login.php';
                     </div>
                     <div>
                         <h6 class="fw-bold text-dark mb-1">Teléfono</h6>
-                        <p class="text-secondary mb-0 small">+52 729 963 5417</p>
+                        <!-- TODO: reemplazar con el número real -->
+                        <p class="text-secondary mb-0 small">Agrega aquí tu número de contacto</p>
                     </div>
                 </div>
 
@@ -45,7 +46,8 @@ $ruta_agendar = isset($_SESSION['user_id']) ? 'agenda.php' : 'login.php';
                     </div>
                     <div>
                         <h6 class="fw-bold text-dark mb-1">Correo Electrónico</h6>
-                        <p class="text-secondary mb-0 small">sistema.mediagenda@gmail.com</p>
+                        <!-- TODO: reemplazar con el correo real -->
+                        <p class="text-secondary mb-0 small">tu-correo@ejemplo.com</p>
                     </div>
                 </div>
             </div>

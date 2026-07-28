@@ -6,11 +6,11 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'paciente') { header("
 
 $db = Database::getInstance();
 $id_paciente = $_SESSION['user_id'];
-$query = "SELECT c.id_cita, c.fecha_cita, c.hora_inicio, d.nombre AS doctor, d.apellido_paterno, c.motivo_consulta, c.estado_cita, co.nombre as consultorio_nombre 
-          FROM citas c 
-          JOIN doctores d ON c.id_doctor = d.id_doctor 
-          LEFT JOIN consultorios co ON c.id_consultorio = co.id_consultorio 
-          WHERE c.id_paciente = ? 
+$query = "SELECT c.id_cita, c.fecha_cita, c.hora_inicio, d.nombre AS doctor, d.apellido_paterno, c.motivo_consulta, c.estado_cita, co.nombre as consultorio_nombre
+          FROM citas c
+          JOIN doctores d ON c.id_doctor = d.id_doctor
+          LEFT JOIN consultorios co ON c.id_consultorio = co.id_consultorio
+          WHERE c.id_paciente = ? AND c.oculto_para_paciente = 0
           ORDER BY c.fecha_cita DESC, c.hora_inicio DESC";
 $stmt = $db->prepare($query);
 $stmt->execute([$id_paciente]);
@@ -88,11 +88,12 @@ require_once __DIR__ . '/../src/views/layout/header.php';
                         <th>Médico Especialista</th>
                         <th>Consultorio</th>
                         <th class="d-none d-md-table-cell">Motivo de Consulta</th>
-                        <th class="text-end pe-4">Estado Final</th>
+                        <th class="text-end">Estado Final</th>
+                        <th class="text-end pe-4"></th>
                     </tr>
                 </thead>
                 <tbody class="border-top-0">
-                    <?php foreach ($citas_pasadas as $cita): 
+                    <?php foreach ($citas_pasadas as $cita):
                         $claseEstado = $cita['estado_cita'] === 'Completada' ? 'bg-success text-white' : 'bg-danger text-white';
                     ?>
                     <tr>
@@ -105,16 +106,68 @@ require_once __DIR__ . '/../src/views/layout/header.php';
                         <td class="d-none d-md-table-cell text-secondary text-truncate" style="max-width: 200px;" title="<?php echo htmlspecialchars($cita['motivo_consulta'] ?? 'N/A'); ?>">
                             <?php echo htmlspecialchars($cita['motivo_consulta'] ?? 'N/A'); ?>
                         </td>
-                        <td class="text-end pe-4"><span class="badge rounded-pill <?php echo $claseEstado; ?> px-3 py-1"><?php echo $cita['estado_cita']; ?></span></td>
+                        <td class="text-end"><span class="badge rounded-pill <?php echo $claseEstado; ?> px-3 py-1"><?php echo $cita['estado_cita']; ?></span></td>
+                        <td class="text-end pe-4">
+                            <button type="button" class="btn btn-sm btn-outline-danger rounded-circle" title="Eliminar registro" onclick="confirmarEliminarHistorial(<?php echo (int)$cita['id_cita']; ?>)">
+                                <i class="bi bi-trash3"></i>
+                            </button>
+                        </td>
                     </tr>
                     <?php endforeach; ?>
                     <?php if (empty($citas_pasadas)): ?>
-                    <tr><td colspan="5" class="text-center text-muted py-4">No hay registros en tu historial de atención.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">No hay registros en tu historial de atención.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="modalEliminarHistorial" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 bg-danger text-white rounded-top-4">
+                <h5 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Eliminar Registro</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="fw-medium mb-0">Si eliminas este registro no podrás recuperarlo. ¿Deseas continuar?</p>
+                <div id="deleteHistorialAlert" class="mt-3"></div>
+            </div>
+            <div class="modal-footer border-0 p-4 pt-0">
+                <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger fw-bold" id="btnConfirmarEliminarHistorial">Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let idCitaAEliminar = null;
+
+function confirmarEliminarHistorial(idCita) {
+    idCitaAEliminar = idCita;
+    document.getElementById('deleteHistorialAlert').innerHTML = '';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEliminarHistorial')).show();
+}
+
+document.getElementById('btnConfirmarEliminarHistorial').addEventListener('click', async () => {
+    if (!idCitaAEliminar) return;
+    const btn = document.getElementById('btnConfirmarEliminarHistorial');
+    btn.disabled = true; btn.innerHTML = 'Eliminando...';
+    try {
+        const data = await apiClient.post('delete_historial_paciente.php', { id_cita: idCitaAEliminar });
+        if (data && data.status === 'success') {
+            location.reload();
+        } else {
+            document.getElementById('deleteHistorialAlert').innerHTML = `<div class="alert alert-danger py-2 small">${data ? data.message : 'Error de conexión'}</div>`;
+            btn.disabled = false; btn.innerHTML = 'Eliminar';
+        }
+    } catch (err) {
+        document.getElementById('deleteHistorialAlert').innerHTML = `<div class="alert alert-danger py-2 small">Error de conexión</div>`;
+        btn.disabled = false; btn.innerHTML = 'Eliminar';
+    }
+});
+</script>
 
 <?php require_once __DIR__ . '/../src/views/layout/footer.php'; ?>

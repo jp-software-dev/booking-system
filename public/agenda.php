@@ -13,7 +13,7 @@ if ($_SESSION['role'] === 'admin') {
     $paciente = $stmt->fetch();
     if (!$paciente) { session_destroy(); header("Location: login.php"); exit(); }
 }
-$doctores = $db->query("SELECT id_doctor, nombre, apellido_paterno FROM doctores WHERE estado = 1 ORDER BY nombre")->fetchAll();
+$doctores = $db->query("SELECT id_doctor, nombre, apellido_paterno FROM doctores WHERE estado = 1 AND id_consultorio IS NOT NULL ORDER BY nombre")->fetchAll();
 
 require_once __DIR__ . '/../src/views/layout/header.php';
 ?>

@@ -77,6 +77,9 @@ $citas = $stmt->fetchAll();
         
         <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
             <h5 class="fw-bold text-dark-blue mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>Historial de Citas Pasadas</h5>
+            <a href="../api/generar_pdf.php?<?php echo htmlspecialchars($_SERVER['QUERY_STRING'] ?? ''); ?>" class="btn btn-outline-danger rounded-pill px-4 fw-medium">
+                <i class="bi bi-file-pdf me-1"></i> PDF
+            </a>
         </div>
         
         <div class="bg-light p-3 border-bottom">
