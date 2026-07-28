@@ -29,14 +29,57 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 
 $db = Database::getInstance();
 
-// CONSULTA DE DATOS: Recupera la información detallada de citas, pacientes y doctores para el informe.
+// --- FILTROS DINÁMICOS: mismo esquema de parámetros que admin_historial.php ---
+$busqId     = trim($_GET['id_cita']  ?? '');
+$busqPac    = trim($_GET['paciente'] ?? '');
+$busqDoc    = trim($_GET['doctor']   ?? '');
+$busqEstado = trim($_GET['estado']   ?? '');
+
+$where = [];
+$params = [];
+$filtrosAplicados = [];
+
+if ($busqId !== '') {
+    $where[]  = "c.id_cita = ?";
+    $params[] = (int)$busqId;
+    $filtrosAplicados[] = "Cita #" . (int)$busqId;
+}
+if ($busqPac !== '') {
+    $where[]  = "(p.nombre LIKE ? OR p.apellido_paterno LIKE ?)";
+    $params[] = "%$busqPac%";
+    $params[] = "%$busqPac%";
+    $filtrosAplicados[] = "Paciente = " . $busqPac;
+}
+if ($busqDoc !== '') {
+    $where[]  = "c.id_doctor = ?";
+    $params[] = (int)$busqDoc;
+    $stmtDoc = $db->prepare("SELECT nombre, apellido_paterno FROM doctores WHERE id_doctor = ?");
+    $stmtDoc->execute([(int)$busqDoc]);
+    $doc = $stmtDoc->fetch(PDO::FETCH_ASSOC);
+    $filtrosAplicados[] = "Médico = " . ($doc ? 'Dr. ' . $doc['nombre'] . ' ' . $doc['apellido_paterno'] : "#$busqDoc");
+}
+if ($busqEstado !== '') {
+    $where[]  = "c.estado_cita = ?";
+    $params[] = $busqEstado;
+    $filtrosAplicados[] = "Estado = " . $busqEstado;
+}
+
+$whereSql = count($where) > 0 ? "WHERE " . implode(" AND ", $where) : "";
+$subtitulo = count($filtrosAplicados) > 0
+    ? "Reporte filtrado: " . implode(", ", $filtrosAplicados)
+    : "Reporte Global de Historial Médico";
+
+// CONSULTA DE DATOS: Recupera la información detallada de citas, pacientes y doctores para el informe,
+// respetando los filtros activos (si no se aplicó ninguno, trae todas las citas, igual que antes).
 $query = "SELECT c.id_cita, p.nombre AS paciente, p.curp, d.nombre AS doctor, d.apellido_paterno AS doctor_ap,
                  c.fecha_cita, c.hora_inicio, c.motivo_consulta, c.estado_cita
           FROM citas c
           JOIN pacientes p ON c.id_paciente = p.id_paciente
           JOIN doctores d ON c.id_doctor = d.id_doctor
+          $whereSql
           ORDER BY c.fecha_cita DESC, c.hora_inicio DESC";
-$stmt = $db->query($query);
+$stmt = $db->prepare($query);
+$stmt->execute($params);
 $citas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // METADATOS: Captura la fecha y hora exacta de emisión del reporte.
@@ -65,7 +108,7 @@ $html = '
 <body>
     <div class="header">
         <h1>MediAgenda Elite</h1>
-        <p>Reporte Global de Historial Médico</p>
+        <p>' . htmlspecialchars($subtitulo) . '</p>
         <p>Generado el: ' . $fecha_reporte . '</p>
     </div>
     <table>
