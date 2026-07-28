@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             try {
                 const formData = new FormData(e.target);
                 const bodyData = Object.fromEntries(formData.entries());
-                const res = await fetch('../api/create_cita.php', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(bodyData) }).then(r => r.json());
+                const res = await apiClient.post('create_cita.php', bodyData);
                 
                 if (res && res.status === 'success') {
                     bootstrap.Modal.getInstance(document.getElementById('bookingModal')).hide();
