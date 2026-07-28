@@ -1,3 +1,13 @@
+# Reautoriza el acceso a este subárbol: /src/.htaccess deniega todo /src por defecto,
+# pero las vistas y assets de /src/public sí deben servirse al navegador.
+<IfModule mod_authz_core.c>
+    Require all granted
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Allow from all
+</IfModule>
+
 Options -Indexes
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-d

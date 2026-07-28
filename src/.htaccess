@@ -1,0 +1,10 @@
+# Deniega el acceso directo por navegador a todo /src (Controllers, Helpers, Models,
+# Services, views). /src/public reautoriza el acceso explícitamente en su propio
+# .htaccess, ya que ese subárbol sí debe servirse al navegador.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

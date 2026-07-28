@@ -1,0 +1,24 @@
+# .htaccess en la raíz del proyecto
+#
+# NOTA DE DISEÑO: la raíz del proyecto también contiene /api (endpoints públicos
+# que el frontend invoca por URL) y /src/public (vistas servidas al navegador),
+# así que este archivo NO puede denegar todo el árbol de forma general: eso
+# rompería el sitio completo. En su lugar, cada carpeta que NO debe ser accesible
+# por navegador (/config, /database, /src fuera de public, /vendor) tiene su
+# propio .htaccess con "Require all denied", y /src/public/.htaccess reautoriza
+# explícitamente el acceso a ese subárbol. Aquí solo se protege el archivo .env
+# y se desactiva el listado de directorios.
+#
+# IMPORTANTE (acción para el humano): esta capa de .htaccess es una mitigación,
+# no la solución de fondo. La solución correcta es apuntar el DocumentRoot de
+# Apache/hosting únicamente a /src/public, de forma que /config, /src (fuera de
+# public), /vendor, /api y /database queden completamente fuera del árbol
+# servible por el navegador. Mientras el DocumentRoot siga apuntando a la raíz
+# del proyecto, esta capa de .htaccess por carpeta es la única barrera entre
+# esos archivos e Internet.
+
+Options -Indexes
+
+<Files ".env">
+    Require all denied
+</Files>
