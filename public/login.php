@@ -39,11 +39,23 @@ document.getElementById('togglePassword').addEventListener('click', function() {
 });
 document.getElementById('formLogin').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const btn = document.getElementById('btnIngresar'); btn.disabled = true; btn.innerHTML = 'Verificando...';
-    const res = await fetch('../api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usuario: document.getElementById('identificadorInput').value, email: document.getElementById('identificadorInput').value, password: document.getElementById('passInput').value }) });
-    const data = await res.json();
-    if (data.success) window.location.href = data.redirect;
-    else { document.getElementById('loginAlert').innerHTML = `<div class="alert alert-danger py-2 small text-center">${data.message || 'Credenciales incorrectas'}</div>`; btn.disabled = false; btn.innerHTML = 'INGRESAR'; }
+    const btn = document.getElementById('btnIngresar');
+    const alertBox = document.getElementById('loginAlert');
+    alertBox.innerHTML = '';
+    btn.disabled = true; btn.innerHTML = 'Verificando...';
+    try {
+        const res = await fetch('../api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usuario: document.getElementById('identificadorInput').value, email: document.getElementById('identificadorInput').value, password: document.getElementById('passInput').value }) });
+        const data = await res.json();
+        if (data.success) {
+            window.location.href = data.redirect;
+        } else {
+            alertBox.innerHTML = `<div class="alert alert-danger py-2 small text-center">${data.message || 'Credenciales incorrectas'}</div>`;
+            btn.disabled = false; btn.innerHTML = 'INGRESAR';
+        }
+    } catch (err) {
+        alertBox.innerHTML = `<div class="alert alert-danger py-2 small text-center">Error de conexión. Intenta de nuevo.</div>`;
+        btn.disabled = false; btn.innerHTML = 'INGRESAR';
+    }
 });
 </script>
 <?php require_once __DIR__ . '/../src/views/layout/footer.php'; ?>
