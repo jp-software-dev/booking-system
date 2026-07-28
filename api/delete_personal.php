@@ -1,6 +1,9 @@
 <?php
 session_start();
 require_once '../config/Database.php';
+require_once __DIR__ . '/../src/Helpers/CsrfHelper.php';
+
+use Helpers\CsrfHelper;
 
 header('Content-Type: application/json');
 
@@ -10,6 +13,14 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin' || ($_SERVER['
 }
 
 $input = json_decode(file_get_contents('php://input'), true);
+
+$headers = getallheaders();
+$csrfToken = $headers['X-CSRF-Token'] ?? ($input['csrf_token'] ?? null);
+if (!CsrfHelper::validateToken($csrfToken)) {
+    http_response_code(403);
+    echo json_encode(['status' => 'error', 'message' => 'Token de seguridad inválido']);
+    exit;
+}
 
 $id = (int)($input['id'] ?? 0);
 $tipo = $input['tipo'] ?? ''; // 'Doctor' o 'Enfermero'
