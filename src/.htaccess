@@ -1,6 +1,6 @@
 # Deniega el acceso directo por navegador a todo /src (Controllers, Helpers, Models,
-# Services, views). /src/public reautoriza el acceso explícitamente en su propio
-# .htaccess, ya que ese subárbol sí debe servirse al navegador.
+# Services, views). Ninguno de estos archivos debe servirse directamente; solo se
+# incluyen desde PHP (por /public o /api).
 <IfModule mod_authz_core.c>
     Require all denied
 </IfModule>
