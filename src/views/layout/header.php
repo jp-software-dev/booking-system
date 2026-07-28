@@ -20,9 +20,7 @@ $es_admin = ($_SESSION['role'] ?? '') === 'admin';
 require_once __DIR__ . '/../../Helpers/CsrfHelper.php';
 use Helpers\CsrfHelper;
 
-if (isset($_SESSION['user_id'])) {
-    $csrfToken = CsrfHelper::generateToken();
-}
+$csrfToken = CsrfHelper::generateToken();
 ?>
 
 <!DOCTYPE html>
@@ -82,12 +80,17 @@ if (isset($_SESSION['user_id'])) {
                         <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg mt-2 p-2 rounded-4" style="min-width: 220px;">
                             <?php if ($es_admin): ?>
                                 <li><a class="dropdown-item rounded-3 py-2 fw-medium" href="admin.php"><i class="bi bi-speedometer2 me-2 text-primary"></i>Panel de Citas</a></li>
+                                <li><a class="dropdown-item rounded-3 py-2 fw-medium" href="admin_dashboard.php"><i class="bi bi-bar-chart-fill me-2 text-primary"></i>Dashboard</a></li>
+                                <li><a class="dropdown-item rounded-3 py-2 fw-medium" href="agenda.php"><i class="bi bi-calendar-plus me-2 text-primary"></i>Agendar Cita</a></li>
                                 <li><a class="dropdown-item rounded-3 py-2 fw-medium" href="admin_historial.php"><i class="bi bi-clock-history me-2 text-primary"></i>Historial de Citas</a></li>
                                 <li><a class="dropdown-item rounded-3 py-2 fw-medium" href="admin_consultorios.php"><i class="bi bi-door-open me-2 text-primary"></i>Consultorios</a></li>
                                 <li><a class="dropdown-item rounded-3 py-2 fw-medium" href="admin_equipo.php"><i class="bi bi-people me-2 text-primary"></i>Equipo Médico</a></li>
+                                <li><a class="dropdown-item rounded-3 py-2 fw-medium" href="admin_pacientes.php"><i class="bi bi-people-fill me-2 text-primary"></i>Pacientes</a></li>
+                                <li><a class="dropdown-item rounded-3 py-2 fw-medium" href="admin_bitacora.php"><i class="bi bi-journal-text me-2 text-primary"></i>Bitácora</a></li>
                             <?php else: ?>
                                 <li><a class="dropdown-item rounded-3 py-2 fw-medium" href="agenda.php"><i class="bi bi-calendar-plus me-2 text-primary"></i>Reservar Cita</a></li>
                                 <li><a class="dropdown-item rounded-3 py-2 fw-medium" href="historial.php"><i class="bi bi-clock-history me-2 text-primary"></i>Historial Médico</a></li>
+                                <li><a class="dropdown-item rounded-3 py-2 fw-medium" href="cuenta.php"><i class="bi bi-gear-fill me-2 text-primary"></i>Administrar Cuenta</a></li>
                             <?php endif; ?>
                             <li><hr class="dropdown-divider my-2"></li>
                             <li>
@@ -148,12 +151,17 @@ if (isset($_SESSION['user_id'])) {
                 
                 <?php if ($es_admin): ?>
                     <li class="nav-item"><a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?php echo $current_page === 'admin.php' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white'; ?>" href="admin.php"><i class="bi bi-speedometer2 fs-5 me-3 text-secondary"></i> Panel de Citas</a></li>
+                    <li class="nav-item"><a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?php echo $current_page === 'admin_dashboard.php' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white'; ?>" href="admin_dashboard.php"><i class="bi bi-bar-chart-fill fs-5 me-3 text-secondary"></i> Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?php echo $current_page === 'agenda.php' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white'; ?>" href="agenda.php"><i class="bi bi-calendar-plus-fill fs-5 me-3 text-secondary"></i> Agendar Cita</a></li>
                     <li class="nav-item"><a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?php echo $current_page === 'admin_historial.php' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white'; ?>" href="admin_historial.php"><i class="bi bi-clock-history fs-5 me-3 text-secondary"></i> Historial de Citas</a></li>
                     <li class="nav-item"><a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?php echo $current_page === 'admin_consultorios.php' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white'; ?>" href="admin_consultorios.php"><i class="bi bi-door-open-fill fs-5 me-3 text-secondary"></i> Consultorios</a></li>
                     <li class="nav-item"><a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?php echo $current_page === 'admin_equipo.php' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white'; ?>" href="admin_equipo.php"><i class="bi bi-people-fill fs-5 me-3 text-secondary"></i> Equipo Médico</a></li>
+                    <li class="nav-item"><a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?php echo $current_page === 'admin_pacientes.php' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white'; ?>" href="admin_pacientes.php"><i class="bi bi-people-fill fs-5 me-3 text-secondary"></i> Pacientes</a></li>
+                    <li class="nav-item"><a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?php echo $current_page === 'admin_bitacora.php' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white'; ?>" href="admin_bitacora.php"><i class="bi bi-journal-text fs-5 me-3 text-secondary"></i> Bitácora</a></li>
                 <?php else: ?>
                     <li class="nav-item"><a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?php echo $current_page === 'agenda.php' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white'; ?>" href="agenda.php"><i class="bi bi-calendar-plus-fill fs-5 me-3 text-secondary"></i> Reservar Cita</a></li>
                     <li class="nav-item"><a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?php echo $current_page === 'historial.php' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white'; ?>" href="historial.php"><i class="bi bi-journal-medical fs-5 me-3 text-secondary"></i> Historial Médico</a></li>
+                    <li class="nav-item"><a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?php echo $current_page === 'cuenta.php' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white'; ?>" href="cuenta.php"><i class="bi bi-gear-fill fs-5 me-3 text-secondary"></i> Administrar Cuenta</a></li>
                 <?php endif; ?>
             <?php endif; ?>
         </ul>
