@@ -45,7 +45,7 @@ try {
         $stmt->execute([$id]);
     }
 
-    Bitacora::registrar('baja_personal', strtolower($tipo), $id);
+    Bitacora::registrar('dar_de_baja_personal', strtolower($tipo), $id);
 
     echo json_encode(['status' => 'success', 'message' => 'Baja procesada exitosamente']);
 } catch (Exception $e) {

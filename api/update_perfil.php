@@ -18,8 +18,10 @@ session_start();
 require_once '../config/Database.php';
 require_once __DIR__ . '/../src/Helpers/CsrfHelper.php';
 require_once __DIR__ . '/../src/Helpers/ValidationHelper.php';
+require_once __DIR__ . '/../src/Helpers/Bitacora.php';
 
 use Helpers\CsrfHelper;
+use Helpers\Bitacora;
 
 header('Content-Type: application/json');
 
@@ -52,8 +54,9 @@ $db = Database::getInstance();
 
 $actualizaPerfil = array_key_exists('nombre', $input);
 $actualizaPassword = !empty($input['password_nueva']);
+$actualizaNotificaciones = array_key_exists('recibir_notificaciones', $input);
 
-if (!$actualizaPerfil && !$actualizaPassword) {
+if (!$actualizaPerfil && !$actualizaPassword && !$actualizaNotificaciones) {
     echo json_encode(['status' => 'error', 'message' => 'No hay cambios que aplicar']);
     exit;
 }
@@ -100,6 +103,12 @@ try {
         $_SESSION['user_name'] = $nombre;
     }
 
+    if ($actualizaNotificaciones) {
+        $recibirNotificaciones = !empty($input['recibir_notificaciones']) ? 1 : 0;
+        $db->prepare("UPDATE pacientes SET recibir_notificaciones = ? WHERE id_paciente = ?")
+           ->execute([$recibirNotificaciones, $id_paciente]);
+    }
+
     if ($actualizaPassword) {
         $password_actual    = $input['password_actual'] ?? '';
         $password_nueva     = $input['password_nueva'] ?? '';
@@ -132,6 +141,14 @@ try {
     }
 
     $db->commit();
+
+    $detalle = implode(', ', array_filter([
+        $actualizaPerfil ? 'datos personales' : null,
+        $actualizaPassword ? 'contraseña' : null,
+        $actualizaNotificaciones ? 'preferencias de notificación' : null,
+    ]));
+    Bitacora::registrar('actualizar_perfil_paciente', 'paciente', (int)$id_paciente, "Campos actualizados: $detalle");
+
     echo json_encode(['status' => 'success', 'message' => 'Datos actualizados correctamente']);
 
 } catch (PDOException $e) {

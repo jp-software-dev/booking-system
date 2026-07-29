@@ -2,8 +2,10 @@
 session_start();
 require_once '../config/Database.php';
 require_once __DIR__ . '/../src/Helpers/CsrfHelper.php';
+require_once __DIR__ . '/../src/Helpers/Bitacora.php';
 
 use Helpers\CsrfHelper;
+use Helpers\Bitacora;
 
 header('Content-Type: application/json');
 
@@ -47,6 +49,8 @@ try {
         echo json_encode(['status' => 'error', 'message' => 'Tipo de personal inválido']);
         exit;
     }
+
+    Bitacora::registrar('dar_de_alta_personal', strtolower($tipo), (int)$db->lastInsertId(), "$nombre $apellido");
 
     echo json_encode(['status' => 'success', 'message' => 'Personal agregado con éxito']);
 } catch (Exception $e) {

@@ -94,7 +94,7 @@ try {
     $db->prepare("UPDATE pacientes_credenciales SET password_hash = ?, cuenta_verificada = 0 WHERE id_paciente = ?")
        ->execute([$hashInvalido, $id_paciente]);
 
-    Bitacora::registrar('eliminar_cuenta', 'paciente', $id_paciente, 'Autogestión: baja de cuenta');
+    Bitacora::registrar('eliminar_cuenta_paciente', 'paciente', $id_paciente, 'Autogestión: baja de cuenta');
 
     $db->commit();
 
