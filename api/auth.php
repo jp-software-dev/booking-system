@@ -15,8 +15,10 @@
 session_start();
 require_once '../config/Database.php';
 require_once __DIR__ . '/../src/Helpers/RateLimiter.php';
+require_once __DIR__ . '/../src/Helpers/Bitacora.php';
 
 use Helpers\RateLimiter;
+use Helpers\Bitacora;
 
 header('Content-Type: application/json');
 
@@ -97,7 +99,8 @@ try {
         $_SESSION['user_name'] = $user['nombre'];
         $_SESSION['role'] = $user['role'];
         RateLimiter::resetAttempts($rateLimitKey);
-        
+        Bitacora::registrar('login_exitoso', 'sesion', (int)$_SESSION['user_id']);
+
         $redirect = $user['role'] === 'admin' ? 'admin.php' : 'agenda.php';
         echo json_encode(['success' => true, 'role' => $user['role'], 'redirect' => $redirect]);
     } else {
