@@ -5,9 +5,16 @@ require_once __DIR__ . '/../config/Database.php';
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'paciente') { header("Location: login.php"); exit(); }
 
 $db = Database::getInstance();
-$stmt = $db->prepare("SELECT nombre, apellido_paterno, apellido_materno, telefono, email FROM pacientes WHERE id_paciente = ?");
+$stmt = $db->prepare("SELECT nombre, apellido_paterno, apellido_materno, telefono, email, recibir_notificaciones FROM pacientes WHERE id_paciente = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $paciente = $stmt->fetch();
+
+// Historial de accesos (Parte 7 - derechos ARCO): se reutiliza la bitácora de auditoría
+// en vez de crear una tabla de sesiones aparte, ya que ya registra fecha/hora por
+// usuario/rol y evita duplicar infraestructura de logging solo para esta vista.
+$stmtAccesos = $db->prepare("SELECT fecha FROM bitacora WHERE accion = 'login_exitoso' AND id_usuario = ? AND rol = 'paciente' ORDER BY fecha DESC LIMIT 10");
+$stmtAccesos->execute([$_SESSION['user_id']]);
+$accesos = $stmtAccesos->fetchAll();
 
 require_once __DIR__ . '/../src/views/layout/header.php';
 ?>
@@ -75,6 +82,58 @@ require_once __DIR__ . '/../src/views/layout/header.php';
                 </div>
                 <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold mt-4" id="btnGuardarPassword">Actualizar Contraseña</button>
             </form>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-white border-bottom py-3 px-4">
+            <h5 class="fw-bold text-dark-blue mb-0"><i class="bi bi-bell text-primary me-2"></i>Preferencias de Notificación</h5>
+        </div>
+        <div class="card-body p-4">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="chkNotificaciones" <?php echo !empty($paciente['recibir_notificaciones']) ? 'checked' : ''; ?>>
+                <label class="form-check-label fw-medium" for="chkNotificaciones">Recibir correos de confirmación y cancelación de citas</label>
+            </div>
+            <div id="notificacionesAlert" class="mt-2"></div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-white border-bottom py-3 px-4">
+            <h5 class="fw-bold text-dark-blue mb-0"><i class="bi bi-download text-primary me-2"></i>Exportar Mis Datos</h5>
+        </div>
+        <div class="card-body p-4">
+            <p class="text-secondary mb-3">Descarga una copia de tus datos personales y tu historial completo de citas (derecho de acceso y portabilidad).</p>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="../api/exportar_datos_paciente.php?formato=pdf" class="btn btn-outline-primary rounded-pill px-4 fw-medium"><i class="bi bi-file-earmark-pdf me-2"></i>Descargar PDF</a>
+                <a href="../api/exportar_datos_paciente.php?formato=json" class="btn btn-outline-primary rounded-pill px-4 fw-medium"><i class="bi bi-filetype-json me-2"></i>Descargar JSON</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-white border-bottom py-3 px-4">
+            <h5 class="fw-bold text-dark-blue mb-0"><i class="bi bi-clock-history text-primary me-2"></i>Historial de Accesos a Mi Cuenta</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr><th class="ps-4">Fecha</th><th class="pe-4">Hora</th></tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($accesos as $acceso): ?>
+                        <tr>
+                            <td class="ps-4"><?php echo date('d/m/Y', strtotime($acceso['fecha'])); ?></td>
+                            <td class="pe-4"><?php echo date('h:i A', strtotime($acceso['fecha'])); ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                        <?php if (empty($accesos)): ?>
+                        <tr><td colspan="2" class="text-center text-muted py-4">No hay accesos registrados todavía.</td></tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -158,6 +217,24 @@ document.getElementById('formPassword').addEventListener('submit', async (e) => 
         mostrarAlerta('cuentaAlert', 'danger', 'Error de conexión');
     }
     btn.disabled = false; btn.innerHTML = 'Actualizar Contraseña';
+});
+
+document.getElementById('chkNotificaciones').addEventListener('change', async function() {
+    const chk = this;
+    chk.disabled = true;
+    try {
+        const data = await apiClient.post('update_perfil.php', { recibir_notificaciones: chk.checked ? 1 : 0 });
+        if (data && data.status === 'success') {
+            mostrarAlerta('notificacionesAlert', 'success', 'Preferencia actualizada.');
+        } else {
+            chk.checked = !chk.checked;
+            mostrarAlerta('notificacionesAlert', 'danger', data ? data.message : 'Error de conexión');
+        }
+    } catch (err) {
+        chk.checked = !chk.checked;
+        mostrarAlerta('notificacionesAlert', 'danger', 'Error de conexión');
+    }
+    chk.disabled = false;
 });
 
 document.getElementById('chkEntiendo').addEventListener('change', function() {

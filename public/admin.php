@@ -135,7 +135,7 @@ $m_comp  = $metrics['completadas'] ?? 0;
                             default      => 'bg-secondary text-white'
                         };
                     ?>
-                    <tr>
+                    <tr data-fecha="<?php echo date('Y-m-d', strtotime($cita['fecha_cita'])); ?>" data-hora="<?php echo date('H:i', strtotime($cita['hora_inicio'])); ?>">
                         <td data-label="ID" class="ps-4 text-muted fw-bold">#<?php echo $cita['id_cita']; ?></td>
                         <td data-label="Paciente">
                             <div class="fw-bold text-dark"><?php echo htmlspecialchars($cita['paciente'].' '.$cita['paciente_ap']); ?></div>
@@ -164,7 +164,7 @@ $m_comp  = $metrics['completadas'] ?? 0;
                         </td>
                         <td data-label="Acciones" class="text-end pe-4">
                             <div class="btn-group">
-                                <button class="btn btn-light btn-sm text-primary border" onclick="abrirModalEditar(<?php echo $cita['id_cita']; ?>)" title="Editar Cita">
+                                <button class="btn btn-light btn-sm text-primary border" onclick="abrirModalEditar(this, <?php echo $cita['id_cita']; ?>)" title="Editar Cita">
                                     <i class="bi bi-pencil-square"></i>
                                 </button>
                                 <button class="btn btn-light btn-sm text-danger border" onclick="if(confirm('¿Eliminar definitivamente la cita #<?php echo $cita['id_cita']; ?>?')) eliminarCita(<?php echo $cita['id_cita']; ?>)" title="Eliminar Cita">
@@ -336,8 +336,21 @@ async function crearNuevaCita() {
     }
 }
 
-function abrirModalEditar(id) {
+function abrirModalEditar(btn, id) {
     document.getElementById('edit_id_cita').value = id;
+
+    const fila = btn.closest('tr');
+    const fecha = fila?.dataset.fecha ?? '';
+    const hora = fila?.dataset.hora ?? '';
+
+    document.getElementById('edit_fecha').value = fecha;
+    const selectHora = document.getElementById('edit_hora');
+    selectHora.value = hora;
+    if (selectHora.value !== hora) {
+        // La hora de la cita no coincide con ninguna opción del select (ej. slot legado fuera de la rejilla de 30 min).
+        selectHora.selectedIndex = 0;
+    }
+
     new bootstrap.Modal(document.getElementById('modalEditarCita')).show();
 }
 

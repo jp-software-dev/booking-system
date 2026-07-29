@@ -36,7 +36,7 @@ $ruta_agendar = isset($_SESSION['user_id']) ? 'agenda.php' : 'login.php';
                     <div>
                         <h6 class="fw-bold text-dark mb-1">Teléfono</h6>
                         <!-- TODO: reemplazar con el número real -->
-                        <p class="text-secondary mb-0 small">Agrega aquí tu número de contacto</p>
+                        <p class="text-secondary mb-0 small">Tu número</p>
                     </div>
                 </div>
 
