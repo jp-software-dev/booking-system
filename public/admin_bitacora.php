@@ -8,9 +8,10 @@ $db = Database::getInstance();
 
 $acciones = $db->query("SELECT DISTINCT accion FROM bitacora ORDER BY accion")->fetchAll(PDO::FETCH_COLUMN);
 
-$busqAccion = trim($_GET['accion'] ?? '');
-$busqDesde  = trim($_GET['desde'] ?? '');
-$busqHasta  = trim($_GET['hasta'] ?? '');
+$busqAccion  = trim($_GET['accion'] ?? '');
+$busqDesde   = trim($_GET['desde'] ?? '');
+$busqHasta   = trim($_GET['hasta'] ?? '');
+$busqUsuario = trim($_GET['usuario'] ?? '');
 
 $where = [];
 $params = [];
@@ -18,6 +19,10 @@ $params = [];
 if ($busqAccion !== '') {
     $where[] = "accion = ?";
     $params[] = $busqAccion;
+}
+if ($busqUsuario !== '' && is_numeric($busqUsuario)) {
+    $where[] = "id_usuario = ?";
+    $params[] = (int)$busqUsuario;
 }
 if ($busqDesde !== '' && DateTime::createFromFormat('Y-m-d', $busqDesde)) {
     $where[] = "fecha >= ?";
@@ -62,7 +67,7 @@ $registros = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         <div class="bg-light p-3 border-bottom">
             <form method="GET" class="row g-2 align-items-end">
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label small fw-bold text-secondary mb-1">Tipo de Acción</label>
                     <select name="accion" class="form-select form-select-sm">
                         <option value="">Todas</option>
@@ -70,6 +75,10 @@ $registros = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <option value="<?php echo htmlspecialchars($acc); ?>" <?php echo $busqAccion === $acc ? 'selected' : ''; ?>><?php echo htmlspecialchars($acc); ?></option>
                         <?php endforeach; ?>
                     </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-secondary mb-1">Usuario (ID)</label>
+                    <input type="number" name="usuario" class="form-control form-control-sm" value="<?php echo htmlspecialchars($busqUsuario); ?>" placeholder="Ej. 12">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-secondary mb-1">Desde</label>
@@ -79,7 +88,7 @@ $registros = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <label class="form-label small fw-bold text-secondary mb-1">Hasta</label>
                     <input type="date" name="hasta" class="form-control form-control-sm" value="<?php echo htmlspecialchars($busqHasta); ?>">
                 </div>
-                <div class="col-md-3 d-flex gap-2">
+                <div class="col-md-2 d-flex gap-2">
                     <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3 fw-medium shadow-sm">Filtrar</button>
                     <a href="admin_bitacora.php" class="btn btn-light btn-sm rounded-pill px-3 fw-medium border">Limpiar</a>
                 </div>
@@ -104,7 +113,7 @@ $registros = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <td><span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis">#<?php echo $r['id_usuario']; ?> (<?php echo htmlspecialchars($r['rol']); ?>)</span></td>
                         <td class="fw-medium text-dark"><?php echo htmlspecialchars($r['accion']); ?></td>
                         <td class="text-secondary"><?php echo htmlspecialchars($r['entidad']); ?><?php echo $r['id_entidad'] ? ' #' . $r['id_entidad'] : ''; ?></td>
-                        <td class="pe-4 text-secondary small"><?php echo htmlspecialchars($r['detalle'] ?? ''); ?></td>
+                        <td class="pe-4 text-secondary small text-truncate d-inline-block" style="max-width: 260px; vertical-align: middle;" title="<?php echo htmlspecialchars($r['detalle'] ?? ''); ?>"><?php echo htmlspecialchars($r['detalle'] ?? ''); ?></td>
                     </tr>
                     <?php endforeach; ?>
                     <?php if (empty($registros)): ?>

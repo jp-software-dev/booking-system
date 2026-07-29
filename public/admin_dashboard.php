@@ -27,6 +27,7 @@ require_once __DIR__ . '/../src/views/layout/header.php';
     </div>
 
     <div id="dashboardAlert"></div>
+    <div id="alertDoctoresSinConsultorio"></div>
 
     <div class="row g-3 mb-4">
         <div class="col-6 col-lg-3">
@@ -51,6 +52,27 @@ require_once __DIR__ . '/../src/views/layout/header.php';
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
                 <span class="text-secondary small fw-bold text-uppercase">Tasa de Cancelación</span>
                 <span class="fs-3 fw-bold text-dark-blue" id="kpiTasa">—</span>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+                <span class="text-secondary small fw-bold text-uppercase">Pacientes Activos</span>
+                <span class="fs-3 fw-bold text-dark-blue" id="kpiPacientesActivos">—</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+                <h6 class="fw-bold text-dark-blue mb-3">Pacientes Nuevos por Mes (últimos 12 meses)</h6>
+                <canvas id="chartPacientesNuevos" height="220"></canvas>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+                <h6 class="fw-bold text-dark-blue mb-3">Ocupación por Doctor (rango seleccionado)</h6>
+                <canvas id="chartOcupacion" height="220"></canvas>
             </div>
         </div>
     </div>
@@ -88,7 +110,7 @@ require_once __DIR__ . '/../src/views/layout/header.php';
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
-let chartEstado, chartEspecialidad, chartDoctores, chartTendencia;
+let chartEstado, chartEspecialidad, chartDoctores, chartTendencia, chartPacientesNuevos, chartOcupacion;
 let rangoActual = '30d';
 
 function mostrarErrorDashboard(msg) {
@@ -96,7 +118,7 @@ function mostrarErrorDashboard(msg) {
 }
 
 function destruirCharts() {
-    [chartEstado, chartEspecialidad, chartDoctores, chartTendencia].forEach(c => c && c.destroy());
+    [chartEstado, chartEspecialidad, chartDoctores, chartTendencia, chartPacientesNuevos, chartOcupacion].forEach(c => c && c.destroy());
 }
 
 async function cargarDashboard(params) {
@@ -114,6 +136,15 @@ async function cargarDashboard(params) {
     document.getElementById('kpiCompletadas').textContent = m.kpis.completadas;
     document.getElementById('kpiCanceladas').textContent = m.kpis.canceladas;
     document.getElementById('kpiTasa').textContent = m.kpis.tasa_cancelacion + '%';
+    document.getElementById('kpiPacientesActivos').textContent = m.pacientes_activos;
+
+    const alertDoctores = document.getElementById('alertDoctoresSinConsultorio');
+    if (m.doctores_sin_consultorio.length > 0) {
+        const nombres = m.doctores_sin_consultorio.map(d => 'Dr. ' + d.nombre + ' ' + d.apellido_paterno).join(', ');
+        alertDoctores.innerHTML = `<div class="alert alert-warning py-2 small mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i><strong>${m.doctores_sin_consultorio.length} doctor(es) sin consultorio asignado:</strong> ${nombres}</div>`;
+    } else {
+        alertDoctores.innerHTML = '';
+    }
 
     destruirCharts();
 
@@ -151,6 +182,27 @@ async function cargarDashboard(params) {
             datasets: [{ label: 'Citas por mes', data: m.tendencia_mensual.map(r => r.cantidad), borderColor: '#1a73e8', backgroundColor: 'rgba(26,115,232,0.15)', fill: true, tension: 0.3 }]
         },
         options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+    });
+
+    chartPacientesNuevos = new Chart(document.getElementById('chartPacientesNuevos'), {
+        type: 'bar',
+        data: {
+            labels: m.pacientes_nuevos_mensual.map(r => r.periodo),
+            datasets: [{ label: 'Pacientes nuevos', data: m.pacientes_nuevos_mensual.map(r => r.cantidad), backgroundColor: '#845ef7' }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+    });
+
+    chartOcupacion = new Chart(document.getElementById('chartOcupacion'), {
+        type: 'bar',
+        data: {
+            labels: m.ocupacion_doctores.map(r => 'Dr. ' + r.nombre + ' ' + r.apellido_paterno),
+            datasets: [{ label: 'Tasa de ocupación (%)', data: m.ocupacion_doctores.map(r => r.tasa_ocupacion), backgroundColor: '#f6c343' }]
+        },
+        options: {
+            indexAxis: 'y', responsive: true, plugins: { legend: { display: false } },
+            scales: { x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } } }
+        }
     });
 }
 
