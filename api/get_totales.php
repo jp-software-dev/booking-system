@@ -51,6 +51,10 @@ try {
             'por_especialidad' => $metrica->porEspecialidad($desde, $hasta),
             'top_doctores' => $metrica->topDoctores($desde, $hasta, 10),
             'tendencia_mensual' => $metrica->tendenciaMensual(),
+            'pacientes_nuevos_mensual' => $metrica->pacientesNuevosPorMes(),
+            'pacientes_activos' => $metrica->totalPacientesActivos(),
+            'doctores_sin_consultorio' => $metrica->doctoresSinConsultorio(),
+            'ocupacion_doctores' => $metrica->ocupacionPorDoctor($desde, $hasta, 10),
         ],
     ]);
 
