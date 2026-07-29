@@ -137,4 +137,85 @@ class Metrica
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    /**
+     * Pacientes nuevos por mes, últimos 12 meses fijos (mismo criterio que tendenciaMensual:
+     * independiente del filtro de rango activo). Usa pacientes.created_at.
+     */
+    public function pacientesNuevosPorMes(): array
+    {
+        $stmt = $this->conn->prepare(
+            "SELECT DATE_FORMAT(created_at, '%Y-%m') AS periodo, COUNT(*) AS cantidad
+             FROM pacientes
+             WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+             GROUP BY periodo
+             ORDER BY periodo ASC"
+        );
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Total de pacientes con cuenta activa (excluye autoeliminados/anonimizados).
+     * No depende del rango de fechas: es un conteo del estado actual.
+     */
+    public function totalPacientesActivos(): int
+    {
+        $stmt = $this->conn->query("SELECT COUNT(*) FROM pacientes WHERE cuenta_eliminada = 0");
+        return (int)$stmt->fetchColumn();
+    }
+
+    /**
+     * Doctores activos sin consultorio asignado actualmente. No depende del rango de fechas.
+     */
+    public function doctoresSinConsultorio(): array
+    {
+        $stmt = $this->conn->query(
+            "SELECT id_doctor, nombre, apellido_paterno
+             FROM doctores
+             WHERE estado = 1 AND id_consultorio IS NULL
+             ORDER BY nombre ASC"
+        );
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Tasa de ocupación por doctor activo dentro del rango: citas confirmadas/completadas
+     * entre el total de horarios disponibles en ese rango.
+     *
+     * El esquema no tiene una tabla de horarios por doctor, así que "horarios disponibles"
+     * se aproxima con la misma rejilla fija que usa el resto del sistema para agendar citas
+     * (07:00–23:30 en intervalos de 30 min, ver el modal "Nueva Cita" en admin.php): 34 slots
+     * por día natural del rango, multiplicados por los días del rango.
+     */
+    public function ocupacionPorDoctor(string $desde, string $hasta, int $limite = 10): array
+    {
+        $limite = max(1, min(50, $limite));
+        $dias = (new DateTime($desde))->diff(new DateTime($hasta))->days + 1;
+        $slotsPorDia = 34;
+        $slotsDisponibles = max(1, $dias * $slotsPorDia);
+
+        $stmt = $this->conn->prepare(
+            "SELECT d.id_doctor, d.nombre, d.apellido_paterno,
+                    SUM(CASE WHEN c.estado_cita IN ('Confirmada', 'Completada') THEN 1 ELSE 0 END) AS ocupadas
+             FROM doctores d
+             LEFT JOIN citas c ON c.id_doctor = d.id_doctor AND c.fecha_cita BETWEEN ? AND ?
+             WHERE d.estado = 1
+             GROUP BY d.id_doctor
+             ORDER BY ocupadas DESC
+             LIMIT $limite"
+        );
+        $stmt->execute([$desde, $hasta]);
+        $filas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($filas as &$fila) {
+            $ocupadas = (int)$fila['ocupadas'];
+            $fila['ocupadas'] = $ocupadas;
+            $fila['slots_disponibles'] = $slotsDisponibles;
+            $fila['tasa_ocupacion'] = round(($ocupadas / $slotsDisponibles) * 100, 2);
+        }
+        unset($fila);
+
+        return $filas;
+    }
 }
