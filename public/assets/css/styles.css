@@ -98,3 +98,9 @@ p, .text-secondary { color: var(--gray-500); }
     width: 1px; height: 1px;
     overflow: hidden;
 }
+
+/* Clase solicitada para ocultar elementos visualmente sin eliminarlos del DOM.
+   Aplica display: none para que no ocupe espacio en el layout. */
+.ocultar-sitio-web {
+    display: none;
+}
