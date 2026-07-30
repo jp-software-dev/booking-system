@@ -44,8 +44,8 @@ $countStmt->execute($params);
 $total_records = (int)$countStmt->fetchColumn();
 
 // 2. Definir variables de paginación
-$per_page_options = [100, 200, 500];
-$records_per_page = isset($_GET['per_page']) && in_array((int)$_GET['per_page'], $per_page_options, true) ? (int)$_GET['per_page'] : 100;
+$per_page_options = [50, 100, 200, 500];
+$records_per_page = isset($_GET['per_page']) && in_array((int)$_GET['per_page'], $per_page_options, true) ? (int)$_GET['per_page'] : 50;
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 $page = max(1, $page); // Asegurar que la página no sea menor a 1
 $total_pages = $total_records > 0 ? ceil($total_records / $records_per_page) : 0;

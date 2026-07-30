@@ -24,8 +24,8 @@ if (!empty($filtro_estado)) { $whereClauses[] = "c.estado_cita = ?"; $params[] =
 $whereSql = count($whereClauses) > 0 ? "WHERE " . implode(" AND ", $whereClauses) : "";
 
 // --- PAGINACIÓN ---
-$per_page_options = [100, 200, 500];
-$per_page = isset($_GET['per_page']) && in_array((int)$_GET['per_page'], $per_page_options, true) ? (int)$_GET['per_page'] : 100;
+$per_page_options = [50, 100, 200, 500];
+$per_page = isset($_GET['per_page']) && in_array((int)$_GET['per_page'], $per_page_options, true) ? (int)$_GET['per_page'] : 50;
 
 $countStmt = $db->prepare("SELECT COUNT(*) FROM citas c JOIN pacientes p ON c.id_paciente = p.id_paciente JOIN doctores d ON c.id_doctor = d.id_doctor $whereSql");
 $countStmt->execute($params);
