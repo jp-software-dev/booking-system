@@ -9,9 +9,11 @@ session_start();
 require_once '../config/Database.php';
 require_once '../src/Helpers/RateLimiter.php';
 require_once '../src/Helpers/CsrfHelper.php';
+require_once '../src/Helpers/Bitacora.php';
 
 use Helpers\RateLimiter;
 use Helpers\CsrfHelper;
+use Helpers\Bitacora;
 
 header('Content-Type: application/json');
 
@@ -25,6 +27,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 // campos del formulario lo llenaría. Se rechaza sin tocar el rate limiter real
 // (no es un usuario legítimo equivocándose) y sin dar pistas del motivo.
 if (!empty($_POST['sitio_web'])) {
+    // REGISTRO EN BITÁCORA: Se detectó un bot llenando el campo honeypot.
+    // Se registra el evento para monitoreo de actividad maliciosa.
+    $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    Bitacora::registrar('honeypot_triggered', 'security', null, "Bot detectado en registro desde IP: $ip_address");
+
     echo json_encode(['status' => 'error', 'message' => 'No fue posible procesar el registro.']);
     exit;
 }
