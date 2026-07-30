@@ -22,7 +22,21 @@ if (!empty($filtro_doctor)) { $whereClauses[] = "c.id_doctor = ?"; $params[] = $
 if (!empty($filtro_estado)) { $whereClauses[] = "c.estado_cita = ?"; $params[] = $filtro_estado; }
 
 $whereSql = count($whereClauses) > 0 ? "WHERE " . implode(" AND ", $whereClauses) : "";
-$query = "SELECT c.id_cita, p.nombre AS paciente, p.apellido_paterno AS paciente_ap, p.curp, 
+
+// --- PAGINACIÓN ---
+$per_page_options = [100, 200, 500];
+$per_page = isset($_GET['per_page']) && in_array((int)$_GET['per_page'], $per_page_options, true) ? (int)$_GET['per_page'] : 100;
+
+$countStmt = $db->prepare("SELECT COUNT(*) FROM citas c JOIN pacientes p ON c.id_paciente = p.id_paciente JOIN doctores d ON c.id_doctor = d.id_doctor $whereSql");
+$countStmt->execute($params);
+$total_records = (int)$countStmt->fetchColumn();
+
+$page = isset($_GET['page']) && is_numeric($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$total_pages = $total_records > 0 ? (int)ceil($total_records / $per_page) : 0;
+$page = $total_pages > 0 ? min($page, $total_pages) : 1;
+$offset = ($page - 1) * $per_page;
+
+$query = "SELECT c.id_cita, p.nombre AS paciente, p.apellido_paterno AS paciente_ap, p.curp,
                  d.nombre AS doctor, d.apellido_paterno AS doctor_ap,
                  c.fecha_cita, c.hora_inicio, c.motivo_consulta, c.estado_cita,
                  co.nombre AS consultorio_nombre
@@ -31,10 +45,17 @@ $query = "SELECT c.id_cita, p.nombre AS paciente, p.apellido_paterno AS paciente
           JOIN doctores d   ON c.id_doctor      = d.id_doctor
           LEFT JOIN consultorios co ON c.id_consultorio = co.id_consultorio
           $whereSql
-          ORDER BY c.fecha_cita DESC, c.hora_inicio DESC";
+          ORDER BY c.fecha_cita DESC, c.hora_inicio DESC
+          LIMIT ? OFFSET ?";
 $stmt = $db->prepare($query);
-$stmt->execute($params);
+$idx = 1;
+foreach ($params as $p) { $stmt->bindValue($idx++, $p); }
+$stmt->bindValue($idx++, $per_page, PDO::PARAM_INT);
+$stmt->bindValue($idx++, $offset, PDO::PARAM_INT);
+$stmt->execute();
 $citas = $stmt->fetchAll();
+
+$base_params = $_GET; unset($base_params['page']);
 
 // OPTIMIZACIÓN 2: Se calculan todas las métricas del dashboard en una sola consulta.
 $metrics_stmt = $db->query("
@@ -78,11 +99,11 @@ $m_comp  = $metrics['completadas'] ?? 0;
             <form method="GET" class="row g-2 align-items-end">
                 <div class="col-md-2">
                     <label class="form-label small fw-bold text-secondary mb-1">Buscar ID</label>
-                    <input type="number" name="search_id" class="form-control form-control-sm" value="<?php echo htmlspecialchars($search_id); ?>">
+                    <input type="number" name="search_id" class="form-control form-control-sm" placeholder="Ej. 42" value="<?php echo htmlspecialchars($search_id); ?>">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-secondary mb-1">Buscar Paciente</label>
-                    <input type="text" name="search_nombre" class="form-control form-control-sm" value="<?php echo htmlspecialchars($search_nombre); ?>">
+                    <input type="text" name="search_nombre" class="form-control form-control-sm" placeholder="Nombre del paciente" value="<?php echo htmlspecialchars($search_nombre); ?>">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-secondary mb-1">Médico</label>
@@ -139,7 +160,7 @@ $m_comp  = $metrics['completadas'] ?? 0;
                         <td data-label="ID" class="ps-4 text-muted fw-bold">#<?php echo $cita['id_cita']; ?></td>
                         <td data-label="Paciente">
                             <div class="fw-bold text-dark"><?php echo htmlspecialchars($cita['paciente'].' '.$cita['paciente_ap']); ?></div>
-                            <small class="text-muted"><?php echo htmlspecialchars($cita['curp']); ?></small>
+                            <small class="text-muted"><?php echo htmlspecialchars($cita['curp'] ?? 'N/A'); ?></small>
                         </td>
                         <td data-label="Médico">
                             <div class="text-dark">Dr. <?php echo htmlspecialchars($cita['doctor'].' '.$cita['doctor_ap']); ?></div>
@@ -174,10 +195,15 @@ $m_comp  = $metrics['completadas'] ?? 0;
                         </td>
                     </tr>
                     <?php endforeach; ?>
+                    <?php if (empty($citas)): ?>
+                    <tr><td colspan="7" class="text-center text-muted py-5">No se encontraron citas con los filtros aplicados.</td></tr>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
     </div>
+
+    <?php $items_count = count($citas); require __DIR__ . '/../src/views/partials/pagination.php'; ?>
 </div>
 
 <div class="modal fade" id="modalNuevaCitaAdmin" tabindex="-1">
@@ -274,29 +300,16 @@ $m_comp  = $metrics['completadas'] ?? 0;
 </div>
 
 <script>
-// Se obtiene el token CSRF de la meta etiqueta generada en el header.
-const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
 async function actualizarEstado(id, nuevoEstado) {
-    const res = await fetch('../api/update_status.php', { 
-        method: 'POST', 
-        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken}, 
-        body: JSON.stringify({ id_cita: id, estado: nuevoEstado }) 
-    });
-    const data = await res.json();
-    if (data.status === 'success') location.reload();
-    else alert('Error: ' + (data.message ?? 'Fallo de actualización'));
+    const data = await apiClient.post('update_status.php', { id_cita: id, estado: nuevoEstado });
+    if (data && data.status === 'success') location.reload();
+    else alert('Error: ' + (data ? data.message : 'Fallo de actualización'));
 }
 
 async function eliminarCita(id) {
-    const res = await fetch('../api/delete_cita.php', { 
-        method: 'POST', 
-        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken}, 
-        body: JSON.stringify({ id_cita: id }) 
-    });
-    const data = await res.json();
-    if (data.status === 'success') location.reload();
-    else alert('Error al eliminar: ' + (data.message ?? ''));
+    const data = await apiClient.post('delete_cita.php', { id_cita: id });
+    if (data && data.status === 'success') location.reload();
+    else alert('Error al eliminar: ' + (data ? data.message : ''));
 }
 
 async function crearNuevaCita() {
@@ -317,17 +330,12 @@ async function crearNuevaCita() {
     btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Creando...';
 
     try {
-        const res  = await fetch('../api/create_cita.php', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken},
-            body: JSON.stringify({ email, id_doctor: doctor, fecha_cita: fecha, hora_inicio: hora, motivo })
-        });
-        const data = await res.json();
-        if (data.status === 'success') {
+        const data = await apiClient.post('create_cita.php', { email, id_doctor: doctor, fecha_cita: fecha, hora_inicio: hora, motivo });
+        if (data && data.status === 'success') {
             bootstrap.Modal.getInstance(document.getElementById('modalNuevaCitaAdmin')).hide();
             location.reload();
         } else {
-            alertEl.innerHTML = `<div class="alert alert-danger py-2 small">${data.message ?? 'Error al crear la cita'}</div>`;
+            alertEl.innerHTML = `<div class="alert alert-danger py-2 small">${data ? data.message : 'Error al crear la cita'}</div>`;
         }
     } catch (e) {
         alertEl.innerHTML = '<div class="alert alert-danger py-2 small">Error de conexión.</div>';
@@ -360,17 +368,12 @@ async function guardarEdicion() {
     const hora  = document.getElementById('edit_hora').value;
     if (!fecha || !hora) { alert('Selecciona fecha y hora.'); return; }
 
-    const res  = await fetch('../api/update_cita_admin.php', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken},
-        body: JSON.stringify({ id_cita: id, fecha_cita: fecha, hora_inicio: hora })
-    });
-    const data = await res.json();
-    if (data.status === 'success') {
+    const data = await apiClient.post('update_cita_admin.php', { id_cita: id, fecha_cita: fecha, hora_inicio: hora });
+    if (data && data.status === 'success') {
         bootstrap.Modal.getInstance(document.getElementById('modalEditarCita')).hide();
         location.reload();
     } else {
-        alert(data.message ?? 'Error al guardar');
+        alert(data ? data.message : 'Error al guardar');
     }
 }
 </script>

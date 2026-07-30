@@ -105,12 +105,18 @@ if ($id_ver) {
 
 // --- VISTA DE LISTADO: búsqueda por nombre / email / CURP ---
 $busq = trim($_GET['q'] ?? '');
+$busqEstadoCuenta = trim($_GET['estado_cuenta'] ?? '');
 
 $where = [];
 $params = [];
 if ($busq !== '') {
     $where[] = "(nombre LIKE ? OR apellido_paterno LIKE ? OR apellido_materno LIKE ? OR email LIKE ? OR curp LIKE ?)";
     for ($i = 0; $i < 5; $i++) { $params[] = "%$busq%"; }
+}
+if ($busqEstadoCuenta === 'activa') {
+    $where[] = "cuenta_eliminada = 0";
+} elseif ($busqEstadoCuenta === 'anonimizada') {
+    $where[] = "cuenta_eliminada = 1";
 }
 $whereSql = count($where) > 0 ? "WHERE " . implode(" AND ", $where) : "";
 
@@ -145,9 +151,17 @@ $pacientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         <div class="bg-light p-3 border-bottom">
             <form method="GET" class="row g-2 align-items-end">
-                <div class="col-md-6">
+                <div class="col-md-5">
                     <label class="form-label small fw-bold text-secondary mb-1">Buscar por nombre, email o CURP</label>
-                    <input type="text" name="q" class="form-control form-control-sm" value="<?php echo htmlspecialchars($busq); ?>">
+                    <input type="text" name="q" class="form-control form-control-sm" placeholder="Ej. Juan Pérez, juan@correo.com" value="<?php echo htmlspecialchars($busq); ?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-secondary mb-1">Estado de cuenta</label>
+                    <select name="estado_cuenta" class="form-select form-select-sm">
+                        <option value="">Todas</option>
+                        <option value="activa" <?php echo $busqEstadoCuenta === 'activa' ? 'selected' : ''; ?>>Activa</option>
+                        <option value="anonimizada" <?php echo $busqEstadoCuenta === 'anonimizada' ? 'selected' : ''; ?>>Eliminada / anonimizada</option>
+                    </select>
                 </div>
                 <div class="col-md-3 d-flex gap-2">
                     <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3 fw-medium shadow-sm">Buscar</button>

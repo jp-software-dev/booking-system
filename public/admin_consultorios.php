@@ -6,7 +6,7 @@ require_once __DIR__ . '/../src/views/layout/header.php';
 
 $db = Database::getInstance();
 $consultorios = $db->query("SELECT id_consultorio, nombre, ubicacion FROM consultorios ORDER BY id_consultorio ASC")->fetchAll();
-$doctores = $db->query("SELECT id_doctor, nombre, apellido_paterno, id_consultorio FROM doctores")->fetchAll();
+$doctores = $db->query("SELECT id_doctor, nombre, apellido_paterno, id_consultorio FROM doctores WHERE estado = 1")->fetchAll();
 ?>
 <div class="container py-5">
     <h2 class="fw-bold text-dark-blue mb-4"><i class="bi bi-door-open-fill text-primary me-2"></i>Asignación de Consultorios</h2>
@@ -32,7 +32,12 @@ $doctores = $db->query("SELECT id_doctor, nombre, apellido_paterno, id_consultor
                     <div class="input-group">
                         <select name="id_doctor" class="form-select border-primary">
                             <option value="">-- Liberar Consultorio --</option>
-                            <?php foreach($doctores as $d): ?>
+                            <?php
+                            // Solo médicos sin consultorio asignado, o el que ya ocupa ESTE consultorio
+                            // (si no, no aparecería seleccionado en su propia tarjeta). Los asignados a
+                            // OTRO consultorio no se muestran hasta que se liberen desde su tarjeta.
+                            $docsDisponibles = array_filter($doctores, fn($d) => $d['id_consultorio'] === null || $d['id_consultorio'] == $idCons);
+                            foreach ($docsDisponibles as $d): ?>
                                 <option value="<?php echo $d['id_doctor']; ?>" <?php echo ($docInfo && $docInfo['id_doctor'] == $d['id_doctor']) ? 'selected' : ''; ?>>Dr. <?php echo htmlspecialchars($d['nombre'].' '.$d['apellido_paterno']); ?></option>
                             <?php endforeach; ?>
                         </select>

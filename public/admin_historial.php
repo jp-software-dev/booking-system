@@ -44,9 +44,10 @@ $countStmt->execute($params);
 $total_records = (int)$countStmt->fetchColumn();
 
 // 2. Definir variables de paginación
+$per_page_options = [100, 200, 500];
+$records_per_page = isset($_GET['per_page']) && in_array((int)$_GET['per_page'], $per_page_options, true) ? (int)$_GET['per_page'] : 100;
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 $page = max(1, $page); // Asegurar que la página no sea menor a 1
-$records_per_page = 15; // Número de registros por página
 $total_pages = $total_records > 0 ? ceil($total_records / $records_per_page) : 0;
 $page = $total_pages > 0 ? min($page, $total_pages) : 1; // Asegurar que la página no exceda el total
 $offset = ($page - 1) * $records_per_page;
@@ -77,7 +78,7 @@ $citas = $stmt->fetchAll();
         
         <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
             <h5 class="fw-bold text-dark-blue mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>Historial de Citas Pasadas</h5>
-            <a href="../api/generar_pdf.php?<?php echo htmlspecialchars($_SERVER['QUERY_STRING'] ?? ''); ?>" class="btn btn-outline-danger rounded-pill px-4 fw-medium">
+            <a href="../api/generar_pdf.php?<?php echo htmlspecialchars($_SERVER['QUERY_STRING'] ?? ''); ?>&origen=historial" class="btn btn-outline-danger rounded-pill px-4 fw-medium">
                 <i class="bi bi-file-pdf me-1"></i> PDF
             </a>
         </div>
@@ -86,11 +87,11 @@ $citas = $stmt->fetchAll();
             <form method="GET" class="row g-2 align-items-end">
                 <div class="col-md-2">
                     <label class="form-label small fw-bold text-secondary mb-1">Buscar ID</label>
-                    <input type="number" name="id_cita" class="form-control form-control-sm" value="<?php echo htmlspecialchars($busqId); ?>">
+                    <input type="number" name="id_cita" class="form-control form-control-sm" placeholder="Ej. 42" value="<?php echo htmlspecialchars($busqId); ?>">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-secondary mb-1">Buscar Paciente</label>
-                    <input type="text" name="paciente" class="form-control form-control-sm" value="<?php echo htmlspecialchars($busqPac); ?>">
+                    <input type="text" name="paciente" class="form-control form-control-sm" placeholder="Nombre del paciente" value="<?php echo htmlspecialchars($busqPac); ?>">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-secondary mb-1">Médico</label>
@@ -167,38 +168,12 @@ $citas = $stmt->fetchAll();
         </div>
     </div>
     
-    <div class="d-flex justify-content-between align-items-center mt-4">
-        <div class="text-secondary small fw-medium">
-            Mostrando <?php echo count($citas); ?> de <?php echo $total_records; ?> registro(s). Página <?php echo $page; ?> de <?php echo $total_pages > 0 ? $total_pages : 1; ?>.
-        </div>
-
-        <?php if ($total_pages > 1): ?>
-        <nav aria-label="Page navigation">
-            <ul class="pagination mb-0 shadow-sm">
-                <?php
-                $query_params = $_GET;
-                
-                // Botón "Anterior"
-                $query_params['page'] = $page - 1;
-                $prev_disabled = $page <= 1 ? 'disabled' : '';
-                echo "<li class='page-item $prev_disabled'><a class='page-link' href='?" . http_build_query($query_params) . "'>&laquo;</a></li>";
-
-                // Botones de número de página
-                for ($i = 1; $i <= $total_pages; $i++) {
-                    $query_params['page'] = $i;
-                    $active_class = ($i == $page) ? 'active' : '';
-                    echo "<li class='page-item $active_class'><a class='page-link' href='?" . http_build_query($query_params) . "'>$i</a></li>";
-                }
-
-                // Botón "Siguiente"
-                $query_params['page'] = $page + 1;
-                $next_disabled = $page >= $total_pages ? 'disabled' : '';
-                echo "<li class='page-item $next_disabled'><a class='page-link' href='?" . http_build_query($query_params) . "'>&raquo;</a></li>";
-                ?>
-            </ul>
-        </nav>
-        <?php endif; ?>
-    </div>
+    <?php
+    $per_page = $records_per_page;
+    $items_count = count($citas);
+    $base_params = $_GET; unset($base_params['page']);
+    require __DIR__ . '/../src/views/partials/pagination.php';
+    ?>
 </div>
 
 <?php require_once __DIR__ . '/../src/views/layout/footer.php'; ?>
