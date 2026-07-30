@@ -120,13 +120,14 @@ if ($busqEstadoCuenta === 'activa') {
 }
 $whereSql = count($where) > 0 ? "WHERE " . implode(" AND ", $where) : "";
 
+$per_page_options = [50, 100, 200, 500];
+$per_page = isset($_GET['per_page']) && in_array((int)$_GET['per_page'], $per_page_options, true) ? (int)$_GET['per_page'] : 50;
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-$per_page = 15;
 
 $countStmt = $db->prepare("SELECT COUNT(*) FROM pacientes $whereSql");
 $countStmt->execute($params);
-$total = (int)$countStmt->fetchColumn();
-$total_pages = $total > 0 ? (int)ceil($total / $per_page) : 0;
+$total_records = (int)$countStmt->fetchColumn();
+$total_pages = $total_records > 0 ? (int)ceil($total_records / $per_page) : 0;
 $page = $total_pages > 0 ? min($page, $total_pages) : 1;
 $offset = ($page - 1) * $per_page;
 
@@ -204,31 +205,11 @@ $pacientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 
-    <div class="d-flex justify-content-between align-items-center mt-4">
-        <div class="text-secondary small fw-medium">
-            Mostrando <?php echo count($pacientes); ?> de <?php echo $total; ?> paciente(s). Página <?php echo $page; ?> de <?php echo $total_pages > 0 ? $total_pages : 1; ?>.
-        </div>
-        <?php if ($total_pages > 1): ?>
-        <nav aria-label="Page navigation">
-            <ul class="pagination mb-0 shadow-sm">
-                <?php
-                $query_params = $_GET;
-                $query_params['page'] = $page - 1;
-                $prev_disabled = $page <= 1 ? 'disabled' : '';
-                echo "<li class='page-item $prev_disabled'><a class='page-link' href='?" . http_build_query($query_params) . "'>&laquo;</a></li>";
-                for ($i = 1; $i <= $total_pages; $i++) {
-                    $query_params['page'] = $i;
-                    $active_class = ($i == $page) ? 'active' : '';
-                    echo "<li class='page-item $active_class'><a class='page-link' href='?" . http_build_query($query_params) . "'>$i</a></li>";
-                }
-                $query_params['page'] = $page + 1;
-                $next_disabled = $page >= $total_pages ? 'disabled' : '';
-                echo "<li class='page-item $next_disabled'><a class='page-link' href='?" . http_build_query($query_params) . "'>&raquo;</a></li>";
-                ?>
-            </ul>
-        </nav>
-        <?php endif; ?>
-    </div>
+    <?php
+    $items_count = count($pacientes);
+    $base_params = $_GET; unset($base_params['page']);
+    require __DIR__ . '/../src/views/partials/pagination.php';
+    ?>
 </div>
 
 <?php require_once __DIR__ . '/../src/views/layout/footer.php'; ?>
