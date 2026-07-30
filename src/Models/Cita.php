@@ -45,8 +45,8 @@ class Cita {
             $data['id_doctor'], 
             $data['id_consultorio'] ?? null,
             $data['fecha_cita'], 
-            $data['hora_inicio'], 
-            $data['motivo_consulta'] ?? 'Consulta general'
+            $data['hora_inicio'],
+            $data['motivo_consulta'] ?? $data['motivo'] ?? 'Consulta general'
         ]);
     }
 

@@ -42,6 +42,12 @@ require_once __DIR__ . '/../src/views/layout/header.php';
             }
             ?>
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+            <!-- Honeypot anti-bot: campo trampa oculto a humanos vía CSS. Un bot que rellena
+                 todos los campos de un formulario caerá aquí; auth_registro.php lo rechaza en silencio. -->
+            <div class="hp-field" aria-hidden="true">
+                <label for="sitio_web">Sitio web</label>
+                <input type="text" id="sitio_web" name="sitio_web" tabindex="-1" autocomplete="off">
+            </div>
             <div class="step-container active" id="step-1">
                 <h6 class="fw-bold text-secondary mb-3">Nombre completo</h6>
                 <div class="form-floating mb-3"><input type="text" name="nombre" id="nombre" class="form-control" required><label>Nombre(s)</label></div>
@@ -66,7 +72,6 @@ require_once __DIR__ . '/../src/views/layout/header.php';
                 <div class="form-floating mb-3">
                     <select name="genero" id="genero" class="form-select" required><option value=""></option><option value="Masculino">Masculino</option><option value="Femenino">Femenino</option><option value="Otro">Prefiero no decir</option></select><label>Género</label>
                 </div>
-                <div class="form-floating mb-4"><input type="text" name="curp" id="curp" class="form-control text-uppercase" maxlength="18" oninput="this.value = this.value.toUpperCase()" required><label>CURP</label></div>
                 <div class="d-flex gap-2">
                     <button type="button" class="btn btn-light w-50 fw-bold border" onclick="prevStep(3)">Atrás</button>
                     <button type="button" class="btn btn-primary w-50 fw-bold" onclick="nextStep(3)">Siguiente</button>
@@ -94,16 +99,24 @@ function validateStep(step) {
     let valid = true;
     if(step === 1) { ['nombre', 'apellido_paterno', 'apellido_materno'].forEach(id => { const el = document.getElementById(id); if(!el.value.trim()) { showError(el, 'Campo requerido'); valid = false; } else { clearError(el); } }); }
     else if (step === 2) { const em = document.getElementById('email'); if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em.value)) { showError(em, 'Correo inválido'); valid = false; } else clearError(em); const tel = document.getElementById('telefono'); if(!/^\d{10}$/.test(tel.value)) { showError(tel, 'Debe tener 10 dígitos numéricos'); valid = false; } else clearError(tel); }
-    else if (step === 3) { ['fecha_nacimiento', 'genero'].forEach(id => { const el = document.getElementById(id); if(!el.value) { showError(el, 'Requerido'); valid = false; } else clearError(el); }); const curp = document.getElementById('curp'); if(curp.value.length !== 18) { showError(curp, 'CURP debe tener 18 caracteres'); valid = false; } else clearError(curp); }
+    else if (step === 3) { ['fecha_nacimiento', 'genero'].forEach(id => { const el = document.getElementById(id); if(!el.value) { showError(el, 'Requerido'); valid = false; } else clearError(el); }); }
     return valid;
 }
-function nextStep(current) { if(!validateStep(current)) return; document.getElementById(`step-${current}`).classList.remove('active'); document.getElementById(`step-${current+1}`).classList.add('active'); document.getElementById(`ind-${current+1}`).classList.add('active'); document.getElementById(`line-${current}`).classList.add('active'); }
+function nextStep(current) {
+    if(!validateStep(current)) return;
+    document.getElementById(`step-${current}`).classList.remove('active');
+    document.getElementById(`step-${current+1}`).classList.add('active');
+    document.getElementById(`ind-${current+1}`).classList.add('active');
+    document.getElementById(`line-${current}`).classList.add('active');
+    if (current + 1 === 4) { clearError(document.getElementById('password')); clearError(document.getElementById('confirm_password')); }
+}
 function prevStep(current) { document.getElementById(`step-${current}`).classList.remove('active'); document.getElementById(`step-${current-1}`).classList.add('active'); document.getElementById(`ind-${current}`).classList.remove('active'); document.getElementById(`line-${current-1}`).classList.remove('active'); }
 
 document.getElementById('telefono').addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); });
 document.getElementById('password').addEventListener('input', function() { let s = 0, v = this.value; if(v.length >= 8) s+=25; if(/[A-Z]/.test(v)) s+=25; if(/\d/.test(v)) s+=25; if(/\W/.test(v)) s+=25; const bar = document.getElementById('passwordStrength'); bar.style.width = s+'%'; bar.className = `progress-bar bg-${s<50?'danger':(s<75?'warning':'success')}`; });
 document.getElementById('registroForm').addEventListener('submit', async function(e) {
     e.preventDefault();
+    if (!document.getElementById('step-4').classList.contains('active')) return; // evita envío implícito (Enter) desde pasos anteriores
     const p1 = document.getElementById('password').value, p2 = document.getElementById('confirm_password').value;
     if(p1.length < 8 || p1 !== p2) { showError(document.getElementById('confirm_password'), 'Contraseñas no coinciden o son cortas'); return; }
     const btn = document.getElementById('btnRegistro'); btn.disabled = true; btn.innerHTML = 'Procesando...';

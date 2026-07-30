@@ -21,7 +21,9 @@ const apiClient = {
                 },
                 body: JSON.stringify(data)
             });
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            // Los endpoints responden JSON con {status, message} tanto en éxito como en error
+            // (4xx incluido, p. ej. create_cita.php con 400/403). No se debe descartar el cuerpo
+            // solo porque el status HTTP no sea 2xx, o se pierde el motivo real del error.
             return await response.json();
         } catch (error) {
             return null;

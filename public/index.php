@@ -13,7 +13,7 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'paciente') {
     $proximas_citas = $stmt->fetchAll();
 }
 ?>
-<section class="hero border-bottom" style="min-height: 100vh; display: flex; align-items: center; padding-top: 80px;">
+<section class="hero border-bottom" style="min-height: 100vh; display: flex; align-items: center; padding-top: 24px;">
     <div class="container hero-container">
         <div class="row align-items-center w-100">
             <div class="col-lg-6 hero-text pe-lg-5">

@@ -11,27 +11,16 @@
 
 require_once __DIR__ . '/../../config/Database.php';
 require_once __DIR__ . '/../Models/Cita.php';
-require_once __DIR__ . '/../Helpers/AppointmentValidator.php'; 
+require_once __DIR__ . '/../Models/Doctor.php';
+require_once __DIR__ . '/../Helpers/AppointmentValidator.php';
 
-// Ensure static analyzer / runtime have a fallback if the real validator isn't available.
-if (!class_exists('AppointmentValidator')) {
-    class AppointmentValidator {
-        /**
-         * Fallback validator: accepts data by default. Real implementation should exist in Helpers.
-         * @param array $data
-         * @param string $role
-         * @return array Empty array means no validation errors.
-         */
-        public static function validate(array $data, string $role): array {
-            return [];
-        }
-    }
-}
+use Helpers\AppointmentValidator;
 
 class AppointmentController {
 
     private $db;
     private $citaModel;
+    private $doctorModel;
 
     public function __construct($dbConnection = null) {
         if ($dbConnection === null) {
@@ -40,6 +29,7 @@ class AppointmentController {
             $this->db = $dbConnection;
         }
         $this->citaModel = new Cita($this->db);
+        $this->doctorModel = new Doctor($this->db);
     }
 
     /**
@@ -60,6 +50,14 @@ class AppointmentController {
         if (!empty($validationResult)) {
             return $validationResult;
         }
+
+        // CONSULTORIO: se resuelve en el servidor a partir del doctor seleccionado, nunca se
+        // confía en un id_consultorio enviado por el cliente (ninguno de los formularios lo envía).
+        $idConsultorio = $this->doctorModel->obtenerConsultorioAsignado((int)$data['id_doctor']);
+        if ($idConsultorio === null) {
+            return ['status' => 'error', 'message' => 'El médico seleccionado no tiene un consultorio asignado actualmente'];
+        }
+        $data['id_consultorio'] = $idConsultorio;
 
         try {
             $this->db->beginTransaction();

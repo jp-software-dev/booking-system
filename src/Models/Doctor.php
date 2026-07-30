@@ -29,8 +29,26 @@ class Doctor {
                   ORDER BY d.nombre ASC";
                   
         $stmt = $this->conn->query($query);
-        
+
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Devuelve el id_consultorio actualmente asignado a un doctor activo, o null si no tiene uno.
+    // Se resuelve en el servidor (no se confía en un id_consultorio enviado por el cliente) para
+    // evitar que una cita quede con un consultorio nulo o desincronizado del doctor real.
+    public function obtenerConsultorioAsignado(int $id_doctor): ?int {
+
+        $query = "SELECT id_consultorio FROM doctores WHERE id_doctor = ? AND estado = 1";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([$id_doctor]);
+        $fila = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$fila || $fila['id_consultorio'] === null) {
+            return null;
+        }
+
+        return (int)$fila['id_consultorio'];
     }
 }
 ?>

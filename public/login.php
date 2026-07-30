@@ -8,6 +8,12 @@ require_once __DIR__ . '/../src/views/layout/header.php';
         <div class="text-center mb-4"><h3 class="fw-bold text-dark-blue">Iniciar Sesión</h3></div>
         <div id="loginAlert"></div>
         <form id="formLogin" autocomplete="off">
+            <!-- Honeypot anti-bot: campo trampa oculto a humanos vía CSS. Un bot que rellena
+                 todos los campos de un formulario caerá aquí; auth.php lo rechaza en silencio. -->
+            <div class="hp-field" aria-hidden="true">
+                <label for="sitio_web">Sitio web</label>
+                <input type="text" id="sitio_web" name="sitio_web" tabindex="-1" autocomplete="off">
+            </div>
             <div class="mb-4">
                 <label for="identificadorInput" class="form-label fw-bold text-secondary">Usuario o Correo</label>
                 <div class="input-group">
@@ -44,7 +50,7 @@ document.getElementById('formLogin').addEventListener('submit', async (e) => {
     alertBox.innerHTML = '';
     btn.disabled = true; btn.innerHTML = 'Verificando...';
     try {
-        const res = await fetch('../api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usuario: document.getElementById('identificadorInput').value, email: document.getElementById('identificadorInput').value, password: document.getElementById('passInput').value }) });
+        const res = await fetch('../api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usuario: document.getElementById('identificadorInput').value, email: document.getElementById('identificadorInput').value, password: document.getElementById('passInput').value, sitio_web: document.getElementById('sitio_web').value }) });
         const data = await res.json();
         if (data.success) {
             window.location.href = data.redirect;

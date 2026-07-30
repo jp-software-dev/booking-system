@@ -28,22 +28,30 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     exit;
 }
 
-$rateLimitKey = 'login_' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
-try {
-    if (RateLimiter::tooManyAttempts($rateLimitKey, 5, 300)) {
-        echo json_encode(['success' => false, 'message' => 'Demasiados intentos. Por seguridad, espera 5 minutos.']);
-        exit;
-    }
-} catch (Exception $e) {
-    error_log("Error en RateLimiter: " . $e->getMessage());
-    // No bloqueamos el login por un fallo de infraestructura del rate limiter
-}
-
 // LECTOR DE DATOS: Captura y decodifica las credenciales enviadas desde el frontend.
 $input = json_decode(file_get_contents('php://input'), true);
 if (!$input) {
     echo json_encode(['success' => false, 'message' => 'Datos inválidos']);
     exit;
+}
+
+// HONEYPOT: campo trampa oculto para humanos vía CSS. Solo un bot que autocompleta
+// todos los campos del formulario lo llenaría. Se rechaza sin tocar el rate limiter
+// real (no es un usuario legítimo equivocándose) y sin dar pistas del motivo.
+if (!empty($input['sitio_web'])) {
+    echo json_encode(['success' => false, 'message' => 'Credenciales incorrectas']);
+    exit;
+}
+
+$rateLimitKey = 'login_' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+try {
+    if (RateLimiter::tooManyAttempts($rateLimitKey, 5, 300)) {
+        echo json_encode(['success' => false, 'message' => 'Demasiados intentos. Por seguridad, espera unos minutos antes de volver a intentar.']);
+        exit;
+    }
+} catch (Exception $e) {
+    error_log("Error en RateLimiter: " . $e->getMessage());
+    // No bloqueamos el login por un fallo de infraestructura del rate limiter
 }
 
 $db = Database::getInstance();
@@ -56,6 +64,14 @@ try {
         // VALIDACIÓN DE CAMPOS: Rechaza la solicitud si faltan las credenciales clave.
         RateLimiter::registerAttempt($rateLimitKey);
         echo json_encode(['success' => false, 'message' => 'Los campos no pueden estar vacíos']);
+        exit;
+    }
+
+    // VALIDACIÓN ESTRICTA DE LONGITUD: defensa en profundidad contra payloads anormalmente
+    // largos (no reemplaza las sentencias preparadas, que ya evitan inyección SQL).
+    if (strlen($identificador) > 254 || strlen($password) > 200) {
+        RateLimiter::registerAttempt($rateLimitKey);
+        echo json_encode(['success' => false, 'message' => 'Credenciales incorrectas']);
         exit;
     }
 
