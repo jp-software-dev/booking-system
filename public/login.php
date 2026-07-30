@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
-if (isset($_SESSION['user_id'])) { header("Location: " . ($_SESSION['role'] === 'admin' ? "admin" : "agenda")); exit(); }
+if (isset($_SESSION['user_id'])) { header("Location: " . ($_SESSION['role'] === 'admin' ? "admin.php" : "agenda.php")); exit(); }
 require_once __DIR__ . '/../src/views/layout/header.php';
 ?>
 <div class="d-flex align-items-center justify-content-center auth-bg py-5" style="min-height: 85vh;">
@@ -33,7 +33,7 @@ require_once __DIR__ . '/../src/views/layout/header.php';
                 </div>
             </div>
             <button type="submit" id="btnIngresar" class="btn btn-primary w-100 btn-lg fw-bold shadow-sm mb-4">INGRESAR</button>
-            <div class="text-center"><span class="text-secondary small">¿No tienes cuenta?</span><a href="registro" class="text-decoration-none fw-bold small ms-1">Regístrate aquí</a></div>
+            <div class="text-center"><span class="text-secondary small">¿No tienes cuenta?</span><a href="registro.php" class="text-decoration-none fw-bold small ms-1">Regístrate aquí</a></div>
         </form>
     </div>
 </div>
