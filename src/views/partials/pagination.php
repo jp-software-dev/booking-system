@@ -1,7 +1,8 @@
 <?php
 /**
  * Paginador compacto reutilizable: « Anterior  1 … 4 5 [6] 7 8 … N  Siguiente »
- * más selector de tamaño de página. Usado por admin.php y admin_historial.php.
+ * más selector de tamaño de página. Usado por admin.php, admin_historial.php,
+ * admin_bitacora.php y admin_pacientes.php.
  *
  * Variables esperadas en scope antes del include:
  *   $page              int    página actual, ya acotada a [1, $total_pages]
