@@ -30,7 +30,7 @@ $rango = $_GET['rango'] ?? '30d';
 $desdeParam = $_GET['desde'] ?? null;
 $hastaParam = $_GET['hasta'] ?? null;
 
-if (!in_array($rango, ['7d', '30d', '12m', 'custom'], true)) {
+if (!in_array($rango, ['7d', '15d', '30d', '6m', '12m', 'custom'], true)) {
     http_response_code(400);
     echo json_encode(['status' => 'error', 'message' => 'Rango inválido']);
     exit;
