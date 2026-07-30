@@ -107,7 +107,6 @@ require_once __DIR__ . '/../src/views/layout/header.php';
             <p class="text-secondary mb-3">Descarga una copia de tus datos personales y tu historial completo de citas (derecho de acceso y portabilidad).</p>
             <div class="d-flex gap-2 flex-wrap">
                 <a href="../api/exportar_datos_paciente.php?formato=pdf" class="btn btn-outline-primary rounded-pill px-4 fw-medium"><i class="bi bi-file-earmark-pdf me-2"></i>Descargar PDF</a>
-                <a href="../api/exportar_datos_paciente.php?formato=json" class="btn btn-outline-primary rounded-pill px-4 fw-medium"><i class="bi bi-filetype-json me-2"></i>Descargar JSON</a>
             </div>
         </div>
     </div>
