@@ -87,3 +87,14 @@ p, .text-secondary { color: var(--gray-500); }
     /* El select admin no se estira de mas */
     .table-responsive table tbody td select.status-badge { width: 100% !important; max-width: 200px; padding: 6px; }
 }
+
+/* Honeypot anti-bot: invisible y no navegable por teclado, pero presente en el DOM para que
+   los bots que autocompletan formularios lo rellenen. No usar display:none/visibility:hidden,
+   ya que algunos bots los detectan y omiten esos campos. */
+.hp-field {
+    position: absolute !important;
+    left: -9999px !important;
+    top: -9999px !important;
+    width: 1px; height: 1px;
+    overflow: hidden;
+}
