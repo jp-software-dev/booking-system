@@ -1,3 +1,13 @@
+-- SUPERADA POR migration_slot_activo_real.sql -- NO APLICAR ESTE ARCHIVO.
+--
+-- Auditoría posterior (SHOW CREATE TABLE citas sobre la BD real) encontró que lo
+-- que en verdad se aplicó en producción fue un índice único plano
+-- `unq_cita_doctor (id_doctor, fecha_cita, hora_inicio)` -- sin la columna generada
+-- `slot_activo` de abajo -- lo que bloqueaba para siempre cualquier horario que
+-- hubiera tenido una cita cancelada. migration_slot_activo_real.sql corrige ese
+-- índice para que coincida con el diseño documentado aquí. Este archivo se deja
+-- solo como referencia histórica del diseño original.
+--
 -- MIGRACIÓN: Restricción de empalmes a nivel de base de datos
 --
 -- Objetivo: impedir que dos citas activas (no canceladas) del mismo doctor

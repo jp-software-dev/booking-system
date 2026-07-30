@@ -1,0 +1,24 @@
+-- Migración: quitar la FK de bitacora.id_usuario hacia usuarios
+--
+-- DIAGNÓSTICO (confirmado con SHOW CREATE TABLE bitacora sobre la BD real y con una
+-- prueba de INSERT): `bitacora.id_usuario` tenía
+-- `CONSTRAINT fk_bitacora_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario)`.
+-- Pero Bitacora::registrar() (src/Helpers/Bitacora.php) inserta siempre
+-- $_SESSION['user_id'] como id_usuario, y para una sesión de PACIENTE ese valor es en
+-- realidad pacientes.id_paciente -- un espacio de IDs distinto al de usuarios (que solo
+-- contiene administradores). Cada INSERT de bitácora disparado por un paciente violaba
+-- la FK; Bitacora::registrar() atrapa la excepción y solo hace error_log() (por diseño,
+-- para no romper la operación principal), así que la bitácora quedaba completamente
+-- ciega a las acciones de pacientes sin que nadie lo notara.
+--
+-- La trazabilidad no depende de esa FK: la columna `rol` ya identifica en la misma fila
+-- si el actor fue 'admin' o 'paciente', y accion/entidad/id_entidad/detalle documentan
+-- qué se hizo. No se agrega una FK alternativa hacia pacientes porque un mismo campo
+-- id_usuario tendría que poder apuntar a dos tablas distintas según el rol, lo cual
+-- requeriría una FK condicional que MySQL/MariaDB no soportan de forma nativa.
+--
+-- El índice `fk_bitacora_usuario` (KEY) se conserva -- solo se elimina la restricción
+-- de integridad referencial, no el índice, que sigue siendo útil para filtrar por
+-- id_usuario.
+
+ALTER TABLE bitacora DROP FOREIGN KEY fk_bitacora_usuario;
