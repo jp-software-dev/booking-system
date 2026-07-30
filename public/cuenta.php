@@ -65,6 +65,7 @@ require_once __DIR__ . '/../src/views/layout/header.php';
             <h5 class="fw-bold text-dark-blue mb-0"><i class="bi bi-shield-lock text-primary me-2"></i>Cambiar Contraseña</h5>
         </div>
         <div class="card-body p-4">
+            <p class="text-secondary small mb-3">Por seguridad, el cambio no se aplica de inmediato: te enviaremos un correo para confirmarlo.</p>
             <form id="formPassword">
                 <div class="row g-3">
                     <div class="col-12">
@@ -202,13 +203,13 @@ document.getElementById('formPerfil').addEventListener('submit', async (e) => {
 document.getElementById('formPassword').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('btnGuardarPassword');
-    btn.disabled = true; btn.innerHTML = 'Actualizando...';
+    btn.disabled = true; btn.innerHTML = 'Enviando...';
     document.getElementById('cuentaAlert').innerHTML = '';
     try {
         const dataObj = Object.fromEntries(new FormData(e.target));
-        const data = await apiClient.post('update_perfil.php', dataObj);
+        const data = await apiClient.post('solicitar_cambio_password.php', dataObj);
         if (data && data.status === 'success') {
-            mostrarAlerta('cuentaAlert', 'success', 'Contraseña actualizada correctamente.');
+            mostrarAlerta('cuentaAlert', 'success', 'Revisa tu correo para confirmar el cambio de contraseña.');
             e.target.reset();
         } else {
             mostrarAlerta('cuentaAlert', 'danger', data ? data.message : 'Error de conexión');
