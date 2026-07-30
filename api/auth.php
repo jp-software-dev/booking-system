@@ -39,6 +39,11 @@ if (!$input) {
 // todos los campos del formulario lo llenaría. Se rechaza sin tocar el rate limiter
 // real (no es un usuario legítimo equivocándose) y sin dar pistas del motivo.
 if (!empty($input['sitio_web'])) {
+    // REGISTRO EN BITÁCORA: Se detectó un bot llenando el campo honeypot.
+    // Se registra el evento para monitoreo de actividad maliciosa.
+    $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    Bitacora::registrar('honeypot_triggered', 'security', null, "Bot detectado en login desde IP: $ip_address");
+
     echo json_encode(['success' => false, 'message' => 'Credenciales incorrectas']);
     exit;
 }
