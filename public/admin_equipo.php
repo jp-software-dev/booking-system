@@ -13,6 +13,9 @@ $equipo = $personalModel->listarEquipoCompleto();
 $especialidades = $db->query("SELECT * FROM especialidades")->fetchAll();
 $consultorios = $db->query("SELECT * FROM consultorios")->fetchAll();
 $mapaConsultorios = array_column($consultorios, 'nombre', 'id_consultorio');
+
+$equipoDoctores = array_filter($equipo, fn($m) => $m['puesto'] === 'Doctor');
+$equipoEnfermeros = array_filter($equipo, fn($m) => $m['puesto'] === 'Enfermero');
 ?>
 <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
@@ -25,6 +28,77 @@ $mapaConsultorios = array_column($consultorios, 'nombre', 'id_consultorio');
         </button>
     </div>
     
+    <?php
+    $renderFilaPersonal = function ($miembro) use ($mapaConsultorios) {
+        $badgeClass = $miembro['puesto'] === 'Doctor' ? 'bg-primary' : 'bg-info text-dark';
+        ?>
+        <tr>
+            <td class="ps-4 py-3">
+                <div class="d-flex align-items-center">
+                    <div class="bg-light rounded-circle p-2 me-3 text-center" style="width: 40px; height: 40px;"><i class="bi <?php echo $miembro['puesto'] === 'Doctor' ? 'bi-heart-pulse-fill text-primary' : 'bi-bandaid-fill text-info'; ?>"></i></div>
+                    <span class="fw-bold text-dark"><?php echo htmlspecialchars($miembro['nombre'] . ' ' . $miembro['apellido_paterno']); ?></span>
+                </div>
+            </td>
+            <td><span class="badge rounded-pill <?php echo $badgeClass; ?> px-3"><?php echo htmlspecialchars($miembro['puesto']); ?></span></td>
+            <td class="text-secondary"><?php echo htmlspecialchars($miembro['detalle']); ?></td>
+            <td class="text-center"><?php if ($miembro['id_consultorio']): ?><span class="fw-bold text-dark-blue">#<?php echo $miembro['id_consultorio']; ?></span><?php else: ?><span class="text-muted fst-italic">N/A</span><?php endif; ?></td>
+            <td class="pe-4 text-end">
+                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 me-1"
+                    onclick="verDetallePersonal(this)"
+                    data-nombre-completo="<?php echo htmlspecialchars($miembro['nombre'] . ' ' . $miembro['apellido_paterno']); ?>"
+                    data-puesto="<?php echo htmlspecialchars($miembro['puesto']); ?>"
+                    data-especialidad="<?php echo htmlspecialchars($miembro['puesto'] === 'Doctor' ? ($miembro['detalle'] ?? 'N/A') : 'N/A'); ?>"
+                    data-turno="<?php echo htmlspecialchars($miembro['puesto'] === 'Enfermero' ? ($miembro['detalle'] ?? 'N/A') : 'N/A'); ?>"
+                    data-consultorio="<?php echo htmlspecialchars($miembro['id_consultorio'] ? ($mapaConsultorios[$miembro['id_consultorio']] ?? '#' . $miembro['id_consultorio']) : 'Sin asignar'); ?>"
+                    data-estado="Activo"
+                    title="Ver detalle">
+                    <i class="bi bi-eye-fill"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-primary rounded-pill px-3 me-1"
+                    onclick="abrirModalEditarPersonal(this)"
+                    data-id="<?php echo $miembro['id']; ?>"
+                    data-tipo="<?php echo strtolower($miembro['puesto']); ?>"
+                    data-nombre="<?php echo htmlspecialchars($miembro['nombre'], ENT_QUOTES); ?>"
+                    data-apellido="<?php echo htmlspecialchars($miembro['apellido_paterno'], ENT_QUOTES); ?>"
+                    data-especialidad="<?php echo $miembro['id_especialidad'] ?? ''; ?>"
+                    data-turno="<?php echo htmlspecialchars($miembro['turno'] ?? '', ENT_QUOTES); ?>"
+                    data-consultorio="<?php echo $miembro['id_consultorio'] ?? ''; ?>"
+                    title="Editar">
+                    <i class="bi bi-pencil-square me-1"></i>Editar
+                </button>
+                <button class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="darDeBaja(<?php echo $miembro['id']; ?>, '<?php echo $miembro['puesto']; ?>')">
+                    <i class="bi bi-person-x-fill me-1"></i>Baja
+                </button>
+            </td>
+        </tr>
+        <?php
+    };
+    ?>
+
+    <h5 class="fw-bold text-dark-blue mb-3"><i class="bi bi-heart-pulse-fill text-primary me-2"></i>Equipo de Doctores</h5>
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4 text-secondary fw-bold">Nombre Completo</th>
+                        <th class="text-secondary fw-bold">Puesto</th>
+                        <th class="text-secondary fw-bold">Especialidad / Turno</th>
+                        <th class="text-secondary fw-bold text-center">Consultorio</th>
+                        <th class="text-secondary fw-bold pe-4 text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="border-top-0">
+                    <?php if (empty($equipoDoctores)): ?>
+                    <tr><td colspan="5" class="text-center text-muted py-4">No hay doctores registrados.</td></tr>
+                    <?php endif; ?>
+                    <?php foreach ($equipoDoctores as $miembro) { $renderFilaPersonal($miembro); } ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <h5 class="fw-bold text-dark-blue mb-3"><i class="bi bi-bandaid-fill text-info me-2"></i>Equipo de Enfermeros</h5>
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
@@ -38,49 +112,10 @@ $mapaConsultorios = array_column($consultorios, 'nombre', 'id_consultorio');
                     </tr>
                 </thead>
                 <tbody class="border-top-0">
-                    <?php foreach ($equipo as $miembro): 
-                        $badgeClass = $miembro['puesto'] === 'Doctor' ? 'bg-primary' : 'bg-info text-dark';
-                    ?>
-                    <tr>
-                        <td class="ps-4 py-3">
-                            <div class="d-flex align-items-center">
-                                <div class="bg-light rounded-circle p-2 me-3 text-center" style="width: 40px; height: 40px;"><i class="bi <?php echo $miembro['puesto'] === 'Doctor' ? 'bi-heart-pulse-fill text-primary' : 'bi-bandaid-fill text-info'; ?>"></i></div>
-                                <span class="fw-bold text-dark"><?php echo htmlspecialchars($miembro['nombre'] . ' ' . $miembro['apellido_paterno']); ?></span>
-                            </div>
-                        </td>
-                        <td><span class="badge rounded-pill <?php echo $badgeClass; ?> px-3"><?php echo htmlspecialchars($miembro['puesto']); ?></span></td>
-                        <td class="text-secondary"><?php echo htmlspecialchars($miembro['detalle']); ?></td>
-                        <td class="text-center"><?php if ($miembro['id_consultorio']): ?><span class="fw-bold text-dark-blue">#<?php echo $miembro['id_consultorio']; ?></span><?php else: ?><span class="text-muted fst-italic">N/A</span><?php endif; ?></td>
-                        <td class="pe-4 text-end">
-                            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 me-1"
-                                onclick="verDetallePersonal(this)"
-                                data-nombre-completo="<?php echo htmlspecialchars($miembro['nombre'] . ' ' . $miembro['apellido_paterno']); ?>"
-                                data-puesto="<?php echo htmlspecialchars($miembro['puesto']); ?>"
-                                data-especialidad="<?php echo htmlspecialchars($miembro['puesto'] === 'Doctor' ? ($miembro['detalle'] ?? 'N/A') : 'N/A'); ?>"
-                                data-turno="<?php echo htmlspecialchars($miembro['puesto'] === 'Enfermero' ? ($miembro['detalle'] ?? 'N/A') : 'N/A'); ?>"
-                                data-consultorio="<?php echo htmlspecialchars($miembro['id_consultorio'] ? ($mapaConsultorios[$miembro['id_consultorio']] ?? '#' . $miembro['id_consultorio']) : 'Sin asignar'); ?>"
-                                data-estado="Activo"
-                                title="Ver detalle">
-                                <i class="bi bi-eye-fill"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-primary rounded-pill px-3 me-1"
-                                onclick="abrirModalEditarPersonal(this)"
-                                data-id="<?php echo $miembro['id']; ?>"
-                                data-tipo="<?php echo strtolower($miembro['puesto']); ?>"
-                                data-nombre="<?php echo htmlspecialchars($miembro['nombre'], ENT_QUOTES); ?>"
-                                data-apellido="<?php echo htmlspecialchars($miembro['apellido_paterno'], ENT_QUOTES); ?>"
-                                data-especialidad="<?php echo $miembro['id_especialidad'] ?? ''; ?>"
-                                data-turno="<?php echo htmlspecialchars($miembro['turno'] ?? '', ENT_QUOTES); ?>"
-                                data-consultorio="<?php echo $miembro['id_consultorio'] ?? ''; ?>"
-                                title="Editar">
-                                <i class="bi bi-pencil-square me-1"></i>Editar
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="darDeBaja(<?php echo $miembro['id']; ?>, '<?php echo $miembro['puesto']; ?>')">
-                                <i class="bi bi-person-x-fill me-1"></i>Baja
-                            </button>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
+                    <?php if (empty($equipoEnfermeros)): ?>
+                    <tr><td colspan="5" class="text-center text-muted py-4">No hay enfermeros registrados.</td></tr>
+                    <?php endif; ?>
+                    <?php foreach ($equipoEnfermeros as $miembro) { $renderFilaPersonal($miembro); } ?>
                 </tbody>
             </table>
         </div>
