@@ -2,9 +2,10 @@
 /**
  * ENDPOINT DE AUTOGESTIÓN DE PERFIL (PACIENTE)
  *
- * Permite a un paciente autenticado actualizar sus propios datos personales
- * y, opcionalmente, su contraseña. El id_paciente siempre se toma de la
- * sesión — nunca del cliente.
+ * Permite a un paciente autenticado actualizar sus propios datos personales y sus
+ * preferencias de notificación. El cambio de contraseña NO se maneja aquí: requiere
+ * confirmación por correo, ver solicitar_cambio_password.php / confirmar_cambio_password.php.
+ * El id_paciente siempre se toma de la sesión — nunca del cliente.
  *
  * @requires session_start
  * @requires config/Database.php
@@ -53,10 +54,9 @@ $id_paciente = $_SESSION['user_id'];
 $db = Database::getInstance();
 
 $actualizaPerfil = array_key_exists('nombre', $input);
-$actualizaPassword = !empty($input['password_nueva']);
 $actualizaNotificaciones = array_key_exists('recibir_notificaciones', $input);
 
-if (!$actualizaPerfil && !$actualizaPassword && !$actualizaNotificaciones) {
+if (!$actualizaPerfil && !$actualizaNotificaciones) {
     echo json_encode(['status' => 'error', 'message' => 'No hay cambios que aplicar']);
     exit;
 }
@@ -109,42 +109,10 @@ try {
            ->execute([$recibirNotificaciones, $id_paciente]);
     }
 
-    if ($actualizaPassword) {
-        $password_actual    = $input['password_actual'] ?? '';
-        $password_nueva     = $input['password_nueva'] ?? '';
-        $password_confirmar = $input['password_confirmar'] ?? '';
-
-        if (empty($password_actual)) {
-            $db->rollBack();
-            echo json_encode(['status' => 'error', 'message' => 'Debes indicar tu contraseña actual']);
-            exit;
-        }
-
-        if ($password_nueva !== $password_confirmar || strlen($password_nueva) < 8) {
-            $db->rollBack();
-            echo json_encode(['status' => 'error', 'message' => 'Las nuevas contraseñas no coinciden o son demasiado cortas']);
-            exit;
-        }
-
-        $stmtCred = $db->prepare("SELECT password_hash FROM pacientes_credenciales WHERE id_paciente = ?");
-        $stmtCred->execute([$id_paciente]);
-        $cred = $stmtCred->fetch();
-
-        if (!$cred || !password_verify($password_actual, $cred['password_hash'])) {
-            $db->rollBack();
-            echo json_encode(['status' => 'error', 'message' => 'La contraseña actual es incorrecta']);
-            exit;
-        }
-
-        $nuevoHash = password_hash($password_nueva, PASSWORD_DEFAULT);
-        $db->prepare("UPDATE pacientes_credenciales SET password_hash = ? WHERE id_paciente = ?")->execute([$nuevoHash, $id_paciente]);
-    }
-
     $db->commit();
 
     $detalle = implode(', ', array_filter([
         $actualizaPerfil ? 'datos personales' : null,
-        $actualizaPassword ? 'contraseña' : null,
         $actualizaNotificaciones ? 'preferencias de notificación' : null,
     ]));
     Bitacora::registrar('actualizar_perfil_paciente', 'paciente', (int)$id_paciente, "Campos actualizados: $detalle");
