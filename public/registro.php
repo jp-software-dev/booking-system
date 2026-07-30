@@ -116,14 +116,13 @@ document.getElementById('telefono').addEventListener('input', function() { this.
 document.getElementById('password').addEventListener('input', function() { let s = 0, v = this.value; if(v.length >= 8) s+=25; if(/[A-Z]/.test(v)) s+=25; if(/\d/.test(v)) s+=25; if(/\W/.test(v)) s+=25; const bar = document.getElementById('passwordStrength'); bar.style.width = s+'%'; bar.className = `progress-bar bg-${s<50?'danger':(s<75?'warning':'success')}`; });
 document.getElementById('registroForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-    if (!document.getElementById('step-4').classList.contains('active')) return; // evita envío implícito (Enter) desde pasos anteriores
+    if (!document.getElementById('step-4').classList.contains('active')) return;
     const p1 = document.getElementById('password').value, p2 = document.getElementById('confirm_password').value;
     if(p1.length < 8 || p1 !== p2) { showError(document.getElementById('confirm_password'), 'Contraseñas no coinciden o son cortas'); return; }
     const btn = document.getElementById('btnRegistro'); btn.disabled = true; btn.innerHTML = 'Procesando...';
     try {
         const res = await fetch('../api/auth_registro.php', { method: 'POST', body: new FormData(this) });
 
-        // CÓDIGO MEJORADO: Se añade un manejador para respuestas HTTP no exitosas (ej. 403, 500).
         if (!res.ok) {
             const errorData = await res.json().catch(() => ({ message: 'Error desconocido del servidor.' }));
             const message = errorData.message || `Error ${res.status}: ${res.statusText}`;
@@ -135,7 +134,6 @@ document.getElementById('registroForm').addEventListener('submit', async functio
         const data = await res.json();
         if(data.status === 'success') window.location.href = data.redirect; else { document.getElementById('registroAlert').innerHTML = `<div class="alert alert-danger">${data.message}</div>`; btn.disabled = false; btn.innerHTML = 'CREAR CUENTA'; }
     } catch(err) {
-        // CÓDIGO MEJORADO: El bloque catch ahora informa al usuario sobre errores de red o de parseo.
         document.getElementById('registroAlert').innerHTML = `<div class="alert alert-danger">Ocurrió un error de red o de comunicación. Por favor, intenta de nuevo.</div>`;
         btn.disabled = false; btn.innerHTML = 'CREAR CUENTA';
     }
