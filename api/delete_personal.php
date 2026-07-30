@@ -36,8 +36,10 @@ $db = Database::getInstance();
 
 try {
     if (strtolower($tipo) === 'doctor') {
-        // Borrado lógico para el doctor (para no romper citas del historial) y lo quitamos del consultorio actual
-        $stmt = $db->prepare("UPDATE doctores SET estado = 0, id_consultorio = NULL WHERE id_doctor = ?");
+        // Borrado lógico para el doctor (para no romper citas del historial) y lo quitamos del consultorio actual.
+        // estado es ENUM('Activo','Inactivo'); 0 no es un índice válido del enum -- en modo no
+        // estricto MySQL lo guarda como cadena vacía en vez de 'Inactivo'.
+        $stmt = $db->prepare("UPDATE doctores SET estado = 'Inactivo', id_consultorio = NULL WHERE id_doctor = ?");
         $stmt->execute([$id]);
     } else {
         // Borrado físico para el enfermero
