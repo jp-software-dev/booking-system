@@ -35,6 +35,12 @@ class Metrica
         switch ($rango) {
             case '7d':
                 return [date('Y-m-d', strtotime('-6 days')), date('Y-m-d')];
+            case '15d':
+                return [date('Y-m-d', strtotime('-14 days')), date('Y-m-d')];
+            case '30d':
+                return [date('Y-m-d', strtotime('-29 days')), date('Y-m-d')];
+            case '6m':
+                return [date('Y-m-d', strtotime('-6 months')), date('Y-m-d')];
             case '12m':
                 return [date('Y-m-d', strtotime('-12 months')), date('Y-m-d')];
             case 'custom':
@@ -47,8 +53,6 @@ class Metrica
                     throw new InvalidArgumentException('La fecha inicial no puede ser posterior a la final');
                 }
                 return [$d->format('Y-m-d'), $h->format('Y-m-d')];
-            case '30d':
-                return [date('Y-m-d', strtotime('-29 days')), date('Y-m-d')];
             default:
                 throw new InvalidArgumentException('Rango no reconocido');
         }
