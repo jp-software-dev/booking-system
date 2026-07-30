@@ -38,7 +38,14 @@ $db = Database::getInstance();
 
 try {
     if ($tipo === 'doctor') {
-        $id_especialidad = !empty($input['id_especialidad']) ? (int)$input['id_especialidad'] : null;
+        // doctores.id_especialidad es NOT NULL: todo doctor debe tener una especialidad
+        // (incluso "Medicina General" cuenta como una), a diferencia de id_consultorio
+        // que sí admite quedar sin asignar.
+        if (empty($input['id_especialidad'])) {
+            echo json_encode(['status' => 'error', 'message' => 'La especialidad es obligatoria para un doctor']);
+            exit;
+        }
+        $id_especialidad = (int)$input['id_especialidad'];
         $stmt = $db->prepare("INSERT INTO doctores (nombre, apellido_paterno, id_especialidad, id_consultorio, estado) VALUES (?, ?, ?, ?, 1)");
         $stmt->execute([$nombre, $apellido, $id_especialidad, $id_consultorio]);
     } else if ($tipo === 'enfermero') {

@@ -60,12 +60,24 @@ try {
     if (!empty($id_doctor)) {
         // doctores.estado es ENUM('Activo','Inactivo'); PDO lo devuelve como string,
         // no como entero -- comparar con (int) siempre daba 0 y rechazaba a todos los doctores.
-        $stmtCheck = $db->prepare("SELECT estado FROM doctores WHERE id_doctor = ?");
+        $stmtCheck = $db->prepare("SELECT estado, id_especialidad FROM doctores WHERE id_doctor = ?");
         $stmtCheck->execute([$id_doctor]);
         $doctor = $stmtCheck->fetch();
         if (!$doctor || $doctor['estado'] !== 'Activo') {
             $db->rollBack();
             echo json_encode(['status' => 'error', 'message' => 'El médico seleccionado no está activo']);
+            exit;
+        }
+
+        // Si el consultorio ya tiene una especialidad predeterminada, solo se permite
+        // asignar doctores de esa misma especialidad (mismo criterio que filtra el
+        // selector en admin_consultorios.php).
+        $stmtCons = $db->prepare("SELECT id_especialidad FROM consultorios WHERE id_consultorio = ?");
+        $stmtCons->execute([$id_consultorio]);
+        $consultorio = $stmtCons->fetch();
+        if ($consultorio && !empty($consultorio['id_especialidad']) && $consultorio['id_especialidad'] != $doctor['id_especialidad']) {
+            $db->rollBack();
+            echo json_encode(['status' => 'error', 'message' => 'La especialidad del médico no coincide con la del consultorio']);
             exit;
         }
     }

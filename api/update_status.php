@@ -47,6 +47,12 @@ if (!$id_cita || empty($estado)) {
     exit;
 }
 
+$estadosValidos = ['Pendiente', 'Confirmada', 'En Curso', 'Completada', 'Cancelada'];
+if (!in_array($estado, $estadosValidos, true)) {
+    echo json_encode(['status' => 'error', 'message' => 'Estado no válido']);
+    exit;
+}
+
 try {
     $db = Database::getInstance();
     $db->beginTransaction();
