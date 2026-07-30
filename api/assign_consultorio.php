@@ -56,6 +56,20 @@ if (!$id_consultorio) {
 try {
     $db = Database::getInstance();
     $db->beginTransaction();
+
+    if (!empty($id_doctor)) {
+        // doctores.estado es ENUM('Activo','Inactivo'); PDO lo devuelve como string,
+        // no como entero -- comparar con (int) siempre daba 0 y rechazaba a todos los doctores.
+        $stmtCheck = $db->prepare("SELECT estado FROM doctores WHERE id_doctor = ?");
+        $stmtCheck->execute([$id_doctor]);
+        $doctor = $stmtCheck->fetch();
+        if (!$doctor || $doctor['estado'] !== 'Activo') {
+            $db->rollBack();
+            echo json_encode(['status' => 'error', 'message' => 'El médico seleccionado no está activo']);
+            exit;
+        }
+    }
+
     $stmt1 = $db->prepare("UPDATE doctores SET id_consultorio = NULL WHERE id_consultorio = ?");
     $stmt1->execute([$id_consultorio]);
     if (!empty($id_doctor)) {
