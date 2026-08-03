@@ -13,7 +13,7 @@ $db = Database::getInstance();
 
 try {
     // MINIMIZACIÓN DE DATOS: solo se expone lo indispensable para marcar un horario como
-    // ocupado en la agenda (id_doctor, fecha, hora). Nunca el paciente, CURP o motivo de
+    // ocupado en la agenda (id_doctor, fecha, hora). Nunca el paciente ni el motivo de
     // consulta de otro paciente.
     $query = "SELECT id_doctor, fecha_cita, hora_inicio FROM citas WHERE estado_cita IN ('Pendiente', 'Confirmada', 'En Curso')";
     $stmt = $db->query($query);

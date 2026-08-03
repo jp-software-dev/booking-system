@@ -29,7 +29,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'paciente') {
 $db = Database::getInstance();
 $id_paciente = $_SESSION['user_id'];
 
-$stmtPac = $db->prepare("SELECT nombre, apellido_paterno, apellido_materno, curp, fecha_nacimiento, genero, telefono, email, recibir_notificaciones, created_at FROM pacientes WHERE id_paciente = ?");
+$stmtPac = $db->prepare("SELECT nombre, apellido_paterno, apellido_materno, fecha_nacimiento, genero, telefono, email, recibir_notificaciones, created_at FROM pacientes WHERE id_paciente = ?");
 $stmtPac->execute([$id_paciente]);
 $paciente = $stmtPac->fetch(PDO::FETCH_ASSOC);
 
@@ -98,7 +98,6 @@ $html = '
     <h2>Datos Personales</h2>
     <table class="datos-tabla">
         <tr><td>Nombre completo</td><td>' . htmlspecialchars($nombreCompleto) . '</td></tr>
-        <tr><td>CURP</td><td>' . htmlspecialchars($paciente['curp'] ?? 'N/A') . '</td></tr>
         <tr><td>Fecha de nacimiento</td><td>' . htmlspecialchars($paciente['fecha_nacimiento'] ?? 'N/A') . '</td></tr>
         <tr><td>Género</td><td>' . htmlspecialchars($paciente['genero'] ?? 'N/A') . '</td></tr>
         <tr><td>Teléfono</td><td>' . htmlspecialchars($paciente['telefono'] ?? 'N/A') . '</td></tr>

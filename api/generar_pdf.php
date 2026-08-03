@@ -114,7 +114,7 @@ if ($totalFilas > LIMITE_FILAS_PDF) {
 
 // CONSULTA DE DATOS: Recupera la información detallada de citas, pacientes y doctores para el informe,
 // respetando los filtros activos (si no se aplicó ninguno, trae todas las citas, igual que antes).
-$query = "SELECT c.id_cita, p.nombre AS paciente, p.curp, d.nombre AS doctor, d.apellido_paterno AS doctor_ap,
+$query = "SELECT c.id_cita, p.nombre AS paciente, d.nombre AS doctor, d.apellido_paterno AS doctor_ap,
                  c.fecha_cita, c.hora_inicio, c.motivo_consulta, c.estado_cita
           FROM citas c
           JOIN pacientes p ON c.id_paciente = p.id_paciente
@@ -159,7 +159,6 @@ $html = '
             <tr>
                 <th>ID</th>
                 <th>Paciente</th>
-                <th>CURP</th>
                 <th>Doctor</th>
                 <th>Fecha y Hora</th>
                 <th>Motivo</th>
@@ -174,7 +173,6 @@ foreach ($citas as $cita) {
     $html .= '<tr>
                 <td>#' . $cita['id_cita'] . '</td>
                 <td>' . htmlspecialchars($cita['paciente']) . '</td>
-                <td>' . htmlspecialchars($cita['curp'] ?? 'N/A') . '</td>
                 <td>Dr. ' . htmlspecialchars($cita['doctor'] . ' ' . $cita['doctor_ap']) . '</td>
                 <td>' . date('d/m/Y', strtotime($cita['fecha_cita'])) . ' ' . date('h:i A', strtotime($cita['hora_inicio'])) . '</td>
                 <td>' . htmlspecialchars($cita['motivo_consulta'] ?? 'Sin motivo') . '</td>

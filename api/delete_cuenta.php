@@ -10,8 +10,8 @@
  *    que dependen de esas filas.
  *  - Es un sistema de salud: el registro de atenciones pasadas tiene valor
  *    administrativo/estadístico incluso sin el paciente activo.
- * Por eso se anonimizan los datos identificables (nombre, email, teléfono,
- * CURP) y se marca `cuenta_eliminada = 1`, dejando las citas intactas pero
+ * Por eso se anonimizan los datos identificables (nombre, email, teléfono)
+ * y se marca `cuenta_eliminada = 1`, dejando las citas intactas pero
  * ya no asociables a una persona identificable.
  *
  * @requires session_start
@@ -83,7 +83,6 @@ try {
             apellido_paterno = '',
             apellido_materno = NULL,
             telefono = NULL,
-            curp = NULL,
             email = ?,
             cuenta_eliminada = 1
         WHERE id_paciente = ?");
