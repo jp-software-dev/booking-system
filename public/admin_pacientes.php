@@ -10,7 +10,7 @@ $id_ver = isset($_GET['ver']) && is_numeric($_GET['ver']) ? (int)$_GET['ver'] : 
 
 if ($id_ver) {
     // --- VISTA DE DETALLE: datos básicos + historial de citas de un paciente ---
-    $stmtPac = $db->prepare("SELECT id_paciente, curp, nombre, apellido_paterno, apellido_materno, fecha_nacimiento, genero, telefono, email, cuenta_eliminada FROM pacientes WHERE id_paciente = ?");
+    $stmtPac = $db->prepare("SELECT id_paciente, nombre, apellido_paterno, apellido_materno, fecha_nacimiento, genero, telefono, email, cuenta_eliminada FROM pacientes WHERE id_paciente = ?");
     $stmtPac->execute([$id_ver]);
     $paciente = $stmtPac->fetch(PDO::FETCH_ASSOC);
 
@@ -46,7 +46,6 @@ if ($id_ver) {
                 <?php endif; ?>
                 <div class="row g-3">
                     <div class="col-md-4"><span class="text-secondary small d-block">Nombre completo</span><span class="fw-medium"><?php echo htmlspecialchars(trim($paciente['nombre'] . ' ' . $paciente['apellido_paterno'] . ' ' . ($paciente['apellido_materno'] ?? ''))); ?></span></div>
-                    <div class="col-md-4"><span class="text-secondary small d-block">CURP</span><span class="fw-medium"><?php echo htmlspecialchars($paciente['curp'] ?? 'N/A'); ?></span></div>
                     <div class="col-md-4"><span class="text-secondary small d-block">Fecha de Nacimiento</span><span class="fw-medium"><?php echo date('d/m/Y', strtotime($paciente['fecha_nacimiento'])); ?></span></div>
                     <div class="col-md-4"><span class="text-secondary small d-block">Género</span><span class="fw-medium"><?php echo htmlspecialchars($paciente['genero']); ?></span></div>
                     <div class="col-md-4"><span class="text-secondary small d-block">Teléfono</span><span class="fw-medium"><?php echo htmlspecialchars($paciente['telefono'] ?? 'N/A'); ?></span></div>
@@ -103,15 +102,15 @@ if ($id_ver) {
     return;
 }
 
-// --- VISTA DE LISTADO: búsqueda por nombre / email / CURP ---
+// --- VISTA DE LISTADO: búsqueda por nombre / email ---
 $busq = trim($_GET['q'] ?? '');
 $busqEstadoCuenta = trim($_GET['estado_cuenta'] ?? '');
 
 $where = [];
 $params = [];
 if ($busq !== '') {
-    $where[] = "(nombre LIKE ? OR apellido_paterno LIKE ? OR apellido_materno LIKE ? OR email LIKE ? OR curp LIKE ?)";
-    for ($i = 0; $i < 5; $i++) { $params[] = "%$busq%"; }
+    $where[] = "(nombre LIKE ? OR apellido_paterno LIKE ? OR apellido_materno LIKE ? OR email LIKE ?)";
+    for ($i = 0; $i < 4; $i++) { $params[] = "%$busq%"; }
 }
 if ($busqEstadoCuenta === 'activa') {
     $where[] = "cuenta_eliminada = 0";
@@ -131,7 +130,7 @@ $total_pages = $total_records > 0 ? (int)ceil($total_records / $per_page) : 0;
 $page = $total_pages > 0 ? min($page, $total_pages) : 1;
 $offset = ($page - 1) * $per_page;
 
-$query = "SELECT id_paciente, curp, nombre, apellido_paterno, apellido_materno, email, telefono, cuenta_eliminada
+$query = "SELECT id_paciente, nombre, apellido_paterno, apellido_materno, email, telefono, cuenta_eliminada
           FROM pacientes $whereSql
           ORDER BY nombre ASC
           LIMIT ? OFFSET ?";
@@ -153,7 +152,7 @@ $pacientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="bg-light p-3 border-bottom">
             <form method="GET" class="row g-2 align-items-end">
                 <div class="col-md-5">
-                    <label class="form-label small fw-bold text-secondary mb-1">Buscar por nombre, email o CURP</label>
+                    <label class="form-label small fw-bold text-secondary mb-1">Buscar por nombre o email</label>
                     <input type="text" name="q" class="form-control form-control-sm" placeholder="Ej. Juan Pérez, juan@correo.com" value="<?php echo htmlspecialchars($busq); ?>">
                 </div>
                 <div class="col-md-3">
@@ -176,7 +175,6 @@ $pacientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <thead class="table-light">
                     <tr>
                         <th class="ps-4">Paciente</th>
-                        <th>CURP</th>
                         <th>Correo</th>
                         <th>Teléfono</th>
                         <th class="text-end pe-4"></th>
@@ -189,7 +187,6 @@ $pacientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <div class="fw-bold text-dark"><?php echo htmlspecialchars(trim($p['nombre'] . ' ' . $p['apellido_paterno'] . ' ' . ($p['apellido_materno'] ?? ''))); ?></div>
                             <?php if ($p['cuenta_eliminada']): ?><small class="badge bg-danger-subtle text-danger-emphasis">Cuenta eliminada</small><?php endif; ?>
                         </td>
-                        <td class="text-secondary"><?php echo htmlspecialchars($p['curp'] ?? 'N/A'); ?></td>
                         <td class="text-secondary"><?php echo htmlspecialchars($p['email']); ?></td>
                         <td class="text-secondary"><?php echo htmlspecialchars($p['telefono'] ?? 'N/A'); ?></td>
                         <td class="text-end pe-4">
@@ -198,7 +195,7 @@ $pacientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     </tr>
                     <?php endforeach; ?>
                     <?php if (empty($pacientes)): ?>
-                    <tr><td colspan="5" class="text-center text-muted py-5">No se encontraron pacientes.</td></tr>
+                    <tr><td colspan="4" class="text-center text-muted py-5">No se encontraron pacientes.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>

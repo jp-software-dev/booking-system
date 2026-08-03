@@ -52,7 +52,7 @@ $total_pages = $total_records > 0 ? ceil($total_records / $records_per_page) : 0
 $page = $total_pages > 0 ? min($page, $total_pages) : 1; // Asegurar que la página no exceda el total
 $offset = ($page - 1) * $records_per_page;
 
-$query = "SELECT c.id_cita, p.nombre AS paciente, p.apellido_paterno AS paciente_ap, p.curp, 
+$query = "SELECT c.id_cita, p.nombre AS paciente, p.apellido_paterno AS paciente_ap,
                  d.nombre AS doctor, d.apellido_paterno AS doctor_ap,
                  c.fecha_cita, c.hora_inicio, c.motivo_consulta, c.estado_cita
           FROM citas c
@@ -124,7 +124,7 @@ $citas = $stmt->fetchAll();
                 <thead class="table-light">
                     <tr>
                         <th class="ps-4">ID</th>
-                        <th>Paciente / CURP</th>
+                        <th>Paciente</th>
                         <th>Médico Especialista</th>
                         <th>Fecha y Hora</th>
                         <th>Motivo</th>
@@ -139,7 +139,6 @@ $citas = $stmt->fetchAll();
                         <td class="ps-4 text-muted fw-bold">#<?php echo $cita['id_cita']; ?></td>
                         <td>
                             <div class="fw-bold text-dark"><?php echo htmlspecialchars($cita['paciente'].' '.$cita['paciente_ap']); ?></div>
-                            <small class="text-muted"><?php echo htmlspecialchars($cita['curp'] ?? 'N/A'); ?></small>
                         </td>
                         <td>
                             <div class="text-dark">Dr. <?php echo htmlspecialchars($cita['doctor'].' '.$cita['doctor_ap']); ?></div>

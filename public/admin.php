@@ -36,7 +36,7 @@ $total_pages = $total_records > 0 ? (int)ceil($total_records / $per_page) : 0;
 $page = $total_pages > 0 ? min($page, $total_pages) : 1;
 $offset = ($page - 1) * $per_page;
 
-$query = "SELECT c.id_cita, p.nombre AS paciente, p.apellido_paterno AS paciente_ap, p.curp,
+$query = "SELECT c.id_cita, p.nombre AS paciente, p.apellido_paterno AS paciente_ap,
                  d.nombre AS doctor, d.apellido_paterno AS doctor_ap,
                  c.fecha_cita, c.hora_inicio, c.motivo_consulta, c.estado_cita,
                  co.nombre AS consultorio_nombre
@@ -138,7 +138,7 @@ $m_comp  = $metrics['completadas'] ?? 0;
                 <thead class="table-light">
                     <tr>
                         <th class="ps-4">ID</th>
-                        <th>Paciente / CURP</th>
+                        <th>Paciente</th>
                         <th>Médico / Consultorio</th>
                         <th>Fecha y Hora</th>
                         <th>Motivo Completo de Consulta</th>
@@ -160,7 +160,6 @@ $m_comp  = $metrics['completadas'] ?? 0;
                         <td data-label="ID" class="ps-4 text-muted fw-bold">#<?php echo $cita['id_cita']; ?></td>
                         <td data-label="Paciente">
                             <div class="fw-bold text-dark"><?php echo htmlspecialchars($cita['paciente'].' '.$cita['paciente_ap']); ?></div>
-                            <small class="text-muted"><?php echo htmlspecialchars($cita['curp'] ?? 'N/A'); ?></small>
                         </td>
                         <td data-label="Médico">
                             <div class="text-dark">Dr. <?php echo htmlspecialchars($cita['doctor'].' '.$cita['doctor_ap']); ?></div>
