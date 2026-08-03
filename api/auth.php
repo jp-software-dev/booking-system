@@ -35,19 +35,6 @@ if (!$input) {
     exit;
 }
 
-// HONEYPOT: campo trampa oculto para humanos vía CSS. Solo un bot que autocompleta
-// todos los campos del formulario lo llenaría. Se rechaza sin tocar el rate limiter
-// real (no es un usuario legítimo equivocándose) y sin dar pistas del motivo.
-if (!empty($input['sitio_web'])) {
-    // REGISTRO EN BITÁCORA: Se detectó un bot llenando el campo honeypot.
-    // Se registra el evento para monitoreo de actividad maliciosa.
-    $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-    Bitacora::registrar('honeypot_triggered', 'security', null, "Bot detectado en login desde IP: $ip_address");
-
-    echo json_encode(['success' => false, 'message' => 'Credenciales incorrectas']);
-    exit;
-}
-
 $rateLimitKey = 'login_' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
 try {
     if (RateLimiter::tooManyAttempts($rateLimitKey, 5, 300)) {
@@ -75,6 +62,14 @@ try {
     // VALIDACIÓN ESTRICTA DE LONGITUD: defensa en profundidad contra payloads anormalmente
     // largos (no reemplaza las sentencias preparadas, que ya evitan inyección SQL).
     if (strlen($identificador) > 254 || strlen($password) > 200) {
+        RateLimiter::registerAttempt($rateLimitKey);
+        echo json_encode(['success' => false, 'message' => 'Credenciales incorrectas']);
+        exit;
+    }
+
+    // VALIDACIÓN DE FORMATO DE IDENTIFICADOR: previene caracteres potencialmente maliciosos
+    // que no son parte de un email o un nombre de usuario estándar.
+    if (!preg_match('/^[a-zA-Z0-9_.\-@]+$/', $identificador)) {
         RateLimiter::registerAttempt($rateLimitKey);
         echo json_encode(['success' => false, 'message' => 'Credenciales incorrectas']);
         exit;
