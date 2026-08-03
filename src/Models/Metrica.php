@@ -8,7 +8,7 @@
  * JSON_ARRAYAGG requiere MariaDB 10.5+ / MySQL 5.7.22+ — con la consulta
  * anterior, este endpoint fallaba en este entorno.
  *
- * Ningún método expone datos identificables de pacientes (nombre, CURP,
+ * Ningún método expone datos identificables de pacientes (nombre,
  * motivo de consulta): solo conteos y agrupaciones por estado, especialidad,
  * doctor y periodo.
  *

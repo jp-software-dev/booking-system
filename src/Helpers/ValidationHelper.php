@@ -3,7 +3,7 @@
  * VALIDADOR DE DATOS
  *
  * Clase estática con funciones reutilizables para validar formatos comunes
- * como fechas, horas y CURP mexicana, incluyendo el cálculo del dígito verificador.
+ * como fechas y horas.
  *
  * @namespace Helpers
  */
@@ -28,48 +28,6 @@ class ValidationHelper
     {
         $t = \DateTime::createFromFormat($format, $time);
         return $t && $t->format($format) === $time;
-    }
-
-    /**
-     * Valida una CURP mexicana, incluyendo el dígito verificador.
-     */
-    public static function validateCURP(string $curp): bool
-    {
-        $curp = strtoupper(trim($curp));
-
-        // Expresión regular estructural (primeros 17 caracteres)
-        $pattern = '/^[A-Z]{4}[0-9]{6}[H,M][A-Z]{5}[A-Z0-9]{2}$/';
-        if (!preg_match($pattern, $curp)) {
-            return false;
-        }
-
-        // Mapeo de caracteres a números para el cálculo del dígito verificador
-        $valores = [
-            'A' => 0, 'B' => 1, 'C' => 2, 'D' => 3, 'E' => 4, 'F' => 5, 'G' => 6,
-            'H' => 7, 'I' => 8, 'J' => 9, 'K' => 10, 'L' => 11, 'M' => 12,
-            'N' => 13, 'Ñ' => 14, 'O' => 15, 'P' => 16, 'Q' => 17, 'R' => 18,
-            'S' => 19, 'T' => 20, 'U' => 21, 'V' => 22, 'W' => 23, 'X' => 24,
-            'Y' => 25, 'Z' => 26, '0' => 0, '1' => 1, '2' => 2, '3' => 3,
-            '4' => 4, '5' => 5, '6' => 6, '7' => 7, '8' => 8, '9' => 9
-        ];
-
-        $suma = 0;
-        for ($i = 0; $i < 17; $i++) {
-            $char = $curp[$i];
-            if (!isset($valores[$char])) {
-                return false;
-            }
-            $suma += $valores[$char] * (18 - $i);
-        }
-
-        $digitoCalculado = 10 - ($suma % 10);
-        if ($digitoCalculado == 10) {
-            $digitoCalculado = 0;
-        }
-
-        $digitoProporcionado = (int)$curp[17];
-
-        return $digitoCalculado === $digitoProporcionado;
     }
 }
 ?>
