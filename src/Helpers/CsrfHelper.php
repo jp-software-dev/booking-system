@@ -1,22 +1,46 @@
 <?php
-namespace Helpers;
+
+declare(strict_types=1);
+
+namespace App\Helpers;
 
 /**
- * HELPER DE PROTECCIÓN CSRF
- * Genera y valida un token por sesión para proteger endpoints que modifican estado.
+ * PROTECCIÓN CSRF
+ *
+ * Genera un token aleatorio por sesión y lo valida en cada petición que modifica
+ * datos. El token se imprime en la etiqueta <meta name="csrf-token"> del layout
+ * y api_client.js lo envía en la cabecera X-CSRF-Token.
  */
-class CsrfHelper
+final class CsrfHelper
 {
+    /** Clave de $_SESSION donde se guarda el token. */
+    private const CLAVE_SESION = 'csrf_token';
+
+    /**
+     * Devuelve el token de la sesión actual, creándolo si todavía no existe.
+     */
     public static function generateToken(): string
     {
-        if (empty($_SESSION['csrf_token'])) {
-            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        if (empty($_SESSION[self::CLAVE_SESION])) {
+            $_SESSION[self::CLAVE_SESION] = bin2hex(random_bytes(32));
         }
-        return $_SESSION['csrf_token'];
+
+        return (string) $_SESSION[self::CLAVE_SESION];
     }
 
+    /**
+     * Compara el token recibido con el de la sesión en tiempo constante.
+     *
+     * @param string|null $token Token enviado por el cliente.
+     */
     public static function validateToken(?string $token): bool
     {
-        return !empty($_SESSION['csrf_token']) && !empty($token) && hash_equals($_SESSION['csrf_token'], $token);
+        $tokenSesion = $_SESSION[self::CLAVE_SESION] ?? '';
+
+        return is_string($tokenSesion)
+            && $tokenSesion !== ''
+            && $token !== null
+            && $token !== ''
+            && hash_equals($tokenSesion, $token);
     }
 }
