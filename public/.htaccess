@@ -1,3 +1,5 @@
+# .htaccess DE /public
+# Sin listado de directorios y con URLs sin extensión: /public/login sirve /public/login.php.
 Options -Indexes
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-d
