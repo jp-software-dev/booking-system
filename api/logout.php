@@ -1,31 +1,27 @@
 <?php
-session_start();
-require_once __DIR__ . '/../src/Helpers/CsrfHelper.php';
 
-use Helpers\CsrfHelper;
+/**
+ * ENDPOINT: CIERRE DE SESIÓN
+ *
+ * Recibe el formulario "Cerrar sesión" del menú y redirige a la página de inicio.
+ *
+ * Método: POST (formulario HTML)
+ * Acceso: cualquier usuario autenticado, con token CSRF
+ *
+ * Se exige POST + CSRF para que un enlace o imagen de otro sitio no pueda
+ * cerrar la sesión del usuario sin su intención.
+ */
 
-if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-    http_response_code(405);
-    header("Location: ../public/index.php");
-    exit();
+require_once __DIR__ . '/../config/config.php';
+
+use App\Helpers\CsrfHelper;
+use App\Http\Sesion;
+
+$esPost = ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST';
+$tokenValido = CsrfHelper::validateToken(is_string($_POST['csrf_token'] ?? null) ? $_POST['csrf_token'] : null);
+
+if ($esPost && $tokenValido) {
+    Sesion::cerrar();
 }
 
-if (!CsrfHelper::validateToken($_POST['csrf_token'] ?? null)) {
-    http_response_code(403);
-    header("Location: ../public/index.php");
-    exit();
-}
-
-$_SESSION = [];
-
-if (ini_get("session.use_cookies")) {
-    $params = session_get_cookie_params();
-    setcookie(session_name(), '', time() - 42000,
-        $params["path"], $params["domain"],
-        $params["secure"], $params["httponly"]
-    );
-}
-
-session_destroy();
-header("Location: ../public/index.php");
-exit();
+Sesion::redirigir('../public/index.php');
