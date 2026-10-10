@@ -1,68 +1,116 @@
 <?php
-namespace Helpers;
 
-class RateLimiter
+declare(strict_types=1);
+
+namespace App\Helpers;
+
+use App\Core\Database;
+
+/**
+ * LIMITADOR DE INTENTOS CON BLOQUEO PROGRESIVO
+ *
+ * Cuenta los intentos por identificador (por ejemplo, "login_<ip>") en la tabla
+ * `login_attempts`. Al llegar al máximo dentro de la ventana de tiempo, bloquea
+ * el identificador durante un periodo que crece con cada bloqueo consecutivo
+ * (1 min, 5 min, 15 min, 30 min y como máximo 1 hora).
+ */
+final class RateLimiter
 {
-    // Duración de cada bloqueo consecutivo: 1min, 5min, 15min, 30min, tope 1h.
-    private const BACKOFF_SCHEDULE = [60, 300, 900, 1800, 3600];
+    /** Duración en segundos de cada bloqueo consecutivo. */
+    private const ESCALA_BLOQUEO = [60, 300, 900, 1800, 3600];
 
-    public static function tooManyAttempts(string $key, int $maxAttempts = 5, int $windowSeconds = 300): bool
+    /**
+     * Indica si el identificador superó el límite y debe rechazarse.
+     *
+     * Si un bloqueo anterior ya venció o la ventana de tiempo terminó, reinicia
+     * el contador de intentos (pero conserva block_count para que el siguiente
+     * bloqueo sea más largo).
+     *
+     * @param string $clave       Identificador a limitar (ej. "login_127.0.0.1").
+     * @param int    $maxIntentos Intentos permitidos dentro de la ventana.
+     * @param int    $ventana     Duración de la ventana en segundos.
+     */
+    public static function tooManyAttempts(string $clave, int $maxIntentos = 5, int $ventana = 300): bool
     {
-        $db = \Database::getInstance();
-        $stmt = $db->prepare("SELECT attempts, first_attempt, blocked_until FROM login_attempts WHERE identificador = ?");
-        $stmt->execute([$key]);
-        $row = $stmt->fetch();
+        $db = Database::getInstance();
+        $stmt = $db->prepare('SELECT attempts, first_attempt, blocked_until FROM login_attempts WHERE identificador = ?');
+        $stmt->execute([$clave]);
+        $fila = $stmt->fetch();
 
-        if (!$row) {
+        if (!$fila) {
             return false;
         }
 
-        // Bloqueo por backoff progresivo todavía vigente.
-        if (!empty($row['blocked_until']) && strtotime($row['blocked_until']) > time()) {
+        // Bloqueo todavía vigente.
+        if (!empty($fila['blocked_until']) && strtotime((string) $fila['blocked_until']) > time()) {
             return true;
         }
 
-        // El bloqueo anterior (si hubo) ya expiró: se abre una ventana de intentos nueva,
-        // pero se conserva block_count para que el próximo bloqueo siga escalando.
-        if (!empty($row['blocked_until']) || (time() - strtotime($row['first_attempt'])) > $windowSeconds) {
-            $db->prepare("UPDATE login_attempts SET attempts = 0, first_attempt = NOW(), blocked_until = NULL WHERE identificador = ?")
-               ->execute([$key]);
+        // El bloqueo venció o la ventana terminó: se abre una ventana nueva.
+        $ventanaVencida = (time() - (int) strtotime((string) $fila['first_attempt'])) > $ventana;
+        if (!empty($fila['blocked_until']) || $ventanaVencida) {
+            $db->prepare('UPDATE login_attempts SET attempts = 0, first_attempt = NOW(), blocked_until = NULL WHERE identificador = ?')
+               ->execute([$clave]);
             return false;
         }
 
-        return (int)$row['attempts'] >= $maxAttempts;
+        return (int) $fila['attempts'] >= $maxIntentos;
     }
 
-    public static function registerAttempt(string $key, int $maxAttempts = 5): void
+    /**
+     * Suma un intento. Si con él se alcanza el máximo, aplica el siguiente
+     * escalón de bloqueo.
+     *
+     * @param string $clave       Identificador a limitar.
+     * @param int    $maxIntentos Intentos que disparan el bloqueo.
+     */
+    public static function registerAttempt(string $clave, int $maxIntentos = 5): void
     {
-        $db = \Database::getInstance();
-        $stmt = $db->prepare("SELECT attempts, block_count FROM login_attempts WHERE identificador = ?");
-        $stmt->execute([$key]);
-        $row = $stmt->fetch();
+        $db = Database::getInstance();
+        $stmt = $db->prepare('SELECT attempts, block_count FROM login_attempts WHERE identificador = ?');
+        $stmt->execute([$clave]);
+        $fila = $stmt->fetch();
 
-        if (!$row) {
-            $db->prepare("INSERT INTO login_attempts (identificador, attempts, first_attempt, block_count) VALUES (?, 1, NOW(), 0)")
-               ->execute([$key]);
+        if (!$fila) {
+            $db->prepare('INSERT INTO login_attempts (identificador, attempts, first_attempt, block_count) VALUES (?, 1, NOW(), 0)')
+               ->execute([$clave]);
             return;
         }
 
-        $attempts = (int)$row['attempts'] + 1;
+        $intentos = (int) $fila['attempts'] + 1;
 
-        if ($attempts >= $maxAttempts) {
-            // Se alcanzó el límite de la ventana: escala al siguiente peldaño del backoff.
-            $blockCount = (int)$row['block_count'] + 1;
-            $seconds = self::BACKOFF_SCHEDULE[min($blockCount, count(self::BACKOFF_SCHEDULE)) - 1];
-            $blockedUntil = date('Y-m-d H:i:s', time() + $seconds);
-            $db->prepare("UPDATE login_attempts SET attempts = ?, block_count = ?, blocked_until = ? WHERE identificador = ?")
-               ->execute([$attempts, $blockCount, $blockedUntil, $key]);
-        } else {
-            $db->prepare("UPDATE login_attempts SET attempts = ? WHERE identificador = ?")->execute([$attempts, $key]);
+        if ($intentos < $maxIntentos) {
+            $db->prepare('UPDATE login_attempts SET attempts = ? WHERE identificador = ?')
+               ->execute([$intentos, $clave]);
+            return;
         }
+
+        $bloqueos = (int) $fila['block_count'] + 1;
+        $segundos = self::ESCALA_BLOQUEO[min($bloqueos, count(self::ESCALA_BLOQUEO)) - 1];
+
+        $db->prepare('UPDATE login_attempts SET attempts = ?, block_count = ?, blocked_until = ? WHERE identificador = ?')
+           ->execute([$intentos, $bloqueos, date('Y-m-d H:i:s', time() + $segundos), $clave]);
     }
 
-    public static function resetAttempts(string $key): void
+    /**
+     * Borra el historial del identificador (por ejemplo, tras un inicio de sesión correcto).
+     *
+     * @param string $clave Identificador a reiniciar.
+     */
+    public static function resetAttempts(string $clave): void
     {
-        $db = \Database::getInstance();
-        $db->prepare("DELETE FROM login_attempts WHERE identificador = ?")->execute([$key]);
+        Database::getInstance()
+            ->prepare('DELETE FROM login_attempts WHERE identificador = ?')
+            ->execute([$clave]);
+    }
+
+    /**
+     * Construye la clave de limitación para una acción y la IP del cliente.
+     *
+     * @param string $accion Nombre corto de la acción (ej. "login", "registro").
+     */
+    public static function claveParaIp(string $accion): string
+    {
+        return $accion . '_' . ($_SERVER['REMOTE_ADDR'] ?? 'desconocida');
     }
 }

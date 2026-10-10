@@ -1,151 +1,185 @@
 <?php
-require_once __DIR__ . '/../config/config.php';
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') { header("Location: login.php"); exit(); }
-require_once __DIR__ . '/../config/Database.php';
-require_once __DIR__ . '/../src/views/layout/header.php';
 
-$db = Database::getInstance();
-$consultorios = $db->query("SELECT id_consultorio, nombre, ubicacion, id_especialidad FROM consultorios ORDER BY id_consultorio ASC")->fetchAll();
-$doctores = $db->query("SELECT id_doctor, nombre, apellido_paterno, id_consultorio, id_especialidad FROM doctores WHERE estado = 1")->fetchAll();
-$especialidades = $db->query("SELECT id_especialidad, nombre_especialidad FROM especialidades ORDER BY nombre_especialidad ASC")->fetchAll();
-$mapaEspecialidades = array_column($especialidades, 'nombre_especialidad', 'id_especialidad');
+/**
+ * VISTA: ASIGNACIÓN DE CONSULTORIOS (ADMIN)
+ *
+ * Una tarjeta por consultorio para:
+ *   - definir su especialidad predeterminada, y
+ *   - asignar un médico (de esa especialidad) o dejarlo libre.
+ *
+ * Acceso: administrador.
+ */
+
+require_once __DIR__ . '/../config/config.php';
+
+use App\Http\Sesion;
+use App\Models\Consultorio;
+use App\Models\Doctor;
+use App\Models\Especialidad;
+
+Sesion::exigirRol(Sesion::ROL_ADMIN);
+
+// === DATOS ===
+$consultorios = (new Consultorio())->listarTodos();
+$doctores = (new Doctor())->listarActivos();
+$especialidades = (new Especialidad())->listar();
+
+/**
+ * Médico asignado a un consultorio, o null si está libre.
+ *
+ * @return array<string, mixed>|null
+ */
+$medicoAsignado = static function (int $idConsultorio) use ($doctores): ?array {
+    foreach ($doctores as $doctor) {
+        if ((int) $doctor['id_consultorio'] === $idConsultorio) {
+            return $doctor;
+        }
+    }
+    return null;
+};
+
+/**
+ * Médicos que se pueden elegir para el consultorio: los que no tienen
+ * consultorio (o ya están en este) y, si el consultorio tiene especialidad,
+ * solo los de esa especialidad.
+ *
+ * @return list<array<string, mixed>>
+ */
+$medicosDisponibles = static function (array $consultorio) use ($doctores): array {
+    $idConsultorio = (int) $consultorio['id_consultorio'];
+
+    return array_values(array_filter($doctores, static function (array $doctor) use ($consultorio, $idConsultorio): bool {
+        $libreOAqui = $doctor['id_consultorio'] === null || (int) $doctor['id_consultorio'] === $idConsultorio;
+        $mismaEspecialidad = $consultorio['id_especialidad'] === null
+            || (int) $doctor['id_especialidad'] === (int) $consultorio['id_especialidad'];
+
+        return $libreOAqui && $mismaEspecialidad;
+    }));
+};
+
+// === VISTA ===
+require __DIR__ . '/../src/views/layout/header.php';
 ?>
 <div class="container py-5">
     <h2 class="fw-bold text-dark-blue mb-4"><i class="bi bi-door-open-fill text-primary me-2"></i>Asignación de Consultorios</h2>
+
+    <div id="consultoriosAlert"></div>
+
     <div class="row g-4">
-        <?php foreach ($consultorios as $cons): 
-            $idCons = $cons['id_consultorio'];
-            $docAsignado = array_filter($doctores, fn($d) => $d['id_consultorio'] == $idCons);
-            $docInfo = reset($docAsignado);
-            $estaOcupado = ($docInfo !== false);
-        ?>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-4 p-4 position-relative">
-                <div class="position-absolute top-0 end-0 p-3">
-                    <?php if($estaOcupado): ?><span class="badge bg-danger rounded-pill">Ocupado</span><?php else: ?><span class="badge bg-success rounded-pill">Disponible</span><?php endif; ?>
-                </div>
-                <h4 class="fw-bold text-dark-blue mb-1"><?php echo htmlspecialchars($cons['nombre']); ?></h4>
-                <form class="form-especialidad mb-3">
-                    <input type="hidden" name="id_consultorio" value="<?php echo $idCons; ?>">
-                    <label class="form-label fw-bold text-secondary small mb-1">Especialidad del consultorio</label>
-                    <div class="input-group input-group-sm">
-                        <select name="id_especialidad" class="form-select">
-                            <option value="">-- Sin especialidad definida --</option>
-                            <?php foreach ($especialidades as $esp): ?>
-                                <option value="<?php echo $esp['id_especialidad']; ?>" <?php echo ($cons['id_especialidad'] == $esp['id_especialidad']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($esp['nombre_especialidad']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <button type="submit" class="btn btn-outline-primary">Guardar</button>
+        <?php foreach ($consultorios as $consultorio): ?>
+            <?php
+            $idConsultorio = (int) $consultorio['id_consultorio'];
+            $asignado = $medicoAsignado($idConsultorio);
+            ?>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 p-4 position-relative" data-consultorio="<?= $idConsultorio ?>">
+                    <div class="position-absolute top-0 end-0 p-3">
+                        <span class="badge rounded-pill <?= $asignado ? 'bg-danger' : 'bg-success' ?>" data-insignia><?= $asignado ? 'Ocupado' : 'Disponible' ?></span>
                     </div>
-                </form>
-                <div class="bg-light rounded-3 p-3 mb-4">
-                    <h6 class="fw-bold text-secondary mb-2 small">MÉDICO ACTUAL</h6>
-                    <?php if($docInfo): ?><div class="fw-bold text-dark doc-name">Dr. <?php echo htmlspecialchars($docInfo['nombre'].' '.$docInfo['apellido_paterno']); ?></div><?php else: ?><div class="text-muted doc-name">Ningún médico asignado</div><?php endif; ?>
-                </div>
-                <form class="form-asignar">
-                    <input type="hidden" name="id_consultorio" value="<?php echo $idCons; ?>">
-                    <div class="input-group">
-                        <select name="id_doctor" class="form-select border-primary">
-                            <option value="">-- Liberar Consultorio --</option>
-                            <?php
-                            // Solo médicos sin consultorio asignado, o el que ya ocupa ESTE consultorio
-                            // (si no, no aparecería seleccionado en su propia tarjeta). Los asignados a
-                            // OTRO consultorio no se muestran hasta que se liberen desde su tarjeta.
-                            // Además, si el consultorio ya tiene especialidad definida, solo se muestran
-                            // doctores con esa misma especialidad (mientras no tenga especialidad definida,
-                            // no se restringe para no bloquear la asignación).
-                            $docsDisponibles = array_filter($doctores, function ($d) use ($idCons, $cons) {
-                                $libreOEnEsteConsultorio = $d['id_consultorio'] === null || $d['id_consultorio'] == $idCons;
-                                $coincideEspecialidad = empty($cons['id_especialidad']) || $d['id_especialidad'] == $cons['id_especialidad'];
-                                return $libreOEnEsteConsultorio && $coincideEspecialidad;
-                            });
-                            foreach ($docsDisponibles as $d): ?>
-                                <option value="<?php echo $d['id_doctor']; ?>" <?php echo ($docInfo && $docInfo['id_doctor'] == $d['id_doctor']) ? 'selected' : ''; ?>>Dr. <?php echo htmlspecialchars($d['nombre'].' '.$d['apellido_paterno']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <button type="submit" class="btn btn-primary">Actualizar</button>
+
+                    <h4 class="fw-bold text-dark-blue mb-1"><?= e($consultorio['nombre']) ?></h4>
+
+                    <!-- Especialidad predeterminada del consultorio -->
+                    <form class="form-especialidad mb-3">
+                        <input type="hidden" name="id_consultorio" value="<?= $idConsultorio ?>">
+                        <label class="form-label fw-bold text-secondary small mb-1" for="esp_<?= $idConsultorio ?>">Especialidad del consultorio</label>
+                        <div class="input-group input-group-sm">
+                            <select name="id_especialidad" id="esp_<?= $idConsultorio ?>" class="form-select">
+                                <option value="">-- Sin especialidad definida --</option>
+                                <?php foreach ($especialidades as $especialidad): ?>
+                                    <option value="<?= (int) $especialidad['id_especialidad'] ?>" <?= (int) $consultorio['id_especialidad'] === (int) $especialidad['id_especialidad'] ? 'selected' : '' ?>>
+                                        <?= e($especialidad['nombre_especialidad']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <button type="submit" class="btn btn-outline-primary">Guardar</button>
+                        </div>
+                    </form>
+
+                    <div class="bg-light rounded-3 p-3 mb-4">
+                        <h6 class="fw-bold text-secondary mb-2 small">MÉDICO ACTUAL</h6>
+                        <div class="<?= $asignado ? 'fw-bold text-dark' : 'text-muted' ?>" data-nombre-medico>
+                            <?= $asignado ? 'Dr. ' . e($asignado['nombre'] . ' ' . $asignado['apellido_paterno']) : 'Ningún médico asignado' ?>
+                        </div>
                     </div>
-                </form>
+
+                    <!-- Asignación de médico -->
+                    <form class="form-asignar">
+                        <input type="hidden" name="id_consultorio" value="<?= $idConsultorio ?>">
+                        <div class="input-group">
+                            <select name="id_doctor" class="form-select border-primary" aria-label="Médico asignado a <?= e($consultorio['nombre']) ?>">
+                                <option value="">-- Liberar Consultorio --</option>
+                                <?php foreach ($medicosDisponibles($consultorio) as $doctor): ?>
+                                    <option value="<?= (int) $doctor['id_doctor'] ?>" <?= $asignado && (int) $asignado['id_doctor'] === (int) $doctor['id_doctor'] ? 'selected' : '' ?>>
+                                        Dr. <?= e($doctor['nombre'] . ' ' . $doctor['apellido_paterno']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <button type="submit" class="btn btn-primary">Actualizar</button>
+                        </div>
+                    </form>
+                </div>
             </div>
-        </div>
         <?php endforeach; ?>
     </div>
 </div>
+
 <script>
-document.querySelectorAll('.form-especialidad').forEach(f => f.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = f.querySelector('button[type="submit"]');
-    btn.disabled = true;
-    btn.innerHTML = 'Guardando...';
+// === ESPECIALIDAD DEL CONSULTORIO ===
+// Al cambiarla, la lista de médicos elegibles cambia, por eso se recarga la página.
+document.querySelectorAll('.form-especialidad').forEach((formulario) => {
+    formulario.addEventListener('submit', async (evento) => {
+        evento.preventDefault();
 
-    const formData = new FormData(f);
-    const dataObj = Object.fromEntries(formData);
+        const restaurar = bloquearBoton(formulario.querySelector('button[type="submit"]'), 'Guardando...');
+        const respuesta = await apiClient.post('update_consultorio_especialidad.php', Object.fromEntries(new FormData(formulario)));
 
-    try {
-        const data = await apiClient.post('update_consultorio_especialidad.php', dataObj);
-
-        if (data && data.status === 'success') {
+        if (respuesta?.status === 'success') {
             location.reload();
-        } else {
-            alert(data ? data.message : 'Error de red al actualizar la especialidad');
-            btn.disabled = false;
-            btn.innerHTML = 'Guardar';
+            return;
         }
-    } catch (err) {
-        alert('Error de red al actualizar la especialidad');
-        btn.disabled = false;
-        btn.innerHTML = 'Guardar';
-    }
-}));
 
-document.querySelectorAll('.form-asignar').forEach(f => f.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = f.querySelector('button[type="submit"]');
-    btn.disabled = true;
-    btn.innerHTML = 'Actualizando...';
-    
-    const formData = new FormData(f);
-    const dataObj = Object.fromEntries(formData);
-    const docSelect = f.querySelector('select[name="id_doctor"]');
-    const idDoctor = docSelect.value;
-    
-    try {
-        const data = await apiClient.post('assign_consultorio.php', dataObj);
+        mostrarAlerta('consultoriosAlert', 'danger', mensajeDeError(respuesta));
+        restaurar();
+    });
+});
 
-        if(data && data.status === 'success') {
-            const card = f.closest('.card');
-            const badge = card.querySelector('.badge');
-            const docName = card.querySelector('.doc-name');
-            
-            if (!idDoctor) {
-                badge.className = 'badge bg-success rounded-pill';
-                badge.textContent = 'Disponible';
-                docName.className = 'text-muted doc-name';
-                docName.textContent = 'Ningún médico asignado';
-            } else {
-                badge.className = 'badge bg-danger rounded-pill';
-                badge.textContent = 'Ocupado';
-                docName.className = 'fw-bold text-dark doc-name';
-                docName.textContent = docSelect.options[docSelect.selectedIndex].text;
-            }
-            
-            btn.classList.replace('btn-primary', 'btn-success');
-            btn.innerHTML = '¡Listo!';
-            setTimeout(() => {
-                btn.classList.replace('btn-success', 'btn-primary');
-                btn.innerHTML = 'Actualizar';
-                btn.disabled = false;
-            }, 1500);
-        } else {
-            alert(data ? data.message : 'Error de red al actualizar consultorio');
-            btn.disabled = false;
-            btn.innerHTML = 'Actualizar';
+// === ASIGNACIÓN DE MÉDICO ===
+// Se actualiza la tarjeta sin recargar la página.
+document.querySelectorAll('.form-asignar').forEach((formulario) => {
+    formulario.addEventListener('submit', async (evento) => {
+        evento.preventDefault();
+
+        const boton = formulario.querySelector('button[type="submit"]');
+        const selector = formulario.querySelector('select[name="id_doctor"]');
+        const restaurar = bloquearBoton(boton, 'Actualizando...');
+        const respuesta = await apiClient.post('assign_consultorio.php', Object.fromEntries(new FormData(formulario)));
+
+        if (respuesta?.status !== 'success') {
+            mostrarAlerta('consultoriosAlert', 'danger', mensajeDeError(respuesta));
+            restaurar();
+            return;
         }
-    } catch(err) {
-        alert('Error de red al actualizar consultorio');
-        btn.disabled = false;
-        btn.innerHTML = 'Actualizar';
-    }
-}));
+
+        const tarjeta = formulario.closest('[data-consultorio]');
+        const insignia = tarjeta.querySelector('[data-insignia]');
+        const nombreMedico = tarjeta.querySelector('[data-nombre-medico]');
+        const ocupado = selector.value !== '';
+
+        insignia.className = `badge rounded-pill ${ocupado ? 'bg-danger' : 'bg-success'}`;
+        insignia.textContent = ocupado ? 'Ocupado' : 'Disponible';
+        nombreMedico.className = ocupado ? 'fw-bold text-dark' : 'text-muted';
+        nombreMedico.textContent = ocupado ? selector.selectedOptions[0].textContent.trim() : 'Ningún médico asignado';
+
+        limpiarAlerta('consultoriosAlert');
+        boton.classList.replace('btn-primary', 'btn-success');
+        boton.textContent = '¡Listo!';
+        setTimeout(() => {
+            boton.classList.replace('btn-success', 'btn-primary');
+            restaurar();
+        }, 1500);
+    });
+});
 </script>
-<?php require_once __DIR__ . '/../src/views/layout/footer.php'; ?>
+
+<?php require __DIR__ . '/../src/views/layout/footer.php'; ?>

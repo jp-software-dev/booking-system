@@ -1,82 +1,67 @@
 <?php
-session_start();
-require_once '../config/Database.php';
-require_once __DIR__ . '/../src/Helpers/CsrfHelper.php';
-require_once __DIR__ . '/../src/Helpers/Bitacora.php';
 
-use Helpers\CsrfHelper;
-use Helpers\Bitacora;
+/**
+ * ENDPOINT: EDICIÓN DE PERSONAL (ADMIN)
+ *
+ * Actualiza los datos de un médico activo o de un enfermero.
+ *
+ * Método:    POST (JSON)
+ * Acceso:    administrador, con token CSRF
+ * Entrada:   { id, tipo: doctor|enfermero, nombre, apellido_paterno,
+ *              id_especialidad (médico), turno (enfermero), id_consultorio (opcional) }
+ * Respuesta: { status, message }
+ */
 
-header('Content-Type: application/json');
+require_once __DIR__ . '/../config/config.php';
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin' || ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-    echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
-    exit;
+use App\Helpers\Bitacora;
+use App\Helpers\PersonalValidator;
+use App\Http\Api;
+use App\Http\Sesion;
+use App\Models\Doctor;
+use App\Models\Personal;
+
+Api::iniciar('POST');
+Api::exigirSesion(Sesion::ROL_ADMIN);
+$entrada = Api::leerJson();
+Api::exigirCsrf($entrada);
+
+$id = (int) ($entrada['id'] ?? 0);
+if ($id <= 0) {
+    Api::error('Miembro del personal no especificado');
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
+$personal = new Personal();
+$tipo = strtolower(trim((string) ($entrada['tipo'] ?? '')));
 
-$headers = getallheaders();
-$csrfToken = $headers['X-CSRF-Token'] ?? ($input['csrf_token'] ?? null);
-if (!CsrfHelper::validateToken($csrfToken)) {
-    http_response_code(403);
-    echo json_encode(['status' => 'error', 'message' => 'Token de seguridad inválido']);
-    exit;
+if (!in_array($tipo, [Personal::TIPO_DOCTOR, Personal::TIPO_ENFERMERO], true)) {
+    Api::error('Tipo de personal inválido');
 }
 
-$id = (int)($input['id'] ?? 0);
-$tipo = $input['tipo'] ?? '';
-$nombre = trim($input['nombre'] ?? '');
-$apellido = trim($input['apellido_paterno'] ?? '');
-$id_consultorio = !empty($input['id_consultorio']) ? (int)$input['id_consultorio'] : null;
-
-if ($id <= 0 || empty($nombre) || empty($apellido) || empty($tipo)) {
-    echo json_encode(['status' => 'error', 'message' => 'Faltan datos obligatorios']);
-    exit;
+// Se comprueba la existencia antes de actualizar: si se guarda sin cambios,
+// rowCount() del UPDATE sería 0 y no serviría para detectar un id inexistente.
+if (!$personal->existe($tipo, $id)) {
+    Api::error('No se encontró al miembro del personal', 404);
 }
 
-if ($tipo !== 'doctor' && $tipo !== 'enfermero') {
-    echo json_encode(['status' => 'error', 'message' => 'Tipo de personal inválido']);
-    exit;
+// Consultorio actual del médico, para no revalidar la ocupación si no cambia.
+$consultorioActual = null;
+if ($tipo === Personal::TIPO_DOCTOR) {
+    $actual = (new Doctor())->obtenerPorId($id);
+    $consultorioActual = $actual['id_consultorio'] ?? null;
 }
 
-$db = Database::getInstance();
-
-try {
-    // Se confirma existencia con SELECT antes del UPDATE: si se guarda sin cambiar
-    // ningún valor, rowCount() del UPDATE sería 0 y se reportaría un falso "no encontrado".
-    if ($tipo === 'doctor') {
-        $stmtCheck = $db->prepare("SELECT id_doctor FROM doctores WHERE id_doctor = ? AND estado = 1");
-        $stmtCheck->execute([$id]);
-    } else {
-        $stmtCheck = $db->prepare("SELECT id_enfermero FROM enfermeros WHERE id_enfermero = ?");
-        $stmtCheck->execute([$id]);
-    }
-    if (!$stmtCheck->fetch()) {
-        echo json_encode(['status' => 'error', 'message' => 'No se encontró al miembro del personal']);
-        exit;
-    }
-
-    if ($tipo === 'doctor') {
-        // doctores.id_especialidad es NOT NULL: todo doctor debe tener una especialidad
-        // (incluso "Medicina General" cuenta como una), a diferencia de id_consultorio
-        // que sí admite quedar sin asignar.
-        if (empty($input['id_especialidad'])) {
-            echo json_encode(['status' => 'error', 'message' => 'La especialidad es obligatoria para un doctor']);
-            exit;
-        }
-        $id_especialidad = (int)$input['id_especialidad'];
-        $stmt = $db->prepare("UPDATE doctores SET nombre = ?, apellido_paterno = ?, id_especialidad = ?, id_consultorio = ? WHERE id_doctor = ?");
-        $stmt->execute([$nombre, $apellido, $id_especialidad, $id_consultorio, $id]);
-    } else {
-        $turno = $input['turno'] ?? 'Matutino';
-        $stmt = $db->prepare("UPDATE enfermeros SET nombre = ?, apellido_paterno = ?, turno = ?, id_consultorio = ? WHERE id_enfermero = ?");
-        $stmt->execute([$nombre, $apellido, $turno, $id_consultorio, $id]);
-    }
-
-    Bitacora::registrar('modificar_personal', $tipo, $id, "$nombre $apellido");
-
-    echo json_encode(['status' => 'success', 'message' => 'Datos actualizados con éxito']);
-} catch (Exception $e) {
-    echo json_encode(['status' => 'error', 'message' => 'Error al guardar en base de datos']);
+[$error, $datos] = PersonalValidator::validar($entrada, $id, $consultorioActual !== null ? (int) $consultorioActual : null);
+if ($error !== null) {
+    Api::error($error);
 }
+
+if ($datos['tipo'] === Personal::TIPO_DOCTOR) {
+    $personal->actualizarDoctor($id, $datos['nombre'], $datos['apellido'], (int) $datos['id_especialidad'], $datos['id_consultorio']);
+} else {
+    $personal->actualizarEnfermero($id, $datos['nombre'], $datos['apellido'], (string) $datos['turno'], $datos['id_consultorio']);
+}
+
+Bitacora::registrar('modificar_personal', $datos['tipo'], $id, $datos['nombre'] . ' ' . $datos['apellido']);
+
+Api::exito('Datos actualizados con éxito');

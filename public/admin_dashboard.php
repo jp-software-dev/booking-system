@@ -1,10 +1,25 @@
 <?php
+
+/**
+ * VISTA: DASHBOARD DE MÉTRICAS (ADMIN)
+ *
+ * Indicadores y gráficas (Chart.js) de la operación. Los datos se piden a
+ * api/get_totales.php según el rango de fechas elegido.
+ *
+ * Acceso: administrador.
+ */
+
 require_once __DIR__ . '/../config/config.php';
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') { header("Location: login.php"); exit(); }
-require_once __DIR__ . '/../src/views/layout/header.php';
+
+use App\Http\Sesion;
+
+Sesion::exigirRol(Sesion::ROL_ADMIN);
+
+require __DIR__ . '/../src/views/layout/header.php';
 ?>
 
 <style>
+/* Selector de rango de fechas en forma de píldoras. */
 .rango-pill-group { background: #f1f5f9; padding: 4px; border-radius: 999px; }
 .rango-pill-group .rango-btn { border: none !important; border-radius: 999px !important; color: #475569; background: transparent; padding: 6px 14px; }
 .rango-pill-group .rango-btn:hover { background: rgba(26,86,219,0.08); color: #1a56db; }
@@ -156,16 +171,19 @@ function tonosAzules(n) {
 let chartEstado, chartEspecialidad, chartDoctores, chartTendencia, chartPacientesNuevos, chartOcupacion;
 let rangoActual = '30d';
 
-function mostrarErrorDashboard(msg) {
-    document.getElementById('dashboardAlert').innerHTML = `<div class="alert alert-danger py-2 small">${msg}</div>`;
+/** Muestra un error sobre las gráficas (como texto, no como HTML). */
+function mostrarErrorDashboard(mensaje) {
+    mostrarAlerta('dashboardAlert', 'danger', mensaje);
 }
 
+/** Destruye las gráficas anteriores antes de dibujar las del nuevo rango. */
 function destruirCharts() {
     [chartEstado, chartEspecialidad, chartDoctores, chartTendencia, chartPacientesNuevos, chartOcupacion].forEach(c => c && c.destroy());
 }
 
+/** Pide las métricas del rango y redibuja indicadores y gráficas. */
 async function cargarDashboard(params) {
-    document.getElementById('dashboardAlert').innerHTML = '';
+    limpiarAlerta('dashboardAlert');
     const data = await apiClient.get('get_totales.php?' + new URLSearchParams(params).toString());
 
     if (!data || data.status !== 'success') {
@@ -181,12 +199,12 @@ async function cargarDashboard(params) {
     document.getElementById('kpiTasa').textContent = m.kpis.tasa_cancelacion + '%';
     document.getElementById('kpiPacientesActivos').textContent = m.pacientes_activos;
 
-    const alertDoctores = document.getElementById('alertDoctoresSinConsultorio');
+    // Aviso de médicos sin consultorio. Los nombres se insertan como texto para evitar inyección de HTML.
     if (m.doctores_sin_consultorio.length > 0) {
-        const nombres = m.doctores_sin_consultorio.map(d => 'Dr. ' + d.nombre + ' ' + d.apellido_paterno).join(', ');
-        alertDoctores.innerHTML = `<div class="alert alert-warning py-2 small mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i><strong>${m.doctores_sin_consultorio.length} doctor(es) sin consultorio asignado:</strong> ${nombres}</div>`;
+        const nombres = m.doctores_sin_consultorio.map((d) => `Dr. ${d.nombre} ${d.apellido_paterno}`).join(', ');
+        mostrarAlerta('alertDoctoresSinConsultorio', 'warning', `${m.doctores_sin_consultorio.length} doctor(es) sin consultorio asignado: ${nombres}`);
     } else {
-        alertDoctores.innerHTML = '';
+        limpiarAlerta('alertDoctoresSinConsultorio');
     }
 
     destruirCharts();
@@ -323,4 +341,4 @@ document.getElementById('btnAplicarCustom').addEventListener('click', () => {
 cargarDashboard({ rango: rangoActual });
 </script>
 
-<?php require_once __DIR__ . '/../src/views/layout/footer.php'; ?>
+<?php require __DIR__ . '/../src/views/layout/footer.php'; ?>

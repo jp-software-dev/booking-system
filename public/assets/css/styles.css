@@ -1,18 +1,24 @@
+/* ==========================================================================
+   ESTILOS GENERALES DE MEDIAGENDA
+   Complementan Bootstrap 5.3 (cargado desde el CDN en header.php).
+   ========================================================================== */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* === VARIABLES DE COLOR === */
 :root {
     --primary: #1a56db;
     --primary-hover: #1e40af;
-    --primary-light: #eff6ff;
     --white: #ffffff;
     --gray-50: #f9fafb;
     --gray-200: #e5e7eb;
     --gray-500: #6b7280;
     --gray-800: #1f2937;
     --dark-blue: #1e3a8a;
-    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
+/* === BASE === */
 body {
     font-family: 'Inter', sans-serif;
     color: var(--gray-800);
@@ -21,86 +27,107 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-.auth-bg { background: linear-gradient(135deg, #f0f7ff 0%, #e8f4f8 100%); }
-
-.btn { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-.btn-primary { background-color: var(--primary); border-color: var(--primary); }
-.btn-primary:hover {
-    background-color: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(26, 86, 219, 0.3);
-}
-
-.card, .auth-card {
-    background-color: var(--white); border: 1px solid var(--gray-200);
-    box-shadow: var(--shadow-md); border-radius: 16px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.kpi-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-
 h1, h2, h3, h4, h5, h6, .text-dark-blue { color: var(--dark-blue); }
 p, .text-secondary { color: var(--gray-500); }
 
+/* Fondo de las pantallas de acceso (login, registro, recuperación). */
+.auth-bg { background: linear-gradient(135deg, #f0f7ff 0%, #e8f4f8 100%); }
+
+/* === BOTONES === */
+.btn { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+.btn-primary { background-color: var(--primary); border-color: var(--primary); }
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(26, 86, 219, 0.3);
+}
+
+/* === TARJETAS Y FORMULARIOS === */
+.card, .auth-card {
+    background-color: var(--white);
+    border: 1px solid var(--gray-200);
+    box-shadow: var(--shadow-md);
+    border-radius: 16px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
 .form-control, .form-select { border-color: var(--gray-200); transition: all 0.3s ease; }
 .form-control:focus, .form-select:focus {
-    border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,86,219,0.2);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.2);
 }
 
+/* Selector de estado de cita en el panel administrativo. */
 .status-badge {
-    padding: 6px 14px; border-radius: 999px; font-weight: 600; font-size: 0.75rem;
-    display: inline-block; white-space: normal; text-align: center;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    display: inline-block;
+    white-space: normal;
+    text-align: center;
 }
 
-/* ==========================================================================
-   TABLAS MÓVILES (APILAMIENTO VERTICAL PARA EVITAR CORTES)
-   ========================================================================== */
+/* === TABLAS === */
 .table-light th, .table thead th {
-    background-color: var(--gray-50); color: var(--gray-800); border-bottom: 2px solid var(--gray-200);
+    background-color: var(--gray-50);
+    color: var(--gray-800);
+    border-bottom: 2px solid var(--gray-200);
 }
 
+/* En móvil cada fila se apila como una tarjeta para que el contenido no se corte.
+   Las celdas muestran su encabezado con el atributo data-label. */
 @media (max-width: 768px) {
     .table-responsive table { border: 0; }
     .table-responsive table thead { display: none; }
-    
+
     .table-responsive table tbody tr {
-        display: block; margin-bottom: 1.5rem; background-color: var(--white);
-        border: 1px solid var(--gray-200); border-radius: 12px; box-shadow: var(--shadow-md); padding: 0;
+        display: block;
+        margin-bottom: 1.5rem;
+        background-color: var(--white);
+        border: 1px solid var(--gray-200);
+        border-radius: 12px;
+        box-shadow: var(--shadow-md);
+        padding: 0;
     }
-    
-    /* Apilamos de arriba hacia abajo para dar todo el ancho al contenido */
+
     .table-responsive table tbody td {
-        display: flex; flex-direction: column; align-items: flex-start;
-        text-align: left; border-bottom: 1px solid var(--gray-200);
-        padding: 12px 16px; font-size: 0.9rem;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+        border-bottom: 1px solid var(--gray-200);
+        padding: 12px 16px;
+        font-size: 0.9rem;
     }
-    
+
     .table-responsive table tbody td:last-child { border-bottom: 0; background-color: var(--gray-50); align-items: center; }
-    
-    .table-responsive table tbody td::before {
+
+    .table-responsive table tbody td[data-label]::before {
         content: attr(data-label);
-        font-weight: 600; color: var(--gray-500); text-transform: uppercase;
-        font-size: 0.70rem; margin-bottom: 6px; width: 100%;
-        border-bottom: 1px dashed var(--gray-200); padding-bottom: 4px;
+        font-weight: 600;
+        color: var(--gray-500);
+        text-transform: uppercase;
+        font-size: 0.70rem;
+        margin-bottom: 6px;
+        width: 100%;
+        border-bottom: 1px dashed var(--gray-200);
+        padding-bottom: 4px;
     }
-    
+
     .table-responsive .text-wrap { max-width: 100% !important; text-align: left; }
-    
-    /* El select admin no se estira de mas */
     .table-responsive table tbody td select.status-badge { width: 100% !important; max-width: 200px; padding: 6px; }
 }
 
-/* Honeypot anti-bot: invisible y no navegable por teclado, pero presente en el DOM para que
-   los bots que autocompletan formularios lo rellenen. No usar display:none/visibility:hidden,
-   ya que algunos bots los detectan y omiten esos campos. */
+/* === HONEYPOT ANTI-BOT ===
+   Invisible y fuera del orden de tabulación, pero presente en el DOM para que los
+   bots que llenan todos los campos lo completen. No se usa display:none porque
+   algunos bots omiten los campos ocultos de esa forma. */
 .hp-field {
     position: absolute !important;
     left: -9999px !important;
     top: -9999px !important;
-    width: 1px; height: 1px;
+    width: 1px;
+    height: 1px;
     overflow: hidden;
-}
-
-/* Clase solicitada para ocultar elementos visualmente sin eliminarlos del DOM.
-   Aplica display: none para que no ocupe espacio en el layout. */
-.ocultar-sitio-web {
-    display: none;
 }

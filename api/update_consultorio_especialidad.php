@@ -1,76 +1,54 @@
 <?php
-// Endpoint que permite al admin asignar/cambiar la especialidad predeterminada de un consultorio
+
+/**
+ * ENDPOINT: ESPECIALIDAD PREDETERMINADA DE UN CONSULTORIO (ADMIN)
+ *
+ * Define o quita la especialidad del consultorio. A partir de ese momento solo
+ * pueden asignarse médicos de esa especialidad.
+ *
+ * Método:    POST (JSON)
+ * Acceso:    administrador, con token CSRF
+ * Entrada:   { id_consultorio, id_especialidad (vacío = quitar) }
+ * Respuesta: { status, message }
+ */
+
 require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../config/Database.php';
-require_once __DIR__ . '/../src/Helpers/CsrfHelper.php';
-require_once __DIR__ . '/../src/Helpers/Bitacora.php';
 
-use Helpers\CsrfHelper;
-use Helpers\Bitacora;
+use App\Helpers\Bitacora;
+use App\Http\Api;
+use App\Http\Sesion;
+use App\Models\Consultorio;
+use App\Models\Especialidad;
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+Api::iniciar('POST');
+Api::exigirSesion(Sesion::ROL_ADMIN);
+$entrada = Api::leerJson();
+Api::exigirCsrf($entrada);
+
+$idConsultorio = (int) ($entrada['id_consultorio'] ?? 0);
+$idEspecialidad = !empty($entrada['id_especialidad']) ? (int) $entrada['id_especialidad'] : null;
+
+if ($idConsultorio <= 0) {
+    Api::error('Consultorio no especificado');
 }
 
-header('Content-Type: application/json');
+$consultorios = new Consultorio();
 
-if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['status' => 'error', 'message' => 'Método no permitido']);
-    exit;
+if ($consultorios->obtenerPorId($idConsultorio) === null) {
+    Api::error('El consultorio no existe', 404);
 }
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    http_response_code(401);
-    echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
-    exit;
+if ($idEspecialidad !== null && !(new Especialidad())->existe($idEspecialidad)) {
+    Api::error('Especialidad no válida');
 }
 
-$data = json_decode(file_get_contents('php://input'), true);
+$consultorios->actualizarEspecialidad($idConsultorio, $idEspecialidad);
 
-$token = null;
-if (is_array($data) && array_key_exists('csrf_token', $data)) {
-    $token = $data['csrf_token'];
-} else {
-    if (function_exists('getallheaders')) {
-        $headers = getallheaders();
-        $token = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? null;
-    }
-}
+Bitacora::registrar(
+    'actualizar_especialidad_consultorio',
+    'consultorio',
+    $idConsultorio,
+    $idEspecialidad !== null ? "Especialidad #{$idEspecialidad}" : 'Especialidad removida'
+);
 
-if (!CsrfHelper::validateToken($token)) {
-    http_response_code(403);
-    echo json_encode(['status' => 'error', 'message' => 'Token de seguridad inválido']);
-    exit;
-}
-
-$id_consultorio = $data['id_consultorio'] ?? null;
-$id_especialidad = !empty($data['id_especialidad']) ? (int)$data['id_especialidad'] : null;
-
-if (!$id_consultorio) {
-    echo json_encode(['status' => 'error', 'message' => 'Consultorio no especificado']);
-    exit;
-}
-
-try {
-    $db = Database::getInstance();
-
-    if ($id_especialidad !== null) {
-        $stmtCheck = $db->prepare("SELECT id_especialidad FROM especialidades WHERE id_especialidad = ?");
-        $stmtCheck->execute([$id_especialidad]);
-        if (!$stmtCheck->fetch()) {
-            echo json_encode(['status' => 'error', 'message' => 'Especialidad no válida']);
-            exit;
-        }
-    }
-
-    $stmt = $db->prepare("UPDATE consultorios SET id_especialidad = ? WHERE id_consultorio = ?");
-    $stmt->execute([$id_especialidad, $id_consultorio]);
-
-    Bitacora::registrar('actualizar_especialidad_consultorio', 'consultorio', (int)$id_consultorio, $id_especialidad ? "Especialidad #$id_especialidad" : 'Especialidad removida');
-
-    echo json_encode(['status' => 'success', 'message' => 'Especialidad actualizada con éxito']);
-} catch (Exception $e) {
-    error_log("Error en update_consultorio_especialidad.php: " . $e->getMessage());
-    echo json_encode(['status' => 'error', 'message' => 'Error interno al actualizar la especialidad']);
-}
+Api::exito('Especialidad actualizada con éxito');

@@ -1,65 +1,41 @@
 <?php
-session_start();
-require_once '../config/Database.php';
-require_once __DIR__ . '/../src/Helpers/CsrfHelper.php';
-require_once __DIR__ . '/../src/Helpers/Bitacora.php';
 
-use Helpers\CsrfHelper;
-use Helpers\Bitacora;
+/**
+ * ENDPOINT: ALTA DE PERSONAL (ADMIN)
+ *
+ * Registra un médico o un enfermero desde admin_equipo.php.
+ *
+ * Método:    POST (JSON)
+ * Acceso:    administrador, con token CSRF
+ * Entrada:   { tipo: doctor|enfermero, nombre, apellido_paterno,
+ *              id_especialidad (médico), turno (enfermero), id_consultorio (opcional) }
+ * Respuesta: { status, message }
+ */
 
-header('Content-Type: application/json');
+require_once __DIR__ . '/../config/config.php';
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin' || !isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
-    exit;
+use App\Helpers\Bitacora;
+use App\Helpers\PersonalValidator;
+use App\Http\Api;
+use App\Http\Sesion;
+use App\Models\Personal;
+
+Api::iniciar('POST');
+Api::exigirSesion(Sesion::ROL_ADMIN);
+$entrada = Api::leerJson();
+Api::exigirCsrf($entrada);
+
+[$error, $datos] = PersonalValidator::validar($entrada);
+if ($error !== null) {
+    Api::error($error);
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
+$personal = new Personal();
 
-$headers = getallheaders();
-$csrfToken = $headers['X-CSRF-Token'] ?? ($input['csrf_token'] ?? null);
-if (!CsrfHelper::validateToken($csrfToken)) {
-    http_response_code(403);
-    echo json_encode(['status' => 'error', 'message' => 'Token de seguridad inválido']);
-    exit;
-}
+$id = $datos['tipo'] === Personal::TIPO_DOCTOR
+    ? $personal->agregarDoctor($datos['nombre'], $datos['apellido'], (int) $datos['id_especialidad'], $datos['id_consultorio'])
+    : $personal->agregarEnfermero($datos['nombre'], $datos['apellido'], (string) $datos['turno'], $datos['id_consultorio']);
 
-$tipo = $input['tipo'] ?? '';
-$nombre = trim($input['nombre'] ?? '');
-$apellido = trim($input['apellido_paterno'] ?? '');
-$id_consultorio = !empty($input['id_consultorio']) ? (int)$input['id_consultorio'] : null;
+Bitacora::registrar('dar_de_alta_personal', $datos['tipo'], $id, $datos['nombre'] . ' ' . $datos['apellido']);
 
-if (empty($nombre) || empty($apellido) || empty($tipo)) {
-    echo json_encode(['status' => 'error', 'message' => 'Faltan datos obligatorios']);
-    exit;
-}
-
-$db = Database::getInstance();
-
-try {
-    if ($tipo === 'doctor') {
-        // doctores.id_especialidad es NOT NULL: todo doctor debe tener una especialidad
-        // (incluso "Medicina General" cuenta como una), a diferencia de id_consultorio
-        // que sí admite quedar sin asignar.
-        if (empty($input['id_especialidad'])) {
-            echo json_encode(['status' => 'error', 'message' => 'La especialidad es obligatoria para un doctor']);
-            exit;
-        }
-        $id_especialidad = (int)$input['id_especialidad'];
-        $stmt = $db->prepare("INSERT INTO doctores (nombre, apellido_paterno, id_especialidad, id_consultorio, estado) VALUES (?, ?, ?, ?, 1)");
-        $stmt->execute([$nombre, $apellido, $id_especialidad, $id_consultorio]);
-    } else if ($tipo === 'enfermero') {
-        $turno = $input['turno'] ?? 'Matutino';
-        $stmt = $db->prepare("INSERT INTO enfermeros (nombre, apellido_paterno, turno, id_consultorio) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$nombre, $apellido, $turno, $id_consultorio]);
-    } else {
-        echo json_encode(['status' => 'error', 'message' => 'Tipo de personal inválido']);
-        exit;
-    }
-
-    Bitacora::registrar('dar_de_alta_personal', strtolower($tipo), (int)$db->lastInsertId(), "$nombre $apellido");
-
-    echo json_encode(['status' => 'success', 'message' => 'Personal agregado con éxito']);
-} catch (Exception $e) {
-    echo json_encode(['status' => 'error', 'message' => 'Error al guardar en base de datos']);
-}
+Api::exito('Personal agregado con éxito');
