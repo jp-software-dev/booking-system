@@ -1,117 +1,28 @@
 <?php
+
 /**
- * ENDPOINT DE ACTUALIZACIÓN DE CITA (ADMIN)
+ * ENDPOINT: REPROGRAMAR CITA (ADMIN)
  *
- * Permite a un administrador modificar la fecha y hora de una cita existente.
- * Incluye verificación de disponibilidad para evitar conflictos de horario.
+ * El administrador cambia la fecha y hora de una cita pendiente o confirmada.
+ * El estado de la cita se conserva. Lógica en AppointmentController::reschedule().
  *
- * @requires session_start
- * @requires config/Database.php
- * @requires src/Helpers/ValidationHelper.php
- * @requires method POST
- * @requires admin role
- * @response application/json
+ * Método:    POST (JSON)
+ * Acceso:    administrador, con token CSRF
+ * Entrada:   { id_cita, fecha_cita, hora_inicio }
+ * Respuesta: { status, message }
  */
 
-session_start();
-require_once '../config/Database.php';
-require_once '../src/Helpers/ValidationHelper.php';
-require_once '../src/Helpers/CsrfHelper.php';
+require_once __DIR__ . '/../config/config.php';
 
-use Helpers\ValidationHelper;
+use App\Controllers\AppointmentController;
+use App\Http\Api;
+use App\Http\Sesion;
 
-header('Content-Type: application/json');
+Api::iniciar('POST');
+$idUsuario = Api::exigirSesion(Sesion::ROL_ADMIN);
+$entrada = Api::leerJson();
+Api::exigirCsrf($entrada);
 
-if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['status' => 'error', 'message' => 'Método no permitido']);
-    exit;
-}
-
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
-    exit;
-}
-
-$input = json_decode(file_get_contents('php://input'), true);
-
-// --- VULNERABILIDAD CORREGIDA: Se añade la validación del token CSRF ---
-$headers = getallheaders();
-$csrfToken = $headers['X-CSRF-Token'] ?? ($input['csrf_token'] ?? null);
-if (!\Helpers\CsrfHelper::validateToken($csrfToken)) {
-    http_response_code(403);
-    echo json_encode(['status' => 'error', 'message' => 'Token de seguridad inválido']);
-    exit;
-}
-
-$id_cita = $input['id_cita'] ?? 0;
-$fecha = trim($input['fecha_cita'] ?? '');
-$hora = trim($input['hora_inicio'] ?? '');
-
-if (!$id_cita || empty($fecha) || empty($hora)) {
-    echo json_encode(['status' => 'error', 'message' => 'Datos incompletos']);
-    exit;
-}
-
-$hora = substr($hora, 0, 5);
-
-if (!ValidationHelper::validateDate($fecha)) {
-    echo json_encode(['status' => 'error', 'message' => 'Fecha inválida']);
-    exit;
-}
-if (!ValidationHelper::validateTime($hora)) {
-    echo json_encode(['status' => 'error', 'message' => 'Hora inválida (use HH:MM)']);
-    exit;
-}
-
-$db = Database::getInstance();
-
-try {
-    $db->beginTransaction();
-
-    $stmt = $db->prepare("SELECT id_doctor FROM citas WHERE id_cita = ?");
-    $stmt->execute([$id_cita]);
-    $cita = $stmt->fetch();
-
-    if (!$cita) {
-        $db->rollBack();
-        echo json_encode(['status' => 'error', 'message' => 'Cita no encontrada']);
-        exit;
-    }
-
-    $id_doctor = $cita['id_doctor'];
-
-    $check = $db->prepare("SELECT id_cita FROM citas WHERE id_doctor = ? AND fecha_cita = ? AND hora_inicio = ? AND estado_cita != 'Cancelada' AND id_cita != ?");
-    $check->execute([$id_doctor, $fecha, $hora, $id_cita]);
-
-    if ($check->fetch()) {
-        $db->rollBack();
-        echo json_encode(['status' => 'error', 'message' => 'El horario seleccionado ya no está disponible']);
-        exit;
-    }
-
-    $update = $db->prepare("UPDATE citas SET fecha_cita = ?, hora_inicio = ? WHERE id_cita = ?");
-    $update->execute([$fecha, $hora, $id_cita]);
-
-    $db->commit();
-
-    echo json_encode(['status' => 'success', 'message' => 'Cita actualizada correctamente']);
-
-} catch (PDOException $e) {
-    if ($db->inTransaction()) {
-        $db->rollBack();
-    }
-    // SQLSTATE 23000: violación de la restricción única de slot (empalme concurrente).
-    if ($e->getCode() == 23000) {
-        echo json_encode(['status' => 'error', 'message' => 'El horario seleccionado acaba de ser ocupado por otra cita. Intenta con otro horario.']);
-        exit;
-    }
-    error_log("Error crítico en update_cita_admin.php: " . $e->getMessage());
-    echo json_encode(['status' => 'error', 'message' => 'Error interno del servidor']);
-} catch (Throwable $e) {
-    if ($db->inTransaction()) {
-        $db->rollBack();
-    }
-    error_log("Error crítico en update_cita_admin.php: " . $e->getMessage());
-    echo json_encode(['status' => 'error', 'message' => 'Error interno del servidor']);
-}
-?>
+Api::responderResultado(
+    (new AppointmentController())->reschedule((int) ($entrada['id_cita'] ?? 0), $entrada, $idUsuario, Sesion::ROL_ADMIN)
+);
