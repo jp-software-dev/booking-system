@@ -1,38 +1,24 @@
 <?php
-session_start();
-require_once '../config/Database.php';
 
-header('Content-Type: application/json');
+/**
+ * ENDPOINT: HORARIOS OCUPADOS PARA LA AGENDA
+ *
+ * Devuelve los horarios ya reservados de hoy en adelante para que la agenda
+ * (calendar.js) los marque como no disponibles según el médico elegido.
+ *
+ * Método:    GET
+ * Acceso:    cualquier usuario autenticado
+ * Respuesta: [ { id_doctor, fecha, hora }, ... ]
+ *
+ * Minimización de datos: no incluye paciente ni motivo de consulta.
+ */
 
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
-    exit;
-}
+require_once __DIR__ . '/../config/config.php';
 
-$db = Database::getInstance();
+use App\Http\Api;
+use App\Models\Cita;
 
-try {
-    // MINIMIZACIÓN DE DATOS: solo se expone lo indispensable para marcar un horario como
-    // ocupado en la agenda (id_doctor, fecha, hora). Nunca el paciente ni el motivo de
-    // consulta de otro paciente.
-    $query = "SELECT id_doctor, fecha_cita, hora_inicio FROM citas WHERE estado_cita IN ('Pendiente', 'Confirmada', 'En Curso')";
-    $stmt = $db->query($query);
-    $citas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+Api::iniciar('GET');
+Api::exigirSesion();
 
-    $events = [];
-    foreach ($citas as $c) {
-        $events[] = [
-            'id_doctor' => (int)$c['id_doctor'],
-            'fecha_cita' => $c['fecha_cita'],
-            'hora_inicio' => substr($c['hora_inicio'], 0, 5),
-            'ocupado' => true,
-            'start' => $c['fecha_cita'] . 'T' . substr($c['hora_inicio'], 0, 5)
-        ];
-    }
-
-    echo json_encode($events);
-} catch (Exception $e) {
-    error_log("Error en get_citas.php: " . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['status' => 'error', 'message' => 'Error interno del servidor']);
-}
+Api::json((new Cita())->listarHorariosOcupados(date('Y-m-d')));
