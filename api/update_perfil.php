@@ -1,130 +1,112 @@
 <?php
+
 /**
- * ENDPOINT DE AUTOGESTIÓN DE PERFIL (PACIENTE)
+ * ENDPOINT: ACTUALIZACIÓN DEL PERFIL (PACIENTE)
  *
- * Permite a un paciente autenticado actualizar sus propios datos personales y sus
- * preferencias de notificación. El cambio de contraseña NO se maneja aquí: requiere
- * confirmación por correo, ver solicitar_cambio_password.php / confirmar_cambio_password.php.
- * El id_paciente siempre se toma de la sesión — nunca del cliente.
+ * Permite al paciente editar sus datos personales y su preferencia de
+ * notificaciones. El id del paciente se toma siempre de la sesión.
  *
- * @requires session_start
- * @requires config/Database.php
- * @requires method POST
- * @requires paciente role
- * @response application/json
+ * Método:    POST (JSON)
+ * Acceso:    paciente autenticado, con token CSRF
+ * Entrada:   Datos personales: { nombre, apellido_paterno, apellido_materno, telefono, email, password_actual }
+ *            y/o preferencia:   { recibir_notificaciones }
+ * Respuesta: { status, message }
+ *
+ * Cambiar el correo exige la contraseña actual: el correo sirve para recuperar
+ * la cuenta, así que alguien con la sesión abierta no debe poder cambiarlo solo.
+ * La contraseña no se cambia aquí (ver solicitar_cambio_password.php).
  */
 
-session_start();
+require_once __DIR__ . '/../config/config.php';
 
-require_once '../config/Database.php';
-require_once __DIR__ . '/../src/Helpers/CsrfHelper.php';
-require_once __DIR__ . '/../src/Helpers/ValidationHelper.php';
-require_once __DIR__ . '/../src/Helpers/Bitacora.php';
+use App\Helpers\Bitacora;
+use App\Helpers\ValidationHelper;
+use App\Http\Api;
+use App\Http\Sesion;
+use App\Models\Paciente;
 
-use Helpers\CsrfHelper;
-use Helpers\Bitacora;
+Api::iniciar('POST');
+$idPaciente = Api::exigirSesion(Sesion::ROL_PACIENTE);
+$entrada = Api::leerJson();
+Api::exigirCsrf($entrada);
 
-header('Content-Type: application/json');
-
-if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-    echo json_encode(['status' => 'error', 'message' => 'Método no permitido']);
-    exit;
-}
-
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'paciente') {
-    echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
-    exit;
-}
-
-$input = json_decode(file_get_contents('php://input'), true);
-if (!$input) {
-    echo json_encode(['status' => 'error', 'message' => 'Datos inválidos']);
-    exit;
-}
-
-$headers = getallheaders();
-$csrfToken = $headers['X-CSRF-Token'] ?? ($input['csrf_token'] ?? null);
-if (!CsrfHelper::validateToken($csrfToken)) {
-    http_response_code(403);
-    echo json_encode(['status' => 'error', 'message' => 'Token de seguridad inválido']);
-    exit;
-}
-
-$id_paciente = $_SESSION['user_id'];
-$db = Database::getInstance();
-
-$actualizaPerfil = array_key_exists('nombre', $input);
-$actualizaNotificaciones = array_key_exists('recibir_notificaciones', $input);
+$actualizaPerfil = array_key_exists('nombre', $entrada);
+$actualizaNotificaciones = array_key_exists('recibir_notificaciones', $entrada);
 
 if (!$actualizaPerfil && !$actualizaNotificaciones) {
-    echo json_encode(['status' => 'error', 'message' => 'No hay cambios que aplicar']);
-    exit;
+    Api::error('No hay cambios que aplicar');
 }
 
-try {
-    $db->beginTransaction();
-
-    if ($actualizaPerfil) {
-        $nombre           = trim($input['nombre'] ?? '');
-        $apellido_paterno = trim($input['apellido_paterno'] ?? '');
-        $apellido_materno = trim($input['apellido_materno'] ?? '');
-        $telefono         = trim($input['telefono'] ?? '');
-        $email            = trim($input['email'] ?? '');
-
-        if (empty($nombre) || empty($apellido_paterno) || empty($telefono) || empty($email)) {
-            $db->rollBack();
-            echo json_encode(['status' => 'error', 'message' => 'Nombre, apellido paterno, teléfono y correo son obligatorios']);
-            exit;
-        }
-
-        if (!preg_match('/^[0-9]{10}$/', $telefono)) {
-            $db->rollBack();
-            echo json_encode(['status' => 'error', 'message' => 'El teléfono debe contener exactamente 10 dígitos numéricos']);
-            exit;
-        }
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $db->rollBack();
-            echo json_encode(['status' => 'error', 'message' => 'El correo electrónico no es válido']);
-            exit;
-        }
-
-        $checkEmail = $db->prepare("SELECT id_paciente FROM pacientes WHERE email = ? AND id_paciente != ?");
-        $checkEmail->execute([$email, $id_paciente]);
-        if ($checkEmail->fetch()) {
-            $db->rollBack();
-            echo json_encode(['status' => 'error', 'message' => 'Ese correo ya está en uso por otra cuenta']);
-            exit;
-        }
-
-        $update = $db->prepare("UPDATE pacientes SET nombre = ?, apellido_paterno = ?, apellido_materno = ?, telefono = ?, email = ? WHERE id_paciente = ?");
-        $update->execute([$nombre, $apellido_paterno, $apellido_materno ?: null, $telefono, $email, $id_paciente]);
-
-        $_SESSION['user_name'] = $nombre;
-    }
-
-    if ($actualizaNotificaciones) {
-        $recibirNotificaciones = !empty($input['recibir_notificaciones']) ? 1 : 0;
-        $db->prepare("UPDATE pacientes SET recibir_notificaciones = ? WHERE id_paciente = ?")
-           ->execute([$recibirNotificaciones, $id_paciente]);
-    }
-
-    $db->commit();
-
-    $detalle = implode(', ', array_filter([
-        $actualizaPerfil ? 'datos personales' : null,
-        $actualizaNotificaciones ? 'preferencias de notificación' : null,
-    ]));
-    Bitacora::registrar('actualizar_perfil_paciente', 'paciente', (int)$id_paciente, "Campos actualizados: $detalle");
-
-    echo json_encode(['status' => 'success', 'message' => 'Datos actualizados correctamente']);
-
-} catch (PDOException $e) {
-    if ($db->inTransaction()) $db->rollBack();
-    error_log("PDO Error en update_perfil.php: " . $e->getMessage());
-    echo json_encode(['status' => 'error', 'message' => 'Error de base de datos']);
-} catch (Exception $e) {
-    if ($db->inTransaction()) $db->rollBack();
-    error_log("Error en update_perfil.php: " . $e->getMessage());
-    echo json_encode(['status' => 'error', 'message' => 'Error interno del servidor']);
+$pacientes = new Paciente();
+$actual = $pacientes->obtenerPorId($idPaciente);
+if ($actual === null) {
+    Api::error('Cuenta no encontrada', 404);
 }
+
+// === DATOS PERSONALES ===
+if ($actualizaPerfil) {
+    $campo = static fn (string $nombre): string => trim((string) ($entrada[$nombre] ?? ''));
+
+    $nombre          = $campo('nombre');
+    $apellidoPaterno = $campo('apellido_paterno');
+    $apellidoMaterno = $campo('apellido_materno');
+    $telefono        = $campo('telefono');
+    $email           = $campo('email');
+
+    if ($nombre === '' || $apellidoPaterno === '' || $telefono === '' || $email === '') {
+        Api::error('Nombre, apellido paterno, teléfono y correo son obligatorios');
+    }
+
+    foreach ([$nombre, $apellidoPaterno, $apellidoMaterno] as $texto) {
+        if (ValidationHelper::excedeLongitud($texto, Paciente::MAX_NOMBRE)) {
+            Api::error('Nombre y apellidos pueden tener como máximo ' . Paciente::MAX_NOMBRE . ' caracteres');
+        }
+    }
+
+    if (!ValidationHelper::validatePhone($telefono)) {
+        Api::error('El teléfono debe tener exactamente 10 dígitos');
+    }
+
+    if (!ValidationHelper::validateEmail($email)) {
+        Api::error('El correo electrónico no es válido');
+    }
+
+    $cambiaEmail = strcasecmp($email, (string) $actual['email']) !== 0;
+
+    if ($cambiaEmail) {
+        $hash = $pacientes->obtenerHash($idPaciente);
+        $password = (string) ($entrada['password_actual'] ?? '');
+
+        if ($password === '' || $hash === null || !password_verify($password, $hash)) {
+            Api::error('Para cambiar tu correo escribe tu contraseña actual correctamente');
+        }
+
+        if ($pacientes->existeEmail($email, $idPaciente)) {
+            Api::error('Ese correo ya está en uso por otra cuenta', 409);
+        }
+    }
+
+    try {
+        $pacientes->actualizarPerfil($idPaciente, $nombre, $apellidoPaterno, $apellidoMaterno !== '' ? $apellidoMaterno : null, $telefono, $email);
+    } catch (PDOException $e) {
+        if (($e->errorInfo[1] ?? null) === 1062) {
+            Api::error('Ese correo ya está en uso por otra cuenta', 409);
+        }
+        throw $e;
+    }
+
+    Sesion::actualizarNombre($nombre);
+}
+
+// === PREFERENCIA DE NOTIFICACIONES ===
+if ($actualizaNotificaciones) {
+    $pacientes->actualizarNotificaciones($idPaciente, !empty($entrada['recibir_notificaciones']));
+}
+
+$detalle = implode(', ', array_filter([
+    $actualizaPerfil ? 'datos personales' : null,
+    $actualizaNotificaciones ? 'preferencias de notificación' : null,
+]));
+Bitacora::registrar('actualizar_perfil_paciente', 'paciente', $idPaciente, "Campos actualizados: {$detalle}");
+
+Api::exito('Datos actualizados correctamente');
