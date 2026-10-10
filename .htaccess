@@ -1,23 +1,29 @@
-# .htaccess en la raíz del proyecto
+# .htaccess DE LA RAÍZ DEL PROYECTO
 #
-# NOTA DE DISEÑO: la raíz del proyecto también contiene /api (endpoints públicos
-# que el frontend invoca por URL) y /public (vistas servidas al navegador),
-# así que este archivo NO puede denegar todo el árbol de forma general: eso
-# rompería el sitio completo. En su lugar, cada carpeta que NO debe ser accesible
-# por navegador (/config, /database, /src, /vendor) tiene su propio .htaccess
-# con "Require all denied". Aquí solo se protege el archivo .env y se desactiva
-# el listado de directorios.
+# La raíz contiene /public (vistas) y /api (endpoints que el navegador llama
+# directamente), así que no se puede denegar todo el árbol. En su lugar se
+# bloquean aquí las carpetas internas y los archivos ocultos o de configuración.
 #
-# IMPORTANTE (acción para el humano): esta capa de .htaccess es una mitigación,
-# no la solución de fondo. La solución correcta es apuntar el DocumentRoot de
-# Apache/hosting únicamente a /public, de forma que /config, /src, /vendor, /api
-# y /database queden completamente fuera del árbol servible por el navegador.
-# Mientras el DocumentRoot siga apuntando a la raíz del proyecto, esta capa de
-# .htaccess por carpeta es la única barrera entre esos archivos e Internet.
+# RECOMENDACIÓN: lo ideal es que el DocumentRoot del servidor apunte a una
+# carpeta que solo contenga lo público. Mientras apunte a la raíz del proyecto,
+# estas reglas (y los .htaccess de cada carpeta) son la barrera entre el código
+# interno e Internet.
 
 Options -Indexes
 
-<Files ".env">
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Archivos y carpetas ocultas (.git, .env, .claude, .hintrc...), salvo /.well-known.
+    RewriteRule (^|/)\.(?!well-known(/|$)) - [F,L]
+
+    # Carpetas internas: configuración, migraciones, código fuente y dependencias.
+    # (vendor/ no trae .htaccess propio porque lo crea Composer.)
+    RewriteRule ^(config|database|src|vendor)(/|$) - [F,L]
+</IfModule>
+
+# Archivos de configuración y documentación del proyecto.
+<FilesMatch "^(\.env.*|composer\.(json|lock)|README\.md)$">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>
@@ -25,4 +31,4 @@ Options -Indexes
         Order allow,deny
         Deny from all
     </IfModule>
-</Files>
+</FilesMatch>
