@@ -1,51 +1,25 @@
+/* ==========================================================================
+   ESTILOS DE LA AGENDA DE CITAS (agenda.php + calendar.js)
+   La variable --primary se define en styles.css.
+   ========================================================================== */
+
 :root {
     --calendar-bg: #ffffff;
     --calendar-border: #e5e7eb;
-    --calendar-header-bg: #f9fafb;
-    --slot-available: #ffffff;
     --slot-hover: #eff6ff;
     --slot-disabled: #f3f4f6;
     --slot-booked: #fee2e2;
     --slot-booked-text: #dc3545;
-    --primary: #1a56db;
 }
 
-.booking-interface {
-    display: flex;
-    background: var(--calendar-bg);
-    border: 1px solid var(--calendar-border);
-    border-radius: 16px;
-    overflow: hidden; 
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-    min-height: 600px;
-    flex-wrap: nowrap;
-    max-width: 1400px;
-    margin: 0 auto;
-}
-
-.booking-sidebar {
-    width: 350px;
-    background: var(--calendar-header-bg);
-    border-right: 1px solid var(--calendar-border);
-    padding: 2rem;
-    flex-shrink: 0;
-}
-
-.booking-main {
-    flex: 1;
-    padding: 2rem;
-    background: var(--calendar-bg);
-    min-width: 0;
-    width: 100%;
-}
-
+/* === AGENDA SEMANAL: UNA COLUMNA POR DÍA === */
 .agenda-grid {
     display: flex;
-    flex-direction: row; 
+    flex-direction: row;
+    flex-wrap: nowrap;
     gap: 12px;
     padding: 8px 0 16px 0;
-    flex-wrap: nowrap;
-    min-width: max-content; 
+    min-width: max-content;
 }
 
 .agenda-col {
@@ -68,98 +42,90 @@
 }
 
 .date-circle {
-    width: 44px; height: 44px;
-    display: flex; align-items: center; justify-content: center;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 50%;
-    font-size: 1.3rem; font-weight: 600;
+    font-size: 1.3rem;
+    font-weight: 600;
     color: #374151;
-    margin-bottom: 20px; transition: all 0.2s ease;
-    position: relative; line-height: 1;
+    margin-bottom: 20px;
+    line-height: 1;
+    transition: all 0.2s ease;
 }
+.agenda-col.today-col .date-circle { outline: 2px solid var(--primary); color: var(--primary); }
+.agenda-col.active .date-circle { background-color: var(--primary); color: #ffffff; outline: none; }
 
-.has-slots::after {
-    content: ''; position: absolute; bottom: 3px; width: 7px; height: 7px; background-color: #10b981; border-radius: 50%;
-}
-.agenda-col.today-col .date-circle { outline: 2px solid var(--primary); color: var(--primary); background-color: transparent; }
-.agenda-col.active .date-circle { background-color: var(--primary); color: white; outline: none; }
-.agenda-col.active .has-slots::after { background-color: #fff; }
-
+/* === BOTONES DE HORARIO === */
 .time-slot {
-    width: 100%; background: var(--calendar-bg); border: 1px solid var(--calendar-border); border-radius: 50px;
-    padding: 10px 0; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; color: var(--primary);
-    cursor: pointer; transition: all 0.2s ease; text-align: center;
+    width: 100%;
+    background: var(--calendar-bg);
+    border: 1px solid var(--calendar-border);
+    border-radius: 50px;
+    padding: 10px 0;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 .time-slot:hover:not(:disabled) { background: var(--slot-hover); border-color: var(--primary); transform: translateY(-2px); }
 .time-slot:disabled { background: var(--slot-disabled); color: #9ca3af; border-color: transparent; cursor: not-allowed; }
-.time-slot.booked:disabled { background: var(--slot-booked); color: var(--slot-booked-text); border: 1px solid transparent; }
+.time-slot.booked:disabled { background: var(--slot-booked); color: var(--slot-booked-text); }
 
+/* === MINI CALENDARIO MENSUAL === */
 .mini-cal { background: var(--calendar-bg); border: 1px solid var(--calendar-border); border-radius: 12px; padding: 1.5rem; width: 100%; }
 .mini-cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; font-weight: 700; color: #111827; }
 .mini-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
 .mini-cal-day { font-size: 0.75rem; font-weight: 700; color: #6b7280; padding: 6px 0; }
-.mini-cal-date { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 0.9rem; cursor: pointer; transition: background 0.2s; font-weight: 500; line-height: 1; color: #111827; }
+.mini-cal-date {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1;
+    color: #111827;
+    cursor: pointer;
+    transition: background 0.2s;
+}
 .mini-cal-date:hover { background: var(--slot-hover); }
-.mini-cal-date.active { background: var(--primary); color: white; }
+.mini-cal-date.active { background: var(--primary); color: #ffffff; }
 .mini-cal-date.today { border: 2px solid var(--primary); font-weight: 700; }
 .mini-cal-date.text-muted.opacity-50 { background: transparent; color: var(--calendar-border) !important; cursor: default; pointer-events: none; border: none; }
 #mini-prev-month, #mini-next-month { cursor: pointer; padding: 6px 10px; border-radius: 8px; transition: background 0.2s ease; color: #111827; }
 #mini-prev-month:hover, #mini-next-month:hover { background: var(--slot-hover); }
 
-/* ==========================================================================
-   MÓVIL (DISEÑO CENTRADO 2 COLUMNAS + BORDES)
-   ========================================================================== */
+/* Botones de semana anterior / siguiente. */
 .hover-effect:hover { background-color: var(--calendar-border) !important; }
 
-@media (max-width: 1024px) {
-    .booking-sidebar { width: 300px; padding: 1.5rem; }
-}
-
+/* === MÓVIL: DOS COLUMNAS CENTRADAS === */
 @media (max-width: 768px) {
-    .booking-interface { flex-direction: column; min-height: auto; flex-wrap: nowrap; border: none; box-shadow: none; }
-    
-    .booking-sidebar { 
-        width: 100%; border: none; border-bottom: 1px solid var(--calendar-border); 
-        border-radius: 0; padding: 1rem 0; background: transparent;
-    }
-    
-    /* El mini calendario VUELVE A APARECER */
-    #mini-calendar-wrapper { display: block; margin-bottom: 1rem; }
-    
-    .booking-main { padding: 1rem 0; border-radius: 0; background: transparent; }
-    
-    .agenda-header { padding: 0 1rem; margin-bottom: 1rem; }
-    .agenda-header h5 { font-size: 1rem; }
-    
-    /* MEJORA: CENTRADO ABSOLUTO PARA EVITAR ESPACIOS AMARILLOS */
     .agenda-grid {
-        width: 100%; 
-        justify-content: center; /* Centrado estricto */
-        gap: 0; /* Sin gap porque usaremos bordes directamente */
-        padding: 0 5px 15px 5px; 
+        width: 100%;
         min-width: 0;
+        justify-content: center;
+        gap: 0;
+        padding: 0 5px 15px 5px;
     }
-    
-    /* MEJORA: BORDES DIVISORIOS EN AMBOS DÍAS */
+
     .agenda-col {
-        flex: 0 0 48%; /* Ocupa simétricamente el 48% */
+        flex: 0 0 48%;
         max-width: 48%;
-        border-left: 1px solid var(--calendar-border);
-        border-right: 1px solid var(--calendar-border);
         padding: 0 8px;
-    }
-    .agenda-col:first-child {
-        border-left: 1px solid var(--calendar-border);
-        border-right: none; /* Se une con el siguiente */
-    }
-    .agenda-col:last-child {
         border-left: 1px solid var(--calendar-border);
         border-right: 1px solid var(--calendar-border);
     }
-    
+    .agenda-col:first-child { border-right: none; }
+
     .day-label { font-size: 0.70rem; margin-bottom: 4px; }
     .date-circle { width: 38px; height: 38px; font-size: 1.1rem; margin-bottom: 15px; }
-    
-    .time-slot {
-        padding: 10px 0; font-size: 0.85rem; margin-bottom: 8px; border-radius: 8px;
-    }
+    .time-slot { border-radius: 8px; }
 }
