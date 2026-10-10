@@ -1,55 +1,59 @@
 <?php
-session_start();
-require_once '../config/Database.php';
-require_once __DIR__ . '/../src/Helpers/CsrfHelper.php';
-require_once __DIR__ . '/../src/Helpers/Bitacora.php';
 
-use Helpers\CsrfHelper;
-use Helpers\Bitacora;
+/**
+ * ENDPOINT: BAJA DE PERSONAL (ADMIN)
+ *
+ * - Médico: baja lógica (queda 'Inactivo' y sin consultorio). Se rechaza si
+ *   tiene citas futuras pendientes o confirmadas, para no dejar pacientes con
+ *   citas de un médico que ya no atiende.
+ * - Enfermero: borrado físico (no tiene citas asociadas).
+ *
+ * Método:    POST (JSON)
+ * Acceso:    administrador, con token CSRF
+ * Entrada:   { id, tipo: doctor|enfermero }
+ * Respuesta: { status, message }
+ */
 
-header('Content-Type: application/json');
+require_once __DIR__ . '/../config/config.php';
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin' || ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-    echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
-    exit;
+use App\Helpers\Bitacora;
+use App\Http\Api;
+use App\Http\Sesion;
+use App\Models\Cita;
+use App\Models\Personal;
+
+Api::iniciar('POST');
+Api::exigirSesion(Sesion::ROL_ADMIN);
+$entrada = Api::leerJson();
+Api::exigirCsrf($entrada);
+
+$id = (int) ($entrada['id'] ?? 0);
+$tipo = strtolower(trim((string) ($entrada['tipo'] ?? '')));
+
+if ($id <= 0 || !in_array($tipo, [Personal::TIPO_DOCTOR, Personal::TIPO_ENFERMERO], true)) {
+    Api::error('Datos inválidos');
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
+$personal = new Personal();
 
-$headers = getallheaders();
-$csrfToken = $headers['X-CSRF-Token'] ?? ($input['csrf_token'] ?? null);
-if (!CsrfHelper::validateToken($csrfToken)) {
-    http_response_code(403);
-    echo json_encode(['status' => 'error', 'message' => 'Token de seguridad inválido']);
-    exit;
-}
-
-$id = (int)($input['id'] ?? 0);
-$tipo = $input['tipo'] ?? ''; // 'Doctor' o 'Enfermero'
-
-if ($id <= 0 || empty($tipo)) {
-    echo json_encode(['status' => 'error', 'message' => 'Datos inválidos']);
-    exit;
-}
-
-$db = Database::getInstance();
-
-try {
-    if (strtolower($tipo) === 'doctor') {
-        // Borrado lógico para el doctor (para no romper citas del historial) y lo quitamos del consultorio actual.
-        // estado es ENUM('Activo','Inactivo'); 0 no es un índice válido del enum -- en modo no
-        // estricto MySQL lo guarda como cadena vacía en vez de 'Inactivo'.
-        $stmt = $db->prepare("UPDATE doctores SET estado = 'Inactivo', id_consultorio = NULL WHERE id_doctor = ?");
-        $stmt->execute([$id]);
-    } else {
-        // Borrado físico para el enfermero
-        $stmt = $db->prepare("DELETE FROM enfermeros WHERE id_enfermero = ?");
-        $stmt->execute([$id]);
+if ($tipo === Personal::TIPO_DOCTOR) {
+    $pendientes = (new Cita())->contarFuturasActivasPorDoctor($id);
+    if ($pendientes > 0) {
+        Api::error(
+            "El médico tiene {$pendientes} cita(s) futuras pendientes o confirmadas. Reprográmalas o cancélalas desde el Panel de Citas antes de darlo de baja.",
+            409
+        );
     }
 
-    Bitacora::registrar('dar_de_baja_personal', strtolower($tipo), $id);
-
-    echo json_encode(['status' => 'success', 'message' => 'Baja procesada exitosamente']);
-} catch (Exception $e) {
-    echo json_encode(['status' => 'error', 'message' => 'No se puede procesar la baja']);
+    $eliminado = $personal->darDeBajaDoctor($id);
+} else {
+    $eliminado = $personal->eliminarEnfermero($id);
 }
+
+if (!$eliminado) {
+    Api::error('No se encontró al miembro del personal', 404);
+}
+
+Bitacora::registrar('dar_de_baja_personal', $tipo, $id);
+
+Api::exito('Baja procesada exitosamente');
