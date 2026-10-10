@@ -1,225 +1,265 @@
 <?php
-/**
- * MODELO DE MÉTRICAS DEL DASHBOARD ADMINISTRATIVO
- *
- * Reemplaza la consulta monolítica de get_totales.php (que dependía de
- * JSON_ARRAYAGG/JSON_OBJECT) por un método por bloque de métricas. Se evitan
- * esas funciones a propósito: el entorno corre MariaDB 10.4.32, y
- * JSON_ARRAYAGG requiere MariaDB 10.5+ / MySQL 5.7.22+ — con la consulta
- * anterior, este endpoint fallaba en este entorno.
- *
- * Ningún método expone datos identificables de pacientes (nombre,
- * motivo de consulta): solo conteos y agrupaciones por estado, especialidad,
- * doctor y periodo.
- *
- * @declare(strict_types=1)
- */
 
 declare(strict_types=1);
 
-class Metrica
-{
-    private PDO $conn;
+namespace App\Models;
 
-    public function __construct(PDO $db)
+use App\Core\Database;
+use App\Helpers\Horario;
+use DateTimeImmutable;
+use InvalidArgumentException;
+use PDO;
+
+/**
+ * MÉTRICAS DEL DASHBOARD ADMINISTRATIVO
+ *
+ * Un método por bloque de métricas del dashboard (api/get_totales.php).
+ *
+ * Compatibilidad: no se usan JSON_ARRAYAGG ni JSON_OBJECT porque el entorno
+ * corre MariaDB 10.4 y esas funciones requieren MariaDB 10.5+ o MySQL 5.7.22+.
+ *
+ * Privacidad: ningún método expone datos identificables de pacientes (nombre,
+ * motivo de consulta); solo conteos y agrupaciones.
+ */
+final class Metrica
+{
+    /** Rangos de fechas que acepta el dashboard. */
+    public const RANGOS = ['7d', '15d', '30d', '6m', '12m', 'custom'];
+
+    private PDO $db;
+
+    /**
+     * @param PDO|null $db Conexión a usar. Si es null se usa la conexión compartida.
+     */
+    public function __construct(?PDO $db = null)
     {
-        $this->conn = $db;
+        $this->db = $db ?? Database::getInstance();
     }
 
     /**
-     * Valida y resuelve un rango de fechas a partir de un preset o fechas personalizadas.
-     * @throws InvalidArgumentException si el rango es inválido.
+     * Convierte un rango predefinido o personalizado en fechas [desde, hasta].
+     *
+     * @param string      $rango Uno de Metrica::RANGOS.
+     * @param string|null $desde Fecha inicial (Y-m-d), solo para 'custom'.
+     * @param string|null $hasta Fecha final (Y-m-d), solo para 'custom'.
+     * @return array{0: string, 1: string}
+     * @throws InvalidArgumentException Si el rango o las fechas no son válidos.
      */
     public function resolverRango(string $rango, ?string $desde, ?string $hasta): array
     {
-        switch ($rango) {
-            case '7d':
-                return [date('Y-m-d', strtotime('-6 days')), date('Y-m-d')];
-            case '15d':
-                return [date('Y-m-d', strtotime('-14 days')), date('Y-m-d')];
-            case '30d':
-                return [date('Y-m-d', strtotime('-29 days')), date('Y-m-d')];
-            case '6m':
-                return [date('Y-m-d', strtotime('-6 months')), date('Y-m-d')];
-            case '12m':
-                return [date('Y-m-d', strtotime('-12 months')), date('Y-m-d')];
-            case 'custom':
-                $d = DateTime::createFromFormat('Y-m-d', (string)$desde);
-                $h = DateTime::createFromFormat('Y-m-d', (string)$hasta);
-                if (!$d || $d->format('Y-m-d') !== $desde || !$h || $h->format('Y-m-d') !== $hasta) {
-                    throw new InvalidArgumentException('Fechas inválidas');
-                }
-                if ($d > $h) {
-                    throw new InvalidArgumentException('La fecha inicial no puede ser posterior a la final');
-                }
-                return [$d->format('Y-m-d'), $h->format('Y-m-d')];
-            default:
-                throw new InvalidArgumentException('Rango no reconocido');
+        $hoy = new DateTimeImmutable('today');
+
+        $inicio = match ($rango) {
+            '7d'    => $hoy->modify('-6 days'),
+            '15d'   => $hoy->modify('-14 days'),
+            '30d'   => $hoy->modify('-29 days'),
+            '6m'    => $hoy->modify('-6 months'),
+            '12m'   => $hoy->modify('-12 months'),
+            'custom' => null,
+            default => throw new InvalidArgumentException('Rango no reconocido'),
+        };
+
+        if ($inicio !== null) {
+            return [$inicio->format('Y-m-d'), $hoy->format('Y-m-d')];
         }
+
+        $d = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $desde);
+        $h = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $hasta);
+
+        if (!$d || $d->format('Y-m-d') !== $desde || !$h || $h->format('Y-m-d') !== $hasta) {
+            throw new InvalidArgumentException('Fechas inválidas');
+        }
+        if ($d > $h) {
+            throw new InvalidArgumentException('La fecha inicial no puede ser posterior a la final');
+        }
+
+        return [$desde, $hasta];
     }
 
+    /**
+     * Indicadores principales del rango: total, canceladas, completadas, citas de
+     * hoy y tasa de cancelación (en porcentaje).
+     *
+     * @return array{total: int, canceladas: int, completadas: int, hoy: int, tasa_cancelacion: float}
+     */
     public function kpis(string $desde, string $hasta): array
     {
-        $stmt = $this->conn->prepare(
-            "SELECT
-                COUNT(*) AS total,
-                SUM(CASE WHEN estado_cita = 'Cancelada' THEN 1 ELSE 0 END) AS canceladas,
-                SUM(CASE WHEN estado_cita = 'Completada' THEN 1 ELSE 0 END) AS completadas,
-                SUM(CASE WHEN fecha_cita = CURDATE() THEN 1 ELSE 0 END) AS hoy
-            FROM citas WHERE fecha_cita BETWEEN ? AND ?"
+        $stmt = $this->db->prepare(
+            "SELECT COUNT(*) AS total,
+                    SUM(estado_cita = 'Cancelada') AS canceladas,
+                    SUM(estado_cita = 'Completada') AS completadas,
+                    SUM(fecha_cita = CURDATE()) AS hoy
+             FROM citas WHERE fecha_cita BETWEEN ? AND ?"
         );
         $stmt->execute([$desde, $hasta]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        $fila = $stmt->fetch() ?: [];
 
-        $total = (int)($row['total'] ?? 0);
-        $canceladas = (int)($row['canceladas'] ?? 0);
+        $total = (int) ($fila['total'] ?? 0);
+        $canceladas = (int) ($fila['canceladas'] ?? 0);
 
         return [
-            'total' => $total,
-            'canceladas' => $canceladas,
-            'completadas' => (int)($row['completadas'] ?? 0),
-            'hoy' => (int)($row['hoy'] ?? 0),
-            'tasa_cancelacion' => $total > 0 ? round(($canceladas / $total) * 100, 2) : 0.0,
+            'total'            => $total,
+            'canceladas'       => $canceladas,
+            'completadas'      => (int) ($fila['completadas'] ?? 0),
+            'hoy'              => (int) ($fila['hoy'] ?? 0),
+            'tasa_cancelacion' => $total > 0 ? round($canceladas / $total * 100, 2) : 0.0,
         ];
     }
 
+    /**
+     * Cantidad de citas por estado dentro del rango.
+     *
+     * @return list<array{estado_cita: string, cantidad: int}>
+     */
     public function porEstado(string $desde, string $hasta): array
     {
-        $stmt = $this->conn->prepare(
-            "SELECT estado_cita, COUNT(*) AS cantidad
-             FROM citas
-             WHERE fecha_cita BETWEEN ? AND ?
-             GROUP BY estado_cita"
+        $stmt = $this->db->prepare(
+            'SELECT estado_cita, COUNT(*) AS cantidad FROM citas
+             WHERE fecha_cita BETWEEN ? AND ? GROUP BY estado_cita'
         );
         $stmt->execute([$desde, $hasta]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return $stmt->fetchAll();
     }
 
+    /**
+     * Cantidad de citas por especialidad dentro del rango, de mayor a menor.
+     *
+     * @return list<array{nombre_especialidad: string, cantidad: int}>
+     */
     public function porEspecialidad(string $desde, string $hasta): array
     {
-        $stmt = $this->conn->prepare(
-            "SELECT e.nombre_especialidad, COUNT(c.id_cita) AS cantidad
+        $stmt = $this->db->prepare(
+            'SELECT e.nombre_especialidad, COUNT(c.id_cita) AS cantidad
              FROM citas c
              JOIN doctores d ON c.id_doctor = d.id_doctor
              JOIN especialidades e ON d.id_especialidad = e.id_especialidad
              WHERE c.fecha_cita BETWEEN ? AND ?
-             GROUP BY e.id_especialidad
-             ORDER BY cantidad DESC"
+             GROUP BY e.id_especialidad, e.nombre_especialidad
+             ORDER BY cantidad DESC'
         );
         $stmt->execute([$desde, $hasta]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return $stmt->fetchAll();
     }
 
+    /**
+     * Médicos con más citas dentro del rango.
+     *
+     * @param int $limite Cantidad de médicos a devolver (entre 1 y 50).
+     * @return list<array{nombre: string, apellido_paterno: string, cantidad: int}>
+     */
     public function topDoctores(string $desde, string $hasta, int $limite = 10): array
     {
-        $limite = max(1, min(50, $limite));
-        $stmt = $this->conn->prepare(
-            "SELECT d.nombre, d.apellido_paterno, COUNT(c.id_cita) AS cantidad
+        $stmt = $this->db->prepare(
+            'SELECT d.nombre, d.apellido_paterno, COUNT(c.id_cita) AS cantidad
              FROM citas c
              JOIN doctores d ON c.id_doctor = d.id_doctor
              WHERE c.fecha_cita BETWEEN ? AND ?
-             GROUP BY d.id_doctor
+             GROUP BY d.id_doctor, d.nombre, d.apellido_paterno
              ORDER BY cantidad DESC
-             LIMIT $limite"
+             LIMIT ?'
         );
-        $stmt->execute([$desde, $hasta]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->bindValue(1, $desde);
+        $stmt->bindValue(2, $hasta);
+        $stmt->bindValue(3, max(1, min(50, $limite)), PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll();
     }
 
     /**
-     * Tendencia mensual fija de los últimos 12 meses, independiente del filtro de rango activo.
+     * Citas por mes de los últimos 12 meses (independiente del rango elegido).
+     *
+     * @return list<array{periodo: string, cantidad: int}>
      */
     public function tendenciaMensual(): array
     {
-        $stmt = $this->conn->prepare(
+        return $this->db->query(
             "SELECT DATE_FORMAT(fecha_cita, '%Y-%m') AS periodo, COUNT(*) AS cantidad
              FROM citas
              WHERE fecha_cita >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-             GROUP BY periodo
-             ORDER BY periodo ASC"
-        );
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+             GROUP BY periodo ORDER BY periodo ASC"
+        )->fetchAll();
     }
 
     /**
-     * Pacientes nuevos por mes, últimos 12 meses fijos (mismo criterio que tendenciaMensual:
-     * independiente del filtro de rango activo). Usa pacientes.created_at.
+     * Pacientes nuevos por mes de los últimos 12 meses (según pacientes.created_at).
+     *
+     * @return list<array{periodo: string, cantidad: int}>
      */
     public function pacientesNuevosPorMes(): array
     {
-        $stmt = $this->conn->prepare(
+        return $this->db->query(
             "SELECT DATE_FORMAT(created_at, '%Y-%m') AS periodo, COUNT(*) AS cantidad
              FROM pacientes
              WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-             GROUP BY periodo
-             ORDER BY periodo ASC"
-        );
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+             GROUP BY periodo ORDER BY periodo ASC"
+        )->fetchAll();
     }
 
     /**
-     * Total de pacientes con cuenta activa (excluye autoeliminados/anonimizados).
-     * No depende del rango de fechas: es un conteo del estado actual.
+     * Total de pacientes con cuenta activa (excluye cuentas eliminadas).
      */
     public function totalPacientesActivos(): int
     {
-        $stmt = $this->conn->query("SELECT COUNT(*) FROM pacientes WHERE cuenta_eliminada = 0");
-        return (int)$stmt->fetchColumn();
+        return (int) $this->db->query('SELECT COUNT(*) FROM pacientes WHERE cuenta_eliminada = 0')->fetchColumn();
     }
 
     /**
-     * Doctores activos sin consultorio asignado actualmente. No depende del rango de fechas.
+     * Médicos activos que no tienen consultorio asignado (no pueden recibir citas).
+     *
+     * @return list<array{id_doctor: int, nombre: string, apellido_paterno: string}>
      */
     public function doctoresSinConsultorio(): array
     {
-        $stmt = $this->conn->query(
-            "SELECT id_doctor, nombre, apellido_paterno
-             FROM doctores
-             WHERE estado = 1 AND id_consultorio IS NULL
+        return $this->db->query(
+            "SELECT id_doctor, nombre, apellido_paterno FROM doctores
+             WHERE estado = 'Activo' AND id_consultorio IS NULL
              ORDER BY nombre ASC"
-        );
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        )->fetchAll();
     }
 
     /**
-     * Tasa de ocupación por doctor activo dentro del rango: citas confirmadas/completadas
-     * entre el total de horarios disponibles en ese rango.
+     * Tasa de ocupación por médico activo dentro del rango: citas confirmadas o
+     * completadas entre los horarios disponibles del rango.
      *
-     * El esquema no tiene una tabla de horarios por doctor, así que "horarios disponibles"
-     * se aproxima con la misma rejilla fija que usa el resto del sistema para agendar citas
-     * (07:00–23:30 en intervalos de 30 min, ver el modal "Nueva Cita" en admin.php): 34 slots
-     * por día natural del rango, multiplicados por los días del rango.
+     * No existe una tabla de horarios por médico, así que los horarios
+     * disponibles se calculan con la misma rejilla que se usa para agendar
+     * (Horario::slotsPorDia()) multiplicada por los días del rango.
+     *
+     * @param int $limite Cantidad de médicos a devolver (entre 1 y 50).
+     * @return list<array<string, mixed>>
      */
     public function ocupacionPorDoctor(string $desde, string $hasta, int $limite = 10): array
     {
-        $limite = max(1, min(50, $limite));
-        $dias = (new DateTime($desde))->diff(new DateTime($hasta))->days + 1;
-        $slotsPorDia = 34;
-        $slotsDisponibles = max(1, $dias * $slotsPorDia);
+        $dias = (new DateTimeImmutable($desde))->diff(new DateTimeImmutable($hasta))->days + 1;
+        $slotsDisponibles = max(1, $dias * Horario::slotsPorDia());
 
-        $stmt = $this->conn->prepare(
+        $stmt = $this->db->prepare(
             "SELECT d.id_doctor, d.nombre, d.apellido_paterno,
-                    SUM(CASE WHEN c.estado_cita IN ('Confirmada', 'Completada') THEN 1 ELSE 0 END) AS ocupadas
+                    SUM(c.estado_cita IN ('Confirmada', 'Completada')) AS ocupadas
              FROM doctores d
              LEFT JOIN citas c ON c.id_doctor = d.id_doctor AND c.fecha_cita BETWEEN ? AND ?
-             WHERE d.estado = 1
-             GROUP BY d.id_doctor
+             WHERE d.estado = 'Activo'
+             GROUP BY d.id_doctor, d.nombre, d.apellido_paterno
              ORDER BY ocupadas DESC
-             LIMIT $limite"
+             LIMIT ?"
         );
-        $stmt->execute([$desde, $hasta]);
-        $filas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->bindValue(1, $desde);
+        $stmt->bindValue(2, $hasta);
+        $stmt->bindValue(3, max(1, min(50, $limite)), PDO::PARAM_INT);
+        $stmt->execute();
 
-        foreach ($filas as &$fila) {
-            $ocupadas = (int)$fila['ocupadas'];
-            $fila['ocupadas'] = $ocupadas;
-            $fila['slots_disponibles'] = $slotsDisponibles;
-            $fila['tasa_ocupacion'] = round(($ocupadas / $slotsDisponibles) * 100, 2);
-        }
-        unset($fila);
+        return array_map(static function (array $fila) use ($slotsDisponibles): array {
+            // SUM() devuelve NULL para médicos sin citas en el rango.
+            $ocupadas = (int) ($fila['ocupadas'] ?? 0);
 
-        return $filas;
+            return array_merge($fila, [
+                'ocupadas'          => $ocupadas,
+                'slots_disponibles' => $slotsDisponibles,
+                'tasa_ocupacion'    => round($ocupadas / $slotsDisponibles * 100, 2),
+            ]);
+        }, $stmt->fetchAll());
     }
 }
