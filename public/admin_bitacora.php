@@ -1,111 +1,72 @@
 <?php
+
+/**
+ * VISTA: BITÁCORA DE AUDITORÍA (ADMIN)
+ *
+ * Listado paginado de las acciones registradas, con filtros por tipo de
+ * acción, usuario (id, nombre o rol) y rango de fechas.
+ *
+ * Acceso: administrador.
+ */
+
 require_once __DIR__ . '/../config/config.php';
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') { header("Location: login.php"); exit(); }
-require_once __DIR__ . '/../config/Database.php';
-require_once __DIR__ . '/../src/views/layout/header.php';
 
-$db = Database::getInstance();
+use App\Helpers\Paginacion;
+use App\Helpers\ValidationHelper;
+use App\Http\Sesion;
+use App\Models\Auditoria;
 
-$acciones = $db->query("SELECT DISTINCT accion FROM bitacora ORDER BY accion")->fetchAll(PDO::FETCH_COLUMN);
+Sesion::exigirRol(Sesion::ROL_ADMIN);
 
-$busqAccion  = trim($_GET['accion'] ?? '');
-$busqDesde   = trim($_GET['desde'] ?? '');
-$busqHasta   = trim($_GET['hasta'] ?? '');
-$busqUsuario = trim($_GET['usuario'] ?? '');
+// === FILTROS ===
+$leer = static fn (string $clave): string => is_string($_GET[$clave] ?? null) ? trim($_GET[$clave]) : '';
 
-// Mapa id_usuario+rol -> nombre para poder mostrar y buscar por nombre en vez de
-// solo por ID: bitacora.id_usuario referencia pacientes.id_paciente cuando
-// rol='paciente', o usuarios.id_usuario cuando rol='admin'; no hay FK física
-// porque son dos tablas de origen distintas.
-$usuariosJoin = "
-    (SELECT id_paciente AS id_usuario, 'paciente' AS rol, CONCAT(nombre, ' ', apellido_paterno) AS nombre_usuario FROM pacientes
-     UNION ALL
-     SELECT id_usuario, 'admin', nombre FROM usuarios) u
-";
+$filtros = [
+    'accion'  => $leer('accion'),
+    'usuario' => mb_substr($leer('usuario'), 0, 100),
+    // Las fechas inválidas se ignoran en lugar de producir un error.
+    'desde'   => ValidationHelper::validateDate($leer('desde')) ? $leer('desde') : '',
+    'hasta'   => ValidationHelper::validateDate($leer('hasta')) ? $leer('hasta') : '',
+];
 
-$where = [];
-$params = [];
+// === DATOS ===
+$auditoria = new Auditoria();
+$acciones = $auditoria->accionesRegistradas();
+$paginacion = new Paginacion($auditoria->contarConFiltro($filtros), $_GET);
+$registros = $auditoria->listarConFiltro($filtros, $paginacion);
 
-if ($busqAccion !== '') {
-    $where[] = "b.accion = ?";
-    $params[] = $busqAccion;
-}
-if ($busqUsuario !== '') {
-    if (is_numeric($busqUsuario)) {
-        $where[] = "b.id_usuario = ?";
-        $params[] = (int)$busqUsuario;
-    } else {
-        $where[] = "(u.nombre_usuario LIKE ? OR b.rol LIKE ?)";
-        $params[] = "%$busqUsuario%";
-        $params[] = "%$busqUsuario%";
-    }
-}
-if ($busqDesde !== '' && DateTime::createFromFormat('Y-m-d', $busqDesde)) {
-    $where[] = "b.fecha >= ?";
-    $params[] = $busqDesde . ' 00:00:00';
-}
-if ($busqHasta !== '' && DateTime::createFromFormat('Y-m-d', $busqHasta)) {
-    $where[] = "b.fecha <= ?";
-    $params[] = $busqHasta . ' 23:59:59';
-}
-
-$whereSql = count($where) > 0 ? "WHERE " . implode(" AND ", $where) : "";
-$fromSql = "FROM bitacora b LEFT JOIN $usuariosJoin ON u.id_usuario = b.id_usuario AND u.rol = b.rol";
-
-$per_page_options = [50, 100, 200, 500];
-$per_page = isset($_GET['per_page']) && in_array((int)$_GET['per_page'], $per_page_options, true) ? (int)$_GET['per_page'] : 50;
-$page = isset($_GET['page']) && is_numeric($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-$offset = ($page - 1) * $per_page;
-
-$countStmt = $db->prepare("SELECT COUNT(*) $fromSql $whereSql");
-$countStmt->execute($params);
-$total_records = (int)$countStmt->fetchColumn();
-$total_pages = $total_records > 0 ? (int)ceil($total_records / $per_page) : 0;
-$page = $total_pages > 0 ? min($page, $total_pages) : 1;
-$offset = ($page - 1) * $per_page;
-
-$query = "SELECT b.id, b.id_usuario, b.rol, b.accion, b.entidad, b.id_entidad, b.detalle, b.fecha, u.nombre_usuario
-          $fromSql
-          $whereSql
-          ORDER BY b.fecha DESC
-          LIMIT ? OFFSET ?";
-$stmt = $db->prepare($query);
-$idx = 1;
-foreach ($params as $p) { $stmt->bindValue($idx++, $p); }
-$stmt->bindValue($idx++, $per_page, PDO::PARAM_INT);
-$stmt->bindValue($idx++, $offset, PDO::PARAM_INT);
-$stmt->execute();
-$registros = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// === VISTA ===
+require __DIR__ . '/../src/views/layout/header.php';
 ?>
-
 <div class="container-fluid py-4 px-lg-5" style="min-height: 85vh;">
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
         <div class="card-header bg-white border-bottom py-3 px-4">
             <h5 class="fw-bold text-dark-blue mb-0"><i class="bi bi-journal-text me-2 text-primary"></i>Bitácora de Auditoría</h5>
         </div>
 
+        <!-- === FILTROS === -->
         <div class="bg-light p-3 border-bottom">
             <form method="GET" class="row g-2 align-items-end">
                 <div class="col-md-2">
-                    <label class="form-label small fw-bold text-secondary mb-1">Tipo de Acción</label>
-                    <select name="accion" class="form-select form-select-sm">
+                    <label for="filtro_accion" class="form-label small fw-bold text-secondary mb-1">Tipo de acción</label>
+                    <select name="accion" id="filtro_accion" class="form-select form-select-sm">
                         <option value="">Todas</option>
-                        <?php foreach ($acciones as $acc): ?>
-                            <option value="<?php echo htmlspecialchars($acc); ?>" <?php echo $busqAccion === $acc ? 'selected' : ''; ?>><?php echo htmlspecialchars($acc); ?></option>
+                        <?php foreach ($acciones as $accion): ?>
+                            <option value="<?= e($accion) ?>" <?= $filtros['accion'] === $accion ? 'selected' : '' ?>><?= e($accion) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label small fw-bold text-secondary mb-1">Usuario</label>
-                    <input type="text" name="usuario" class="form-control form-control-sm" value="<?php echo htmlspecialchars($busqUsuario); ?>" placeholder="ID, nombre o rol">
+                    <label for="filtro_usuario" class="form-label small fw-bold text-secondary mb-1">Usuario</label>
+                    <input type="text" name="usuario" id="filtro_usuario" class="form-control form-control-sm" value="<?= e($filtros['usuario']) ?>" placeholder="ID, nombre o rol">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold text-secondary mb-1">Fecha desde</label>
-                    <input type="date" name="desde" class="form-control form-control-sm" value="<?php echo htmlspecialchars($busqDesde); ?>">
+                    <label for="filtro_desde" class="form-label small fw-bold text-secondary mb-1">Fecha desde</label>
+                    <input type="date" name="desde" id="filtro_desde" class="form-control form-control-sm" value="<?= e($filtros['desde']) ?>">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold text-secondary mb-1">Fecha hasta</label>
-                    <input type="date" name="hasta" class="form-control form-control-sm" value="<?php echo htmlspecialchars($busqHasta); ?>">
+                    <label for="filtro_hasta" class="form-label small fw-bold text-secondary mb-1">Fecha hasta</label>
+                    <input type="date" name="hasta" id="filtro_hasta" class="form-control form-control-sm" value="<?= e($filtros['hasta']) ?>">
                 </div>
                 <div class="col-md-2 d-flex gap-2">
                     <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3 fw-medium shadow-sm">Filtrar</button>
@@ -114,6 +75,7 @@ $registros = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </form>
         </div>
 
+        <!-- === TABLA === -->
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
@@ -128,32 +90,34 @@ $registros = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </thead>
                 <tbody class="border-top-0">
                     <?php foreach ($registros as $r): ?>
-                    <tr>
-                        <td class="ps-4 text-secondary small"><?php echo date('d/m/Y h:i A', strtotime($r['fecha'])); ?></td>
-                        <td>
-                            <span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis">#<?php echo $r['id_usuario']; ?> (<?php echo htmlspecialchars($r['rol']); ?>)</span>
-                            <?php if (!empty($r['nombre_usuario'])): ?><div class="small text-secondary mt-1"><?php echo htmlspecialchars($r['nombre_usuario']); ?></div><?php endif; ?>
-                        </td>
-                        <td class="fw-medium text-dark"><?php echo htmlspecialchars($r['accion']); ?></td>
-                        <td class="text-secondary"><?php echo htmlspecialchars($r['entidad']); ?><?php echo $r['id_entidad'] ? ' #' . $r['id_entidad'] : ''; ?></td>
-                        <td class="text-secondary small text-truncate d-inline-block" style="max-width: 220px; vertical-align: middle;" title="<?php echo htmlspecialchars($r['detalle'] ?? ''); ?>"><?php echo htmlspecialchars($r['detalle'] ?? ''); ?></td>
-                        <td class="pe-4 text-end">
-                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3"
-                                onclick="verDetalleBitacora(this)"
-                                data-fecha="<?php echo htmlspecialchars(date('d/m/Y h:i:s A', strtotime($r['fecha']))); ?>"
-                                data-usuario="<?php echo htmlspecialchars('#' . $r['id_usuario'] . ($r['nombre_usuario'] ? ' — ' . $r['nombre_usuario'] : '')); ?>"
-                                data-rol="<?php echo htmlspecialchars($r['rol']); ?>"
-                                data-accion="<?php echo htmlspecialchars($r['accion']); ?>"
-                                data-entidad="<?php echo htmlspecialchars($r['entidad'] . ($r['id_entidad'] ? ' #' . $r['id_entidad'] : '')); ?>"
-                                data-detalle="<?php echo htmlspecialchars($r['detalle'] ?? 'Sin detalle adicional.'); ?>"
-                                title="Ver detalle completo">
-                                <i class="bi bi-eye-fill"></i>
-                            </button>
-                        </td>
-                    </tr>
+                        <?php
+                        $usuario = '#' . $r['id_usuario'] . ($r['nombre_usuario'] ? ' — ' . $r['nombre_usuario'] : '');
+                        $entidad = $r['entidad'] . ($r['id_entidad'] ? ' #' . $r['id_entidad'] : '');
+                        ?>
+                        <tr>
+                            <td class="ps-4 text-secondary small" data-label="Fecha"><?= fecha_corta($r['fecha']) ?> <?= hora_corta($r['fecha']) ?></td>
+                            <td data-label="Usuario">
+                                <span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis">#<?= (int) $r['id_usuario'] ?> (<?= e($r['rol']) ?>)</span>
+                                <?php if (!empty($r['nombre_usuario'])): ?><div class="small text-secondary mt-1"><?= e($r['nombre_usuario']) ?></div><?php endif; ?>
+                            </td>
+                            <td class="fw-medium text-dark" data-label="Acción"><?= e($r['accion']) ?></td>
+                            <td class="text-secondary" data-label="Entidad"><?= e($entidad) ?></td>
+                            <td class="text-secondary small text-truncate" style="max-width: 220px;" title="<?= e($r['detalle']) ?>" data-label="Detalle"><?= e($r['detalle']) ?></td>
+                            <td class="pe-4 text-end">
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" title="Ver detalle completo" data-ver-detalle
+                                        data-fecha="<?= e(date('d/m/Y h:i:s A', (int) strtotime($r['fecha']))) ?>"
+                                        data-usuario="<?= e($usuario) ?>"
+                                        data-rol="<?= e($r['rol']) ?>"
+                                        data-accion="<?= e($r['accion']) ?>"
+                                        data-entidad="<?= e($entidad) ?>"
+                                        data-detalle="<?= e($r['detalle'] ?? 'Sin detalle adicional.') ?>">
+                                    <i class="bi bi-eye-fill"></i>
+                                </button>
+                            </td>
+                        </tr>
                     <?php endforeach; ?>
-                    <?php if (empty($registros)): ?>
-                    <tr><td colspan="6" class="text-center text-muted py-5">No hay registros en la bitácora con los filtros aplicados.</td></tr>
+                    <?php if ($registros === []): ?>
+                        <tr><td colspan="6" class="text-center text-muted py-5">No hay registros en la bitácora con los filtros aplicados.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -161,18 +125,18 @@ $registros = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
 
     <?php
-    $items_count = count($registros);
-    $base_params = $_GET; unset($base_params['page']);
+    $itemsMostrados = count($registros);
     require __DIR__ . '/../src/views/partials/pagination.php';
     ?>
 </div>
 
-<div class="modal fade" id="modalDetalleBitacora" tabindex="-1" aria-hidden="true">
+<!-- === MODAL: DETALLE DEL REGISTRO === -->
+<div class="modal fade" id="modalDetalleBitacora" tabindex="-1" aria-labelledby="modalDetalleBitacoraTitulo" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4">
             <div class="modal-header border-0 bg-primary text-white rounded-top-4">
-                <h5 class="modal-title fw-bold"><i class="bi bi-journal-text me-2"></i>Detalle del Registro</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title fw-bold" id="modalDetalleBitacoraTitulo"><i class="bi bi-journal-text me-2"></i>Detalle del Registro</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body p-4">
                 <div class="row g-3">
@@ -195,16 +159,15 @@ $registros = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </div>
 
 <script>
-function verDetalleBitacora(btn) {
-    const { fecha, usuario, rol, accion, entidad, detalle } = btn.dataset;
-    document.getElementById('det_fecha').textContent = fecha;
-    document.getElementById('det_usuario').textContent = usuario;
-    document.getElementById('det_rol').textContent = rol;
-    document.getElementById('det_accion').textContent = accion;
-    document.getElementById('det_entidad').textContent = entidad;
-    document.getElementById('det_detalle').textContent = detalle;
-    new bootstrap.Modal(document.getElementById('modalDetalleBitacora')).show();
-}
+// Llena el modal con los datos del registro (como texto, no como HTML) y lo abre.
+document.querySelectorAll('[data-ver-detalle]').forEach((boton) => {
+    boton.addEventListener('click', () => {
+        ['fecha', 'usuario', 'rol', 'accion', 'entidad', 'detalle'].forEach((campo) => {
+            document.getElementById(`det_${campo}`).textContent = boton.dataset[campo];
+        });
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDetalleBitacora')).show();
+    });
+});
 </script>
 
-<?php require_once __DIR__ . '/../src/views/layout/footer.php'; ?>
+<?php require __DIR__ . '/../src/views/layout/footer.php'; ?>
