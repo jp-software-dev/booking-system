@@ -1,185 +1,148 @@
 <?php
+
 /**
- * ENDPOINT DE REGISTRO DE PACIENTES
- * Reemplaza el campo "edad" por "fecha_nacimiento" y calcula la mayoría de edad
- * directamente desde la fecha, eliminando la validación errónea de edad numérica.
+ * ENDPOINT: REGISTRO DE PACIENTES
+ *
+ * Crea la cuenta de un paciente mayor de edad e inicia su sesión.
+ *
+ * Método:    POST (multipart/form-data, enviado con FormData desde registro.php)
+ * Acceso:    público, con token CSRF
+ * Entrada:   nombre, apellido_paterno, apellido_materno, email, telefono,
+ *            fecha_nacimiento, genero, password, confirm_password,
+ *            sitio_web (honeypot, debe venir vacío)
+ * Respuesta: { status, message, redirect }
  */
 
-session_start();
-require_once '../config/Database.php';
-require_once '../src/Helpers/RateLimiter.php';
-require_once '../src/Helpers/CsrfHelper.php';
-require_once '../src/Helpers/Bitacora.php';
+require_once __DIR__ . '/../config/config.php';
 
-use Helpers\RateLimiter;
-use Helpers\CsrfHelper;
-use Helpers\Bitacora;
+use App\Helpers\Bitacora;
+use App\Helpers\RateLimiter;
+use App\Helpers\ValidationHelper;
+use App\Http\Api;
+use App\Http\Sesion;
+use App\Models\Paciente;
 
-header('Content-Type: application/json');
+/** Edad mínima para registrarse. */
+const EDAD_MINIMA = 18;
 
-if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-    echo json_encode(['status' => 'error', 'message' => 'Método no permitido']);
-    exit;
+Api::iniciar('POST');
+
+// === HONEYPOT ===
+if (!empty($_POST['sitio_web'])) {
+    error_log('Honeypot activado en registro desde la IP ' . ($_SERVER['REMOTE_ADDR'] ?? 'desconocida'));
+    Api::error('No fue posible procesar el registro.');
 }
 
-// === RATE LIMITING ===
-$rateLimitKey = 'register_' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
-try {
-    if (RateLimiter::tooManyAttempts($rateLimitKey, 3, 3600)) {
-        echo json_encode(['status' => 'error', 'message' => 'Límite de registros alcanzado. Por favor, intenta más tarde.']);
-        exit;
+// === LÍMITE DE REGISTROS POR IP (3 por hora) ===
+$claveLimite = RateLimiter::claveParaIp('registro');
+if (RateLimiter::tooManyAttempts($claveLimite, 3, 3600)) {
+    Api::error('Límite de registros alcanzado. Intenta más tarde.', 429);
+}
+
+Api::exigirCsrf($_POST);
+
+// === LECTURA DE CAMPOS ===
+$campo = static fn (string $nombre): string => trim((string) ($_POST[$nombre] ?? ''));
+
+$nombre          = $campo('nombre');
+$apellidoPaterno = $campo('apellido_paterno');
+$apellidoMaterno = $campo('apellido_materno');
+$email           = $campo('email');
+$telefono        = $campo('telefono');
+$fechaNacimiento = $campo('fecha_nacimiento');
+$genero          = $campo('genero');
+$password        = (string) ($_POST['password'] ?? '');
+$confirmacion    = (string) ($_POST['confirm_password'] ?? '');
+
+// === CAMPOS OBLIGATORIOS ===
+$faltantes = array_keys(array_filter([
+    'nombre'                => $nombre,
+    'apellido paterno'      => $apellidoPaterno,
+    'correo'                => $email,
+    'teléfono'              => $telefono,
+    'fecha de nacimiento'   => $fechaNacimiento,
+    'género'                => $genero,
+    'contraseña'            => $password,
+    'confirmar contraseña'  => $confirmacion,
+], static fn (string $valor): bool => $valor === ''));
+
+if ($faltantes !== []) {
+    Api::error('Faltan campos obligatorios: ' . implode(', ', $faltantes));
+}
+
+// === FORMATO Y LONGITUD ===
+foreach ([$nombre, $apellidoPaterno, $apellidoMaterno] as $texto) {
+    if (ValidationHelper::excedeLongitud($texto, Paciente::MAX_NOMBRE)) {
+        Api::error('Nombre y apellidos pueden tener como máximo ' . Paciente::MAX_NOMBRE . ' caracteres');
     }
-} catch (Exception $e) {
-    error_log("Error en RateLimiter: " . $e->getMessage());
-    // No bloqueamos el registro por un fallo de infraestructura del rate limiter
 }
 
-// === CSRF VALIDATION ===
-if (!CsrfHelper::validateToken($_POST['csrf_token'] ?? null)) {
-    http_response_code(403);
-    echo json_encode(['status' => 'error', 'message' => 'Token de seguridad inválido. Recarga la página.']);
-    exit;
+if (!ValidationHelper::validateEmail($email)) {
+    Api::error('El correo electrónico no es válido');
 }
 
-// === SANITIZACIÓN ===
-$nombre            = trim($_POST['nombre'] ?? '');
-$apellido_paterno  = trim($_POST['apellido_paterno'] ?? '');
-$apellido_materno  = trim($_POST['apellido_materno'] ?? '');
-$email             = trim($_POST['email'] ?? '');
-$fecha_nacimiento  = trim($_POST['fecha_nacimiento'] ?? ''); // reemplaza "edad"
-$genero            = trim($_POST['genero'] ?? '');
-$password          = $_POST['password'] ?? '';
-$confirm_password  = $_POST['confirm_password'] ?? '';
-$telefono          = trim($_POST['telefono'] ?? '');
-
-// === VALIDACIÓN DE CAMPOS OBLIGATORIOS ===
-$campos_vacios = [];
-if (empty($nombre))           $campos_vacios[] = 'nombre';
-if (empty($apellido_paterno)) $campos_vacios[] = 'apellido paterno';
-if (empty($email))            $campos_vacios[] = 'email';
-if (empty($fecha_nacimiento)) $campos_vacios[] = 'fecha de nacimiento';
-if (empty($genero))           $campos_vacios[] = 'género';
-if (empty($password))         $campos_vacios[] = 'contraseña';
-if (empty($confirm_password)) $campos_vacios[] = 'confirmar contraseña';
-if (empty($telefono))         $campos_vacios[] = 'teléfono';
-
-if (!empty($campos_vacios)) {
-    echo json_encode(['status' => 'error', 'message' => 'Todos los campos obligatorios deben estar llenos. Faltan: ' . implode(', ', $campos_vacios)]);
-    exit;
+if (!ValidationHelper::validatePhone($telefono)) {
+    Api::error('El teléfono debe tener exactamente 10 dígitos');
 }
 
-// === VALIDACIÓN ESTRICTA DE LONGITUD ===
-// Defensa en profundidad contra payloads anormalmente largos (DoS/abuso). No reemplaza
-// las sentencias preparadas, que ya evitan inyección SQL.
-if (strlen($nombre) > 100 || strlen($apellido_paterno) > 100 || strlen($apellido_materno) > 100
-    || strlen($email) > 254 || strlen($password) > 200 || strlen($confirm_password) > 200) {
-    echo json_encode(['status' => 'error', 'message' => 'Uno o más campos exceden la longitud permitida']);
-    exit;
+if (!in_array($genero, Paciente::GENEROS, true)) {
+    Api::error('Selecciona un género válido');
 }
 
-// === VALIDACIÓN DE FECHA DE NACIMIENTO Y MAYORÍA DE EDAD ===
-$fechaNac = DateTime::createFromFormat('Y-m-d', $fecha_nacimiento);
-if (!$fechaNac || $fechaNac->format('Y-m-d') !== $fecha_nacimiento) {
-    echo json_encode(['status' => 'error', 'message' => 'Fecha de nacimiento inválida']);
-    exit;
+if ($password !== $confirmacion) {
+    Api::error('Las contraseñas no coinciden');
 }
 
-$hoy    = new DateTime();
-$edad   = $hoy->diff($fechaNac)->y;
-
-if ($edad < 18) {
-    echo json_encode(['status' => 'error', 'message' => 'Debes ser mayor de 18 años para registrarte']);
-    exit;
+if (strlen($password) < 8 || strlen($password) > 200) {
+    Api::error('La contraseña debe tener entre 8 y 200 caracteres');
 }
 
-// === VALIDACIÓN DE CONTRASEÑAS ===
-if ($password !== $confirm_password || strlen($password) < 8) {
-    echo json_encode(['status' => 'error', 'message' => 'Contraseñas no coinciden o son cortas']);
-    exit;
+// === FECHA DE NACIMIENTO Y MAYORÍA DE EDAD ===
+if (!ValidationHelper::validateDate($fechaNacimiento)) {
+    Api::error('Fecha de nacimiento inválida');
 }
 
-// === VALIDACIÓN DE TELÉFONO ===
-if (!preg_match('/^[0-9]{10}$/', $telefono)) {
-    echo json_encode(['status' => 'error', 'message' => 'El teléfono debe contener exactamente 10 dígitos numéricos']);
-    exit;
+$edad = (new DateTimeImmutable($fechaNacimiento))->diff(new DateTimeImmutable('today'));
+if ($edad->invert === 1 || $edad->y > 120) {
+    Api::error('Fecha de nacimiento inválida');
+}
+if ($edad->y < EDAD_MINIMA) {
+    Api::error('Debes ser mayor de ' . EDAD_MINIMA . ' años para registrarte');
 }
 
-// === VALIDACIÓN DE EMAIL ===
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    echo json_encode(['status' => 'error', 'message' => 'El correo electrónico no es válido']);
-    exit;
-}
+// === REGISTRO ===
+$pacientes = new Paciente();
 
-// === BASE DE DATOS ===
-try {
-    $db = Database::getInstance();
-} catch (Exception $e) {
-    echo json_encode(['status' => 'error', 'message' => 'Error de conexión a la base de datos']);
-    exit;
+// El hash se calcula antes de revisar si el correo existe: password_hash() es la
+// operación más lenta, y hacerla siempre iguala el tiempo de respuesta de ambos casos.
+$hash = password_hash($password, PASSWORD_DEFAULT);
+
+if ($pacientes->existeEmail($email)) {
+    Api::error('El correo ya está registrado', 409);
 }
 
 try {
-    // --- MITIGACIÓN DE ATAQUE DE TEMPORIZACIÓN ---
-    // Se ejecuta siempre el mismo conjunto de operaciones (verificación + intento de
-    // escritura) sin importar si el correo ya existe, y la respuesta se decide y envía
-    // solo al final. Así el tiempo de respuesta no delata, por temporización, qué
-    // correos ya están registrados.
-
-    // 1. VERIFICAR DUPLICADO (siempre se ejecuta, sin retornar de inmediato)
-    $checkEmail = $db->prepare("SELECT id_paciente FROM pacientes WHERE email = ?");
-    $checkEmail->execute([$email]);
-    $emailDuplicado = (bool)$checkEmail->fetch();
-
-    // 2. CALCULAR HASH (siempre): password_hash() con bcrypt es la operación que domina
-    // el tiempo de respuesta, así que calcularla incondicionalmente es lo que más aporta
-    // a igualar los tiempos entre ambos casos.
-    $hash = password_hash($password, PASSWORD_DEFAULT);
-
-    // 3. INTENTO DE ESCRITURA (siempre se ejecuta una operación de costo equivalente)
-    if (!$emailDuplicado) {
-        $db->beginTransaction();
-
-        // Insertar paciente con fecha_nacimiento directa (no calculada desde edad)
-        $stmt = $db->prepare("INSERT INTO pacientes
-            (nombre, apellido_paterno, apellido_materno, fecha_nacimiento, genero, telefono, email)
-            VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$nombre, $apellido_paterno, $apellido_materno, $fecha_nacimiento, $genero, $telefono, $email]);
-        $id_paciente = $db->lastInsertId();
-
-        // Insertar credenciales
-        $stmt2 = $db->prepare("INSERT INTO pacientes_credenciales (id_paciente, password_hash, cuenta_verificada) VALUES (?, ?, 1)");
-        $stmt2->execute([$id_paciente, $hash]);
-
-        $db->commit();
-    } else {
-        // Operación señuelo de costo equivalente (misma tabla que tocaría el INSERT
-        // real) para que el camino "duplicado" no sea más rápido que el camino de éxito.
-        $dummy = $db->prepare("SELECT id_paciente FROM pacientes_credenciales WHERE id_paciente = ?");
-        $dummy->execute([-1]);
-        $dummy->fetch();
-    }
-
-    // 4. RESPUESTA (solo aquí, al final, se decide y se envía)
-    if ($emailDuplicado) {
-        echo json_encode(['status' => 'error', 'message' => 'El correo ya está registrado']);
-        exit;
-    }
-
-    // Iniciar sesión automáticamente
-    $_SESSION['user_id']   = $id_paciente;
-    $_SESSION['user_name'] = $nombre;
-    $_SESSION['role']      = 'paciente';
-    RateLimiter::registerAttempt($rateLimitKey); // Registra el intento exitoso para el rate limiting
-
-    echo json_encode(['status' => 'success', 'message' => 'Registro exitoso', 'redirect' => 'agenda.php']);
-
+    $idPaciente = $pacientes->registrar([
+        'nombre'           => $nombre,
+        'apellido_paterno' => $apellidoPaterno,
+        'apellido_materno' => $apellidoMaterno !== '' ? $apellidoMaterno : null,
+        'fecha_nacimiento' => $fechaNacimiento,
+        'genero'           => $genero,
+        'telefono'         => $telefono,
+        'email'            => $email,
+    ], $hash);
 } catch (PDOException $e) {
-    if ($db->inTransaction()) $db->rollBack();
-    error_log("PDO Error en auth_registro: " . $e->getMessage());
-    echo json_encode(['status' => 'error', 'message' => 'Error de base de datos']);
-} catch (Exception $e) {
-    if (isset($db) && $db->inTransaction()) $db->rollBack();
-    error_log("Error en auth_registro: " . $e->getMessage());
-    echo json_encode(['status' => 'error', 'message' => 'Error interno del servidor']);
+    // Dos registros simultáneos con el mismo correo: el índice único rechaza el segundo.
+    if (($e->errorInfo[1] ?? null) === 1062) {
+        Api::error('El correo ya está registrado', 409);
+    }
+    throw $e;
 }
-?>
+
+// Cuenta para el límite de registros por IP.
+RateLimiter::registerAttempt($claveLimite);
+
+Sesion::autenticar($idPaciente, $nombre, Sesion::ROL_PACIENTE);
+Bitacora::registrar('registro_paciente', 'paciente', $idPaciente);
+
+Api::exito('Registro exitoso', ['redirect' => 'agenda.php']);
