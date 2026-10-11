@@ -80,6 +80,65 @@ final class Horario
     }
 
     /**
+     * Describe los días hábiles para mostrarlos al usuario, por ejemplo "Lunes a sábado".
+     *
+     * Si los días son consecutivos se muestra el rango; si no, se enumeran
+     * ("Lunes, miércoles y viernes").
+     */
+    public static function descripcionDiasHabiles(): string
+    {
+        $dias = self::DIAS_HABILES;
+        sort($dias);
+
+        $consecutivos = $dias === range($dias[0], $dias[count($dias) - 1]);
+        if ($consecutivos && count($dias) > 2) {
+            return self::nombreDia($dias[0], true) . ' a ' . self::nombreDia($dias[count($dias) - 1]);
+        }
+
+        $nombres = array_map(static fn (int $dia): string => self::nombreDia($dia), $dias);
+        $ultimo = array_pop($nombres);
+        $texto = $nombres === [] ? $ultimo : implode(', ', $nombres) . ' y ' . $ultimo;
+
+        return ucfirst($texto);
+    }
+
+    /**
+     * Nombres de los días en que no se agendan citas (ej. ["Domingo"]).
+     *
+     * @return list<string>
+     */
+    public static function diasSinCitas(): array
+    {
+        $sinCitas = array_diff(range(1, 7), self::DIAS_HABILES);
+
+        return array_values(array_map(static fn (int $dia): string => self::nombreDia($dia, true), $sinCitas));
+    }
+
+    /**
+     * Formatea una hora HH:MM en 12 horas sin cero inicial (ej. "7:00 AM").
+     *
+     * @param string $hora Hora en formato HH:MM.
+     */
+    public static function horaLegible(string $hora): string
+    {
+        return (new DateTimeImmutable('today ' . $hora))->format('g:i A');
+    }
+
+    /**
+     * Nombre en español de un día numerado según date('N') (1 = lunes ... 7 = domingo).
+     *
+     * @param int  $dia        Número de día.
+     * @param bool $mayuscula  true para poner en mayúscula la primera letra.
+     */
+    private static function nombreDia(int $dia, bool $mayuscula = false): string
+    {
+        $nombres = [1 => 'lunes', 2 => 'martes', 3 => 'miércoles', 4 => 'jueves', 5 => 'viernes', 6 => 'sábado', 7 => 'domingo'];
+        $nombre = $nombres[$dia];
+
+        return $mayuscula ? mb_strtoupper(mb_substr($nombre, 0, 1)) . mb_substr($nombre, 1) : $nombre;
+    }
+
+    /**
      * Indica si la fecha y hora indicadas ya pasaron.
      *
      * @param string $fecha Fecha en formato Y-m-d.
