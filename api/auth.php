@@ -41,7 +41,7 @@ Api::exigirCsrf($entrada);
 // === HONEYPOT ===
 // Campo oculto para humanos: solo un bot que llena todos los campos lo completa.
 if (!empty($entrada['sitio_web'])) {
-    error_log('Honeypot activado en inicio de sesión desde la IP ' . ($_SERVER['REMOTE_ADDR'] ?? 'desconocida'));
+    error_log('Honeypot activado en inicio de sesión desde la IP ' . RateLimiter::ipCliente());
     Api::error(MENSAJE_CREDENCIALES, 401);
 }
 
@@ -76,7 +76,8 @@ $hashAVerificar = HASH_FICTICIO;
 $usuario = null;          // Datos de sesión si la cuenta existe y su rol tiene acceso.
 $rolSinAcceso = false;    // Cuenta de `usuarios` con un rol sin funciones (ej. 'recepcion').
 
-$stmt = $db->prepare('SELECT id_usuario, nombre, password_hash, rol FROM usuarios WHERE usuario = ?');
+// El nombre de usuario no distingue mayúsculas (LOWER funciona igual en MySQL y PostgreSQL).
+$stmt = $db->prepare('SELECT id_usuario, nombre, password_hash, rol FROM usuarios WHERE LOWER(usuario) = LOWER(?)');
 $stmt->execute([$identificador]);
 $admin = $stmt->fetch();
 
