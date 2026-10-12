@@ -15,7 +15,7 @@ use Throwable;
  * GENERADOR DE DATOS DE DEMOSTRACIÓN
  *
  * Vacía la base y la llena con datos ficticios: especialidades, consultorios,
- * médicos, enfermeros, pacientes y unas 750 citas repartidas entre los últimos
+ * médicos, enfermeros, pacientes y unas 800 citas repartidas entre los últimos
  * 4 meses y las próximas 3 semanas (fechas relativas al día en que se ejecuta).
  *
  * Crea también las cuentas de prueba de ModoDemo (administrador y paciente).
