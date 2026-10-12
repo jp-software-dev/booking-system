@@ -7,11 +7,15 @@
  * Cada paso se valida en el navegador antes de avanzar; la validación
  * definitiva la hace api/auth_registro.php.
  *
+ * En modo demo avisa que los datos son visibles para cualquier visitante (las
+ * credenciales del administrador de prueba son públicas) y que no se envían correos.
+ *
  * Acceso: público. Si ya hay sesión, redirige a la página de inicio del rol.
  */
 
 require_once __DIR__ . '/../config/config.php';
 
+use App\Demo\ModoDemo;
 use App\Http\Sesion;
 
 if (Sesion::estaAutenticado()) {
@@ -42,6 +46,15 @@ require __DIR__ . '/../src/views/layout/header.php';
             <div class="step-indicator" id="ind-3">3</div><div class="step-line" id="line-3"></div>
             <div class="step-indicator" id="ind-4">4</div>
         </div>
+
+        <?php if (ModoDemo::activo()): ?>
+            <!-- === AVISO DE PRIVACIDAD (solo en modo demo) === -->
+            <div class="alert alert-warning small mb-4">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                <strong>Usa datos ficticios.</strong> En la demo cualquier visitante puede entrar como
+                administrador y ver los datos que registres. No se envían correos y todo se borra cada día.
+            </div>
+        <?php endif; ?>
 
         <div id="registroAlert"></div>
 
