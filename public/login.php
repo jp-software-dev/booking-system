@@ -6,11 +6,14 @@
  * Formulario único para administradores (usuario) y pacientes (correo).
  * Envía las credenciales a api/auth.php.
  *
+ * En modo demo muestra las cuentas de prueba y botones para rellenar el formulario.
+ *
  * Acceso: público. Si ya hay sesión, redirige a la página de inicio del rol.
  */
 
 require_once __DIR__ . '/../config/config.php';
 
+use App\Demo\ModoDemo;
 use App\Http\Sesion;
 
 if (Sesion::estaAutenticado()) {
@@ -22,6 +25,21 @@ require __DIR__ . '/../src/views/layout/header.php';
 <div class="d-flex align-items-center justify-content-center auth-bg py-5" style="min-height: 85vh;">
     <div class="card auth-card p-5 w-100" style="max-width: 460px;">
         <div class="text-center mb-4"><h3 class="fw-bold text-dark-blue">Iniciar Sesión</h3></div>
+
+        <?php if (ModoDemo::activo()): ?>
+            <!-- === CUENTAS DE PRUEBA (solo en modo demo) === -->
+            <div class="alert alert-info small mb-4">
+                <div class="fw-bold mb-2"><i class="bi bi-person-badge me-1"></i> Cuentas de prueba</div>
+                <div>Administrador: <code><?= e(ModoDemo::ADMIN_USUARIO) ?></code></div>
+                <div>Paciente: <code><?= e(ModoDemo::PACIENTE_EMAIL) ?></code></div>
+                <div class="mb-2">Contraseña de ambas: <code><?= e(ModoDemo::PASSWORD) ?></code></div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-cuenta-demo="<?= e(ModoDemo::ADMIN_USUARIO) ?>">Entrar como administrador</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-cuenta-demo="<?= e(ModoDemo::PACIENTE_EMAIL) ?>">Entrar como paciente</button>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <div id="loginAlert"></div>
 
         <form id="formLogin" autocomplete="off" novalidate>
@@ -65,6 +83,15 @@ document.getElementById('togglePassword').addEventListener('click', () => {
     campo.type = campo.type === 'password' ? 'text' : 'password';
     icono.classList.toggle('bi-eye');
     icono.classList.toggle('bi-eye-slash');
+});
+
+// === CUENTAS DE PRUEBA (modo demo): rellenan usuario y contraseña ===
+document.querySelectorAll('[data-cuenta-demo]').forEach((boton) => {
+    boton.addEventListener('click', () => {
+        document.getElementById('identificadorInput').value = boton.dataset.cuentaDemo;
+        document.getElementById('passInput').value = <?= json_encode(ModoDemo::activo() ? ModoDemo::PASSWORD : '') ?>;
+        document.getElementById('btnIngresar').focus();
+    });
 });
 
 // === ENVÍO DEL FORMULARIO ===
