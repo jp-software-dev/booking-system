@@ -66,10 +66,14 @@ final class Bitacora
         int $idEntidad,
         ?string $detalle = null
     ): void {
+        // La fecha se toma de PHP para que quede en la zona horaria de la aplicación
+        // aunque el servidor de base de datos use otra.
+        $fecha = date('Y-m-d H:i:s');
+
         try {
             Database::getInstance()
-                ->prepare('INSERT INTO bitacora (id_usuario, rol, accion, entidad, id_entidad, detalle) VALUES (?, ?, ?, ?, ?, ?)')
-                ->execute([$idUsuario, $rol, $accion, $entidad, $idEntidad, $detalle]);
+                ->prepare('INSERT INTO bitacora (id_usuario, rol, accion, entidad, id_entidad, detalle, fecha) VALUES (?, ?, ?, ?, ?, ?, ?)')
+                ->execute([$idUsuario, $rol, $accion, $entidad, $idEntidad, $detalle, $fecha]);
         } catch (Throwable $e) {
             error_log('Error en Bitacora::registrarComo: ' . $e->getMessage());
         }
