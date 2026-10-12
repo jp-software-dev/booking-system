@@ -55,6 +55,10 @@ final class PdfService
         $opciones = new Options();
         $opciones->set('isHtml5ParserEnabled', true);
         $opciones->set('isRemoteEnabled', false);
+        // Archivos temporales y caché de fuentes en la carpeta temporal del sistema:
+        // en Vercel el resto del disco (incluido vendor/) es de solo lectura.
+        $opciones->set('tempDir', sys_get_temp_dir());
+        $opciones->set('fontCache', sys_get_temp_dir());
 
         $dompdf = new Dompdf($opciones);
         $dompdf->loadHtml($html);
