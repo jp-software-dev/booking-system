@@ -68,11 +68,12 @@ final class Personal
      */
     public function agregarDoctor(string $nombre, string $apellido, int $idEspecialidad, ?int $idConsultorio): int
     {
-        $this->db
-            ->prepare("INSERT INTO doctores (nombre, apellido_paterno, id_especialidad, id_consultorio, estado) VALUES (?, ?, ?, ?, 'Activo')")
-            ->execute([$nombre, $apellido, $idEspecialidad, $idConsultorio]);
-
-        return (int) $this->db->lastInsertId();
+        return Database::insertar(
+            $this->db,
+            "INSERT INTO doctores (nombre, apellido_paterno, id_especialidad, id_consultorio, estado) VALUES (?, ?, ?, ?, 'Activo')",
+            [$nombre, $apellido, $idEspecialidad, $idConsultorio],
+            'id_doctor'
+        );
     }
 
     /**
@@ -86,11 +87,12 @@ final class Personal
      */
     public function agregarEnfermero(string $nombre, string $apellido, string $turno, ?int $idConsultorio): int
     {
-        $this->db
-            ->prepare('INSERT INTO enfermeros (nombre, apellido_paterno, turno, id_consultorio) VALUES (?, ?, ?, ?)')
-            ->execute([$nombre, $apellido, $turno, $idConsultorio]);
-
-        return (int) $this->db->lastInsertId();
+        return Database::insertar(
+            $this->db,
+            'INSERT INTO enfermeros (nombre, apellido_paterno, turno, id_consultorio) VALUES (?, ?, ?, ?)',
+            [$nombre, $apellido, $turno, $idConsultorio],
+            'id_enfermero'
+        );
     }
 
     /**
