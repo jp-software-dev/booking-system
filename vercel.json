@@ -14,7 +14,10 @@
     {
       "src": "/public/assets/(css|js|images|videos)/([A-Za-z0-9_.-]+)",
       "dest": "/public/assets/$1/$2",
-      "headers": { "cache-control": "public, max-age=86400" }
+      "headers": {
+        "cache-control": "public, max-age=86400",
+        "x-content-type-options": "nosniff"
+      }
     },
     {
       "src": "/(.*)",
