@@ -14,6 +14,10 @@ Options -Indexes
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
+    # La raíz del sitio abre la aplicación (las páginas viven en /public).
+    # %{REQUEST_URI} conserva la subcarpeta si el proyecto no está en la raíz del dominio.
+    RewriteRule ^$ %{REQUEST_URI}public/ [R=302,L]
+
     # Archivos y carpetas ocultas (.git, .env, .claude, .hintrc...), salvo /.well-known.
     RewriteRule (^|/)\.(?!well-known(/|$)) - [F,L]
 
