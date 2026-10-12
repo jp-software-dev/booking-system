@@ -41,6 +41,12 @@ define('BASE_URL', rtrim((string) Env::get('URL_BASE', 'http://localhost/app_ges
 // Máximo de citas activas (pendientes, confirmadas o en curso) que un paciente puede tener a la vez.
 define('MAX_CITAS_ACTIVAS', 5);
 
+// Datos de contacto de la clínica (página de contacto). Los valores reales se
+// definen en el .env, que no se sube al repositorio; aquí solo hay textos de ejemplo.
+define('CONTACTO_TELEFONO', (string) Env::get('CONTACTO_TELEFONO', 'Tu número'));
+define('CONTACTO_EMAIL', (string) Env::get('CONTACTO_EMAIL', 'correo@tudominio.com'));
+define('CONTACTO_UBICACION', (string) Env::get('CONTACTO_UBICACION', 'Tu ciudad'));
+
 date_default_timezone_set('America/Mexico_City');
 
 // === 4. MANEJO DE ERRORES ===
@@ -72,5 +78,8 @@ set_exception_handler(static function (Throwable $e): void {
 
 // === 5. SESIÓN SEGURA ===
 // La cookie solo viaja por HTTPS en producción o si la petición ya llegó por HTTPS.
-$esHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
-Sesion::iniciar(ES_PRODUCCION || $esHttps);
+// Desde la línea de comandos (scripts como database/sembrar_demo.php) no hay sesión.
+if (PHP_SAPI !== 'cli') {
+    $esHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+    Sesion::iniciar(ES_PRODUCCION || $esHttps);
+}

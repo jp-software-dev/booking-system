@@ -1,0 +1,35 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["pdx1"],
+  "framework": null,
+  "buildCommand": "mkdir -p dist/public && cp -R public/assets dist/public/assets",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/vercel.php": {
+      "runtime": "vercel-php@0.7.4",
+      "maxDuration": 30
+    }
+  },
+  "routes": [
+    {
+      "src": "/public/assets/(css|js|images|videos)/([A-Za-z0-9_.-]+)",
+      "dest": "/public/assets/$1/$2",
+      "headers": {
+        "cache-control": "public, max-age=86400",
+        "x-content-type-options": "nosniff"
+      }
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/vercel.php",
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "x-frame-options": "SAMEORIGIN"
+      }
+    }
+  ],
+  "crons": [
+    { "path": "/api/demo_reset.php", "schedule": "0 9 * * *" }
+  ]
+}

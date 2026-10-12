@@ -6,11 +6,14 @@
  * Pide el correo y solicita a api/recuperar.php el envío del enlace de
  * restablecimiento.
  *
+ * En modo demo avisa que los correos no se envían y remite a las cuentas de prueba.
+ *
  * Acceso: público. Si ya hay sesión, redirige a la página de inicio del rol.
  */
 
 require_once __DIR__ . '/../config/config.php';
 
+use App\Demo\ModoDemo;
 use App\Http\Sesion;
 
 if (Sesion::estaAutenticado()) {
@@ -29,6 +32,15 @@ require __DIR__ . '/../src/views/layout/header.php';
             <h3 class="fw-bold text-dark-blue">¿Olvidaste tu contraseña?</h3>
             <p class="text-secondary small">Ingresa tu correo y te enviaremos un enlace para restablecerla.</p>
         </div>
+        <?php if (ModoDemo::activo()): ?>
+            <!-- === AVISO DE CORREOS (solo en modo demo) === -->
+            <div class="alert alert-info small mb-4">
+                <i class="bi bi-info-circle-fill me-1"></i>
+                En la demo no se envían correos, así que el enlace no llegará.
+                Para probar el sistema usa las <a href="login.php" class="alert-link">cuentas de prueba</a>.
+            </div>
+        <?php endif; ?>
+
         <div id="recuperarAlert"></div>
         <form id="formRecuperar">
             <div class="mb-4">

@@ -16,6 +16,9 @@ auth.json
 vendor/
 node_modules/
 
+# SALIDA DEL BUILD DE VERCEL (copia de public/assets)
+/dist/
+
 # NOTA: composer.lock SÍ se versiona en aplicaciones.
 # Garantiza que todos instalen exactamente las mismas versiones
 # de dompdf y PHPMailer (trazabilidad ante un CVE).

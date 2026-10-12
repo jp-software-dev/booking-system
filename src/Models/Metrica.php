@@ -15,8 +15,9 @@ use PDO;
  *
  * Un método por bloque de métricas del dashboard (api/get_totales.php).
  *
- * Compatibilidad: no se usan JSON_ARRAYAGG ni JSON_OBJECT porque el entorno
- * corre MariaDB 10.4 y esas funciones requieren MariaDB 10.5+ o MySQL 5.7.22+.
+ * Compatibilidad: el SQL funciona en MariaDB 10.4+, MySQL y PostgreSQL. Por eso
+ * no se usan funciones exclusivas de un motor (JSON_ARRAYAGG, DATE_FORMAT,
+ * CURDATE); las fechas de referencia se calculan en PHP.
  *
  * Privacidad: ningún método expone datos identificables de pacientes (nombre,
  * motivo de consulta); solo conteos y agrupaciones.
@@ -86,12 +87,12 @@ final class Metrica
     {
         $stmt = $this->db->prepare(
             "SELECT COUNT(*) AS total,
-                    SUM(estado_cita = 'Cancelada') AS canceladas,
-                    SUM(estado_cita = 'Completada') AS completadas,
-                    SUM(fecha_cita = CURDATE()) AS hoy
+                    SUM(CASE WHEN estado_cita = 'Cancelada' THEN 1 ELSE 0 END) AS canceladas,
+                    SUM(CASE WHEN estado_cita = 'Completada' THEN 1 ELSE 0 END) AS completadas,
+                    SUM(CASE WHEN fecha_cita = ? THEN 1 ELSE 0 END) AS hoy
              FROM citas WHERE fecha_cita BETWEEN ? AND ?"
         );
-        $stmt->execute([$desde, $hasta]);
+        $stmt->execute([date('Y-m-d'), $desde, $hasta]);
         $fila = $stmt->fetch() ?: [];
 
         $total = (int) ($fila['total'] ?? 0);
@@ -175,12 +176,7 @@ final class Metrica
      */
     public function tendenciaMensual(): array
     {
-        return $this->db->query(
-            "SELECT DATE_FORMAT(fecha_cita, '%Y-%m') AS periodo, COUNT(*) AS cantidad
-             FROM citas
-             WHERE fecha_cita >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-             GROUP BY periodo ORDER BY periodo ASC"
-        )->fetchAll();
+        return $this->contarPorMes('citas', 'fecha_cita');
     }
 
     /**
@@ -190,12 +186,7 @@ final class Metrica
      */
     public function pacientesNuevosPorMes(): array
     {
-        return $this->db->query(
-            "SELECT DATE_FORMAT(created_at, '%Y-%m') AS periodo, COUNT(*) AS cantidad
-             FROM pacientes
-             WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-             GROUP BY periodo ORDER BY periodo ASC"
-        )->fetchAll();
+        return $this->contarPorMes('pacientes', 'created_at');
     }
 
     /**
@@ -238,7 +229,7 @@ final class Metrica
 
         $stmt = $this->db->prepare(
             "SELECT d.id_doctor, d.nombre, d.apellido_paterno,
-                    SUM(c.estado_cita IN ('Confirmada', 'Completada')) AS ocupadas
+                    SUM(CASE WHEN c.estado_cita IN ('Confirmada', 'Completada') THEN 1 ELSE 0 END) AS ocupadas
              FROM doctores d
              LEFT JOIN citas c ON c.id_doctor = d.id_doctor AND c.fecha_cita BETWEEN ? AND ?
              WHERE d.estado = 'Activo'
@@ -261,5 +252,32 @@ final class Metrica
                 'tasa_ocupacion'    => round($ocupadas / $slotsDisponibles * 100, 2),
             ]);
         }, $stmt->fetchAll());
+    }
+
+    /**
+     * Cuenta registros por mes durante los últimos 12 meses.
+     *
+     * Se agrupa con EXTRACT(YEAR/MONTH ...), que existe igual en MySQL y en
+     * PostgreSQL (DATE_FORMAT es solo de MySQL), y el texto "AAAA-MM" se arma en PHP.
+     *
+     * @param string $tabla   Tabla a contar (valor fijo del código, nunca del usuario).
+     * @param string $columna Columna de fecha (valor fijo del código, nunca del usuario).
+     * @return list<array{periodo: string, cantidad: int}>
+     */
+    private function contarPorMes(string $tabla, string $columna): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT EXTRACT(YEAR FROM {$columna}) AS anio, EXTRACT(MONTH FROM {$columna}) AS mes, COUNT(*) AS cantidad
+             FROM {$tabla}
+             WHERE {$columna} >= ?
+             GROUP BY EXTRACT(YEAR FROM {$columna}), EXTRACT(MONTH FROM {$columna})
+             ORDER BY anio ASC, mes ASC"
+        );
+        $stmt->execute([date('Y-m-d', (int) strtotime('-12 months'))]);
+
+        return array_map(static fn (array $fila): array => [
+            'periodo'  => sprintf('%04d-%02d', (int) $fila['anio'], (int) $fila['mes']),
+            'cantidad' => (int) $fila['cantidad'],
+        ], $stmt->fetchAll());
     }
 }

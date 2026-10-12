@@ -1,0 +1,10 @@
+# Archivos que no se suben a Vercel.
+# vendor/ se instala en el build con Composer a partir de composer.lock.
+/vendor
+/.env
+/.claude
+/.hintrc
+# Esquemas, migraciones y scripts de base de datos: se usan para preparar la base, no en la app.
+/database
+# Documentación del repositorio: no se usa en la app.
+/docs

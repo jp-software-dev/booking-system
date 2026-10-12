@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http;
 
+use App\Core\Env;
+
 /**
  * MANEJO DE LA SESIÓN DEL USUARIO
  *
@@ -37,6 +39,11 @@ final class Sesion
         // Rechaza identificadores de sesión que no haya generado el servidor.
         ini_set('session.use_strict_mode', '1');
         ini_set('session.use_only_cookies', '1');
+
+        // En plataformas sin disco compartido (Vercel) las sesiones se guardan en la base de datos.
+        if (Env::get('SESSION_DRIVER', 'files') === 'database') {
+            session_set_save_handler(new ManejadorSesionBD(), true);
+        }
 
         session_set_cookie_params([
             'lifetime' => 0,

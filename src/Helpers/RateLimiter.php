@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Helpers;
 
 use App\Core\Database;
+use App\Core\Env;
 
 /**
  * LIMITADOR DE INTENTOS CON BLOQUEO PROGRESIVO
@@ -49,8 +50,8 @@ final class RateLimiter
         // El bloqueo venció o la ventana terminó: se abre una ventana nueva.
         $ventanaVencida = (time() - (int) strtotime((string) $fila['first_attempt'])) > $ventana;
         if (!empty($fila['blocked_until']) || $ventanaVencida) {
-            $db->prepare('UPDATE login_attempts SET attempts = 0, first_attempt = NOW(), blocked_until = NULL WHERE identificador = ?')
-               ->execute([$clave]);
+            $db->prepare('UPDATE login_attempts SET attempts = 0, first_attempt = ?, blocked_until = NULL WHERE identificador = ?')
+               ->execute([date('Y-m-d H:i:s'), $clave]);
             return false;
         }
 
@@ -72,8 +73,8 @@ final class RateLimiter
         $fila = $stmt->fetch();
 
         if (!$fila) {
-            $db->prepare('INSERT INTO login_attempts (identificador, attempts, first_attempt, block_count) VALUES (?, 1, NOW(), 0)')
-               ->execute([$clave]);
+            $db->prepare('INSERT INTO login_attempts (identificador, attempts, first_attempt, block_count) VALUES (?, 1, ?, 0)')
+               ->execute([$clave, date('Y-m-d H:i:s')]);
             return;
         }
 
@@ -111,6 +112,27 @@ final class RateLimiter
      */
     public static function claveParaIp(string $accion): string
     {
-        return $accion . '_' . ($_SERVER['REMOTE_ADDR'] ?? 'desconocida');
+        return $accion . '_' . self::ipCliente();
+    }
+
+    /**
+     * IP del cliente que hace la petición.
+     *
+     * Con TRUST_PROXY=true en el .env (por ejemplo en Vercel, donde todas las
+     * peticiones llegan a través de su proxy) se toma la IP que el proxy envía
+     * en X-Real-IP o X-Forwarded-For. Activarlo solo detrás de un proxy de
+     * confianza: sin proxy, el cliente podría falsificar esas cabeceras.
+     */
+    public static function ipCliente(): string
+    {
+        if (Env::get('TRUST_PROXY', 'false') === 'true') {
+            $reenviada = (string) ($_SERVER['HTTP_X_REAL_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '');
+            $ip = trim(explode(',', $reenviada)[0]);
+            if (filter_var($ip, FILTER_VALIDATE_IP) !== false) {
+                return $ip;
+            }
+        }
+
+        return (string) ($_SERVER['REMOTE_ADDR'] ?? 'desconocida');
     }
 }

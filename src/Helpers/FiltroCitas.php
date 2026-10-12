@@ -84,7 +84,9 @@ final class FiltroCitas
         if ($this->paciente !== '') {
             // Se escapan los comodines de LIKE para buscar el texto tal como se escribió.
             $patron = '%' . addcslashes($this->paciente, '%_\\') . '%';
-            $condiciones[] = "(p.nombre LIKE ? OR p.apellido_paterno LIKE ? OR CONCAT(p.nombre, ' ', p.apellido_paterno) LIKE ?)";
+            // LOWER() en ambos lados: en PostgreSQL LIKE distingue mayúsculas, en MySQL no.
+            $condiciones[] = "(LOWER(p.nombre) LIKE LOWER(?) OR LOWER(p.apellido_paterno) LIKE LOWER(?)"
+                . " OR LOWER(CONCAT(p.nombre, ' ', p.apellido_paterno)) LIKE LOWER(?))";
             array_push($params, $patron, $patron, $patron);
         }
 

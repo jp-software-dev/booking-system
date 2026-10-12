@@ -15,6 +15,7 @@
 
 require_once __DIR__ . '/../config/config.php';
 
+use App\Core\Database;
 use App\Helpers\Bitacora;
 use App\Helpers\RateLimiter;
 use App\Helpers\ValidationHelper;
@@ -29,7 +30,7 @@ Api::iniciar('POST');
 
 // === HONEYPOT ===
 if (!empty($_POST['sitio_web'])) {
-    error_log('Honeypot activado en registro desde la IP ' . ($_SERVER['REMOTE_ADDR'] ?? 'desconocida'));
+    error_log('Honeypot activado en registro desde la IP ' . RateLimiter::ipCliente());
     Api::error('No fue posible procesar el registro.');
 }
 
@@ -133,7 +134,7 @@ try {
     ], $hash);
 } catch (PDOException $e) {
     // Dos registros simultáneos con el mismo correo: el índice único rechaza el segundo.
-    if (($e->errorInfo[1] ?? null) === 1062) {
+    if (Database::esLlaveDuplicada($e)) {
         Api::error('El correo ya está registrado', 409);
     }
     throw $e;

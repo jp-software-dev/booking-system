@@ -16,6 +16,7 @@
 
 require_once __DIR__ . '/../config/config.php';
 
+use App\Demo\ModoDemo;
 use App\Helpers\Bitacora;
 use App\Helpers\RateLimiter;
 use App\Http\Api;
@@ -28,6 +29,11 @@ Api::iniciar('POST');
 $idPaciente = Api::exigirSesion(Sesion::ROL_PACIENTE);
 $entrada = Api::leerJson();
 Api::exigirCsrf($entrada);
+
+// En modo demo la cuenta de paciente de prueba es compartida: no se puede modificar.
+if (ModoDemo::esPacienteDemo($idPaciente)) {
+    Api::error(ModoDemo::MENSAJE_BLOQUEO, 403);
+}
 
 $actual = (string) ($entrada['password_actual'] ?? '');
 $nueva = (string) ($entrada['password_nueva'] ?? '');

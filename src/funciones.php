@@ -27,13 +27,22 @@ if (!function_exists('asset')) {
      * basado en su fecha de modificación. Así el navegador guarda el archivo en
      * caché y solo descarga uno nuevo cuando cambia.
      *
+     * En Vercel todos los archivos desplegados tienen la misma fecha de
+     * modificación, así que la versión es el commit del despliegue.
+     *
      * @param string $ruta Ruta relativa dentro de public/assets (ej. "js/calendar.js").
      */
     function asset(string $ruta): string
     {
         $ruta = ltrim($ruta, '/');
         $archivo = __DIR__ . '/../public/assets/' . $ruta;
-        $version = is_file($archivo) ? (string) filemtime($archivo) : '0';
+        $commit = (string) getenv('VERCEL_GIT_COMMIT_SHA');
+
+        if ($commit !== '') {
+            $version = substr($commit, 0, 12);
+        } else {
+            $version = is_file($archivo) ? (string) filemtime($archivo) : '0';
+        }
 
         return 'assets/' . $ruta . '?v=' . $version;
     }

@@ -31,9 +31,6 @@ use Throwable;
  */
 final class AppointmentController
 {
-    /** Código de error de MySQL para una llave única duplicada (horario ya ocupado). */
-    private const MYSQL_LLAVE_DUPLICADA = 1062;
-
     private PDO $db;
     private Cita $citas;
     private Doctor $doctores;
@@ -359,13 +356,14 @@ final class AppointmentController
     }
 
     /**
-     * Indica si la excepción se debe al índice único de horarios (slot_activo).
+     * Indica si la excepción se debe al índice único de horarios activos: otra
+     * cita activa ya ocupa ese médico, fecha y hora.
      *
      * @param PDOException $e Excepción de la base de datos.
      */
     private static function esHorarioDuplicado(PDOException $e): bool
     {
-        return ($e->errorInfo[1] ?? null) === self::MYSQL_LLAVE_DUPLICADA;
+        return Database::esLlaveDuplicada($e);
     }
 
     /**

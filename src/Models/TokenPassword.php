@@ -62,9 +62,9 @@ final class TokenPassword
      */
     public function emailDeRestablecimiento(string $token, bool $bloquear = false): ?string
     {
-        $sql = 'SELECT email FROM password_resets WHERE token = ? AND expira > NOW() AND usado = 0';
+        $sql = 'SELECT email FROM password_resets WHERE token = ? AND expira > ? AND usado = 0';
         $stmt = $this->db->prepare($sql . ($bloquear ? ' FOR UPDATE' : ''));
-        $stmt->execute([self::huella($token)]);
+        $stmt->execute([self::huella($token), self::ahora()]);
         $email = $stmt->fetchColumn();
 
         return $email === false ? null : (string) $email;
@@ -109,9 +109,9 @@ final class TokenPassword
     public function cambioPendienteVigente(string $token): bool
     {
         $stmt = $this->db->prepare(
-            'SELECT COUNT(*) FROM cambios_password_pendientes WHERE token = ? AND expira > NOW() AND usado = 0'
+            'SELECT COUNT(*) FROM cambios_password_pendientes WHERE token = ? AND expira > ? AND usado = 0'
         );
-        $stmt->execute([self::huella($token)]);
+        $stmt->execute([self::huella($token), self::ahora()]);
 
         return (int) $stmt->fetchColumn() > 0;
     }
@@ -127,9 +127,9 @@ final class TokenPassword
     {
         $stmt = $this->db->prepare(
             'SELECT id, id_paciente, nuevo_hash FROM cambios_password_pendientes
-             WHERE token = ? AND expira > NOW() AND usado = 0 FOR UPDATE'
+             WHERE token = ? AND expira > ? AND usado = 0 FOR UPDATE'
         );
-        $stmt->execute([self::huella($token)]);
+        $stmt->execute([self::huella($token), self::ahora()]);
         $pendiente = $stmt->fetch();
 
         if (!$pendiente) {
@@ -157,6 +157,16 @@ final class TokenPassword
     private static function huella(string $token): string
     {
         return hash('sha256', $token);
+    }
+
+    /**
+     * Fecha y hora actual. Se calcula en PHP (y no con NOW() en SQL) para que la
+     * comparación con la fecha de vencimiento use la misma zona horaria con la
+     * que se guardó, sin importar la del servidor de base de datos.
+     */
+    private static function ahora(): string
+    {
+        return date('Y-m-d H:i:s');
     }
 
     /**

@@ -1,8 +1,27 @@
-# Migraciones de la base de datos
+# Base de datos
 
-El esquema base **no está versionado**: el volcado original (`citas.sql`) contiene
-datos reales y `.gitignore` lo excluye. Estos archivos son los cambios que se le
-aplicaron después, en el orden en que se agregaron al repositorio:
+## Instalación nueva
+
+| Motor | Archivo | Cuándo usarlo |
+|-------|---------|---------------|
+| MySQL / MariaDB | `schema_mysql.sql` | XAMPP o cualquier hosting con MySQL. |
+| PostgreSQL | `schema_pgsql.sql` | Supabase u otro PostgreSQL. En Supabase ejecuta antes `supabase_setup.sql`. |
+
+Ambos crean solo la estructura, sin datos. Para llenar la base con datos ficticios
+(demo), pon `DEMO_MODE=true` en el `.env` y ejecuta:
+
+```bash
+php database/sembrar_demo.php --confirmar
+```
+
+El script **borra todos los datos** de la base del `.env`. Por eso exige
+`DEMO_MODE=true` y `--confirmar`: nunca lo uses con una base real.
+
+## Migraciones de la base existente (MySQL)
+
+El volcado original de la base real (`citas.sql`) **no está versionado** porque
+contiene datos reales; `.gitignore` lo excluye. Estos archivos son los cambios
+que se le aplicaron después, en el orden en que se agregaron al repositorio:
 
 | # | Archivo | Qué hace |
 |---|---------|----------|
@@ -20,6 +39,7 @@ aplicaron después, en el orden en que se agregaron al repositorio:
 | 12 | `migration_quitar_fk_bitacora.sql` | Quita la llave foránea de `bitacora.id_usuario`. |
 | 13 | `migration_slot_activo_real.sql` | Columna generada `citas.slot_activo` con índice único (impide dos citas activas del mismo médico a la misma hora). |
 | 14 | `migration_eliminar_curp.sql` | Elimina `pacientes.curp`. **Irreversible.** |
+| 15 | `migration_sesiones.sql` | Tabla `sesiones`. Solo si se usa `SESSION_DRIVER=database`. |
 
 ## Antes de aplicar una migración
 
