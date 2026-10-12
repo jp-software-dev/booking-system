@@ -73,6 +73,14 @@ $esActiva = static fn (array $opcion): bool => $opcion['url'] === $paginaActual;
 </head>
 <body class="d-flex flex-column min-vh-100 bg-light">
 
+<?php if (\App\Demo\ModoDemo::activo()): ?>
+    <!-- === AVISO DE MODO DEMOSTRACIÓN === -->
+    <div class="bg-warning-subtle text-warning-emphasis text-center small py-2 px-3 border-bottom">
+        <i class="bi bi-info-circle-fill me-1"></i>
+        <strong>Demo:</strong> todos los datos son ficticios y se reinician cada día.
+    </div>
+<?php endif; ?>
+
 <!-- === BARRA DE NAVEGACIÓN (ESCRITORIO) === -->
 <nav class="navbar navbar-expand-lg bg-white sticky-top py-3 shadow-sm">
     <div class="container">
