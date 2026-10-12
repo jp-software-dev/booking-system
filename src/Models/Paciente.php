@@ -84,7 +84,9 @@ final class Paciente
 
         if ($busqueda !== '') {
             $patron = '%' . addcslashes($busqueda, '%_\\') . '%';
-            $condiciones[] = '(nombre LIKE ? OR apellido_paterno LIKE ? OR apellido_materno LIKE ? OR email LIKE ?)';
+            // LOWER() en ambos lados: en PostgreSQL LIKE distingue mayúsculas, en MySQL no.
+            $condiciones[] = '(LOWER(nombre) LIKE LOWER(?) OR LOWER(apellido_paterno) LIKE LOWER(?)'
+                . ' OR LOWER(apellido_materno) LIKE LOWER(?) OR LOWER(email) LIKE LOWER(?))';
             array_push($params, $patron, $patron, $patron, $patron);
         }
 
@@ -110,19 +112,22 @@ final class Paciente
         $this->db->beginTransaction();
 
         try {
-            $this->db->prepare(
-                'INSERT INTO pacientes (nombre, apellido_paterno, apellido_materno, fecha_nacimiento, genero, telefono, email)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)'
-            )->execute([
-                $datos['nombre'],
-                $datos['apellido_paterno'],
-                $datos['apellido_materno'],
-                $datos['fecha_nacimiento'],
-                $datos['genero'],
-                $datos['telefono'],
-                $datos['email'],
-            ]);
-            $idPaciente = (int) $this->db->lastInsertId();
+            $idPaciente = Database::insertar(
+                $this->db,
+                'INSERT INTO pacientes (nombre, apellido_paterno, apellido_materno, fecha_nacimiento, genero, telefono, email, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                [
+                    $datos['nombre'],
+                    $datos['apellido_paterno'],
+                    $datos['apellido_materno'],
+                    $datos['fecha_nacimiento'],
+                    $datos['genero'],
+                    $datos['telefono'],
+                    $datos['email'],
+                    date('Y-m-d H:i:s'),
+                ],
+                'id_paciente'
+            );
 
             $this->db
                 ->prepare('INSERT INTO pacientes_credenciales (id_paciente, password_hash, cuenta_verificada) VALUES (?, ?, 1)')
@@ -138,14 +143,14 @@ final class Paciente
     }
 
     /**
-     * Indica si un correo ya está registrado.
+     * Indica si un correo ya está registrado (sin distinguir mayúsculas).
      *
      * @param string   $email     Correo a buscar.
      * @param int|null $excluirId Paciente a ignorar (el que edita su propio perfil).
      */
     public function existeEmail(string $email, ?int $excluirId = null): bool
     {
-        $stmt = $this->db->prepare('SELECT COUNT(*) FROM pacientes WHERE email = ? AND id_paciente <> ?');
+        $stmt = $this->db->prepare('SELECT COUNT(*) FROM pacientes WHERE LOWER(email) = LOWER(?) AND id_paciente <> ?');
         $stmt->execute([$email, $excluirId ?? 0]);
 
         return (int) $stmt->fetchColumn() > 0;
@@ -158,7 +163,7 @@ final class Paciente
      */
     public function buscarIdActivoPorEmail(string $email): ?int
     {
-        $stmt = $this->db->prepare('SELECT id_paciente FROM pacientes WHERE email = ? AND cuenta_eliminada = 0');
+        $stmt = $this->db->prepare('SELECT id_paciente FROM pacientes WHERE LOWER(email) = LOWER(?) AND cuenta_eliminada = 0');
         $stmt->execute([$email]);
         $id = $stmt->fetchColumn();
 
@@ -177,7 +182,7 @@ final class Paciente
             'SELECT p.id_paciente, p.nombre, pc.password_hash
              FROM pacientes p
              INNER JOIN pacientes_credenciales pc ON p.id_paciente = pc.id_paciente
-             WHERE p.email = ? AND p.cuenta_eliminada = 0'
+             WHERE LOWER(p.email) = LOWER(?) AND p.cuenta_eliminada = 0'
         );
         $stmt->execute([$email]);
 
