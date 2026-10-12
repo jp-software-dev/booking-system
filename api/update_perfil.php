@@ -19,6 +19,8 @@
 
 require_once __DIR__ . '/../config/config.php';
 
+use App\Core\Database;
+use App\Demo\ModoDemo;
 use App\Helpers\Bitacora;
 use App\Helpers\ValidationHelper;
 use App\Http\Api;
@@ -41,6 +43,12 @@ $pacientes = new Paciente();
 $actual = $pacientes->obtenerPorId($idPaciente);
 if ($actual === null) {
     Api::error('Cuenta no encontrada', 404);
+}
+
+// En modo demo los datos de la cuenta de paciente de prueba no se pueden cambiar
+// (la preferencia de notificaciones sí, porque no afecta a otros visitantes).
+if ($actualizaPerfil && ModoDemo::esPacienteDemo($idPaciente)) {
+    Api::error(ModoDemo::MENSAJE_BLOQUEO, 403);
 }
 
 // === DATOS PERSONALES ===
@@ -89,7 +97,7 @@ if ($actualizaPerfil) {
     try {
         $pacientes->actualizarPerfil($idPaciente, $nombre, $apellidoPaterno, $apellidoMaterno !== '' ? $apellidoMaterno : null, $telefono, $email);
     } catch (PDOException $e) {
-        if (($e->errorInfo[1] ?? null) === 1062) {
+        if (Database::esLlaveDuplicada($e)) {
             Api::error('Ese correo ya está en uso por otra cuenta', 409);
         }
         throw $e;
