@@ -9,6 +9,17 @@
 
 **MediAgenda** is a professional medical appointment management system built with PHP. This project implements a robust architecture focused on scalability, security, and efficient data handling for healthcare environments, providing total administrative control over the clinic's daily operations.
 
+## 🌐 Live Demo
+
+**[mediagenda.vanguarddevsec.com](https://mediagenda.vanguarddevsec.com)** — all data is fictitious and resets every day.
+
+| Role | User | Password |
+|------|------|----------|
+| Admin | `demo.admin` | `Demo2026!` |
+| Patient | `paciente@example.com` | `Demo2026!` |
+
+Hosted on Vercel (PHP serverless runtime) with a PostgreSQL database on Supabase. See [`docs/DESPLIEGUE.md`](docs/DESPLIEGUE.md) (Spanish) for the full deployment guide.
+
 ## ✨ Key Features
 
 * **Advanced Admin Panel:** A centralized, secure administrative dashboard providing complete control over patient records, medical shifts, and staff information.
@@ -28,7 +39,7 @@
 ## 🛠 Technical Stack
 
 * **Backend:** PHP (OOP), PDO.
-* **Database:** MySQL with a structured relational schema.
+* **Database:** MySQL / MariaDB (XAMPP) or PostgreSQL (Supabase); the SQL is portable between both.
 * **Frontend:** HTML5, CSS3, JavaScript, Bootstrap Modals, Chart.js (for analytics).
 * **Dependencies:** Managed via Composer.
 
@@ -49,7 +60,7 @@ Requirements: PHP 8.1+, MySQL or MariaDB 10.4+, Composer, and Apache with `mod_r
    cp .env.example .env
    ```
    Set `MAIL_DRIVER=log` during development to write emails to the PHP error log instead of sending them.
-4. Create the database from your base dump and apply the migrations described in [`database/README.md`](database/README.md).
-5. Open `http://localhost/<project-folder>/public/` in your browser.
+4. Create the database with [`database/schema_mysql.sql`](database/schema_mysql.sql). To fill it with fictitious data, set `DEMO_MODE=true` in `.env` and run `php database/sembrar_demo.php --confirmar` (it **erases** the configured database). See [`database/README.md`](database/README.md) for details and for the migrations of existing databases.
+5. Open `http://localhost/<project-folder>/` in your browser.
 
-> The base schema dump is not versioned because it contains real data. Ask the project owner for a copy.
+> The original database dump is not versioned because it contains real data.
