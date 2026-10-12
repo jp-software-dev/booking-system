@@ -78,5 +78,8 @@ set_exception_handler(static function (Throwable $e): void {
 
 // === 5. SESIÓN SEGURA ===
 // La cookie solo viaja por HTTPS en producción o si la petición ya llegó por HTTPS.
-$esHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
-Sesion::iniciar(ES_PRODUCCION || $esHttps);
+// Desde la línea de comandos (scripts como database/sembrar_demo.php) no hay sesión.
+if (PHP_SAPI !== 'cli') {
+    $esHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+    Sesion::iniciar(ES_PRODUCCION || $esHttps);
+}
