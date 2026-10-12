@@ -105,7 +105,8 @@ final class Auditoria
                 $params[] = (int) $filtros['usuario'];
             } else {
                 $patron = '%' . addcslashes($filtros['usuario'], '%_\\') . '%';
-                $condiciones[] = '(u.nombre_usuario LIKE ? OR b.rol LIKE ?)';
+                // LOWER() en ambos lados: en PostgreSQL LIKE distingue mayúsculas, en MySQL no.
+                $condiciones[] = '(LOWER(u.nombre_usuario) LIKE LOWER(?) OR LOWER(b.rol) LIKE LOWER(?))';
                 array_push($params, $patron, $patron);
             }
         }
