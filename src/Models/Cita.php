@@ -80,13 +80,13 @@ final class Cita
      */
     public function agendar(int $idPaciente, int $idDoctor, int $idConsultorio, string $fecha, string $hora, string $motivo): int
     {
-        $stmt = $this->db->prepare(
+        return Database::insertar(
+            $this->db,
             "INSERT INTO citas (id_paciente, id_doctor, id_consultorio, fecha_cita, hora_inicio, motivo_consulta, estado_cita)
-             VALUES (?, ?, ?, ?, ?, ?, 'Pendiente')"
+             VALUES (?, ?, ?, ?, ?, ?, 'Pendiente')",
+            [$idPaciente, $idDoctor, $idConsultorio, $fecha, $hora, $motivo],
+            'id_cita'
         );
-        $stmt->execute([$idPaciente, $idDoctor, $idConsultorio, $fecha, $hora, $motivo]);
-
-        return (int) $this->db->lastInsertId();
     }
 
     /**
@@ -172,9 +172,9 @@ final class Cita
         $stmt = $this->db->prepare(
             "SELECT COUNT(*) FROM citas
              WHERE id_paciente = ? AND estado_cita IN ('Pendiente', 'Confirmada', 'En Curso')
-               AND fecha_cita >= CURDATE()"
+               AND fecha_cita >= ?"
         );
-        $stmt->execute([$idPaciente]);
+        $stmt->execute([$idPaciente, date('Y-m-d')]);
 
         return (int) $stmt->fetchColumn();
     }
@@ -189,9 +189,9 @@ final class Cita
         $stmt = $this->db->prepare(
             "SELECT COUNT(*) FROM citas
              WHERE id_doctor = ? AND estado_cita IN ('Pendiente', 'Confirmada')
-               AND (fecha_cita > CURDATE() OR (fecha_cita = CURDATE() AND hora_inicio > CURTIME()))"
+               AND (fecha_cita > ? OR (fecha_cita = ? AND hora_inicio > ?))"
         );
-        $stmt->execute([$idDoctor]);
+        $stmt->execute(array_merge([$idDoctor], self::parametrosFuturo()));
 
         return (int) $stmt->fetchColumn();
     }
@@ -208,9 +208,9 @@ final class Cita
         $stmt = $this->db->prepare(
             "UPDATE citas SET estado_cita = 'Cancelada'
              WHERE id_paciente = ? AND estado_cita IN ('Pendiente', 'Confirmada')
-               AND (fecha_cita > CURDATE() OR (fecha_cita = CURDATE() AND hora_inicio > CURTIME()))"
+               AND (fecha_cita > ? OR (fecha_cita = ? AND hora_inicio > ?))"
         );
-        $stmt->execute([$idPaciente]);
+        $stmt->execute(array_merge([$idPaciente], self::parametrosFuturo()));
 
         return $stmt->rowCount();
     }
@@ -268,9 +268,9 @@ final class Cita
     {
         $fila = $this->db->query(
             "SELECT COUNT(*) AS total,
-                    SUM(estado_cita = 'Pendiente') AS pendientes,
-                    SUM(estado_cita = 'Confirmada') AS confirmadas,
-                    SUM(estado_cita = 'Completada') AS completadas
+                    SUM(CASE WHEN estado_cita = 'Pendiente' THEN 1 ELSE 0 END) AS pendientes,
+                    SUM(CASE WHEN estado_cita = 'Confirmada' THEN 1 ELSE 0 END) AS confirmadas,
+                    SUM(CASE WHEN estado_cita = 'Completada' THEN 1 ELSE 0 END) AS completadas
              FROM citas"
         )->fetch() ?: [];
 
@@ -324,12 +324,13 @@ final class Cita
                     d.nombre AS doctor_nombre, d.apellido_paterno AS doctor_apellido
              FROM citas c
              JOIN doctores d ON c.id_doctor = d.id_doctor
-             WHERE c.id_paciente = ? AND c.fecha_cita >= CURDATE() AND c.estado_cita IN ('Pendiente', 'Confirmada')
+             WHERE c.id_paciente = ? AND c.fecha_cita >= ? AND c.estado_cita IN ('Pendiente', 'Confirmada')
              ORDER BY c.fecha_cita ASC, c.hora_inicio ASC
              LIMIT ?"
         );
         $stmt->bindValue(1, $idPaciente, PDO::PARAM_INT);
-        $stmt->bindValue(2, $limite, PDO::PARAM_INT);
+        $stmt->bindValue(2, date('Y-m-d'));
+        $stmt->bindValue(3, $limite, PDO::PARAM_INT);
         $stmt->execute();
 
         return $stmt->fetchAll();
@@ -361,6 +362,22 @@ final class Cita
         $this->db->prepare('UPDATE citas SET oculto_para_paciente = 1 WHERE id_cita = ?')->execute([$idCita]);
 
         return null;
+    }
+
+    /**
+     * Parámetros [hoy, hoy, hora actual] para la condición "la cita todavía no ocurre":
+     * (fecha_cita > ? OR (fecha_cita = ? AND hora_inicio > ?)).
+     *
+     * La fecha y la hora se calculan en PHP para no depender de la zona horaria
+     * del servidor de base de datos.
+     *
+     * @return array{0: string, 1: string, 2: string}
+     */
+    private static function parametrosFuturo(): array
+    {
+        $hoy = date('Y-m-d');
+
+        return [$hoy, $hoy, date('H:i:s')];
     }
 
     /**
