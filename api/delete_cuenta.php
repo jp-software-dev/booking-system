@@ -17,6 +17,7 @@
 require_once __DIR__ . '/../config/config.php';
 
 use App\Core\Database;
+use App\Demo\ModoDemo;
 use App\Helpers\Bitacora;
 use App\Http\Api;
 use App\Http\Sesion;
@@ -27,6 +28,11 @@ Api::iniciar('POST');
 $idPaciente = Api::exigirSesion(Sesion::ROL_PACIENTE);
 $entrada = Api::leerJson();
 Api::exigirCsrf($entrada);
+
+// En modo demo la cuenta de paciente de prueba es compartida: no se puede modificar.
+if (ModoDemo::esPacienteDemo($idPaciente)) {
+    Api::error(ModoDemo::MENSAJE_BLOQUEO, 403);
+}
 
 // Confirmación explícita (casilla del modal) y contraseña, por ser una acción irreversible.
 if (empty($entrada['confirmar'])) {
