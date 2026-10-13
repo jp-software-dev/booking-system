@@ -21,9 +21,9 @@ Options -Indexes
     # Archivos y carpetas ocultas (.git, .env, .claude, .hintrc...), salvo /.well-known.
     RewriteRule (^|/)\.(?!well-known(/|$)) - [F,L]
 
-    # Carpetas internas: configuración, migraciones, código fuente y dependencias.
+    # Carpetas internas: configuración, migraciones, código fuente, dependencias y pruebas.
     # (vendor/ no trae .htaccess propio porque lo crea Composer.)
-    RewriteRule ^(config|database|src|vendor)(/|$) - [F,L]
+    RewriteRule ^(config|database|src|tests|vendor)(/|$) - [F,L]
 </IfModule>
 
 # Archivos de configuración y documentación del proyecto.
