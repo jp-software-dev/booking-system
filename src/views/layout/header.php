@@ -61,6 +61,7 @@ $esActiva = static fn (array $opcion): bool => $opcion['url'] === $paginaActual;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="<?= e($csrfToken) ?>">
     <title><?= e(APP_NAME) ?> | Gestión Hospitalaria</title>
+    <link rel="icon" type="image/svg+xml" href="<?= e(asset('images/favicon.svg')) ?>">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="<?= e(asset('css/styles.css')) ?>">
