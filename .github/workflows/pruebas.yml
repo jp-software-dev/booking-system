@@ -1,0 +1,129 @@
+# PRUEBAS AUTOMÁTICAS
+#
+# En cada pull request hacia main y en cada push a developer:
+#   1. Crea una base vacía (MariaDB y PostgreSQL, en paralelo) con el esquema del repositorio.
+#   2. La llena con los datos de demostración.
+#   3. Levanta la app con el mismo punto de entrada que Vercel (api/vercel.php).
+#   4. Corre tests/prueba_integracion.py y revisa que PHP no haya dejado errores ni avisos.
+
+name: Pruebas
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [developer]
+
+permissions:
+  contents: read
+
+jobs:
+  integracion:
+    name: Integración (${{ matrix.nombre }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Como en XAMPP: MariaDB 10.4 y sesiones en archivos.
+          - nombre: MariaDB
+            driver: mysql
+            puerto: 3306
+            usuario: root
+            sesiones: files
+          # Como en la demo: PostgreSQL (Supabase) y sesiones en la base de datos.
+          - nombre: PostgreSQL
+            driver: pgsql
+            puerto: 5432
+            usuario: postgres
+            sesiones: database
+
+    services:
+      mariadb:
+        image: mariadb:10.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci_password
+          MYSQL_DATABASE: mediagenda
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pci_password"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: ci_password
+          POSTGRES_DB: mediagenda
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+
+    # Configuración de la app por variables de entorno (en CI no hay archivo .env).
+    env:
+      APP_ENV: local
+      URL_BASE: http://127.0.0.1:8000
+      DB_DRIVER: ${{ matrix.driver }}
+      DB_HOST: 127.0.0.1
+      DB_PORT: ${{ matrix.puerto }}
+      DB_NAME: mediagenda
+      DB_USER: ${{ matrix.usuario }}
+      DB_PASS: ci_password
+      DB_SSLMODE: disable
+      SESSION_DRIVER: ${{ matrix.sesiones }}
+      MAIL_DRIVER: log
+      DEMO_MODE: "true"
+      TRUST_PROXY: "false"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar PHP 8.3 (la versión de Vercel)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: pdo_mysql, pdo_pgsql, mbstring, gd, dom
+          tools: composer
+          coverage: none
+
+      - name: Instalar dependencias de Composer
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Crear el esquema (MariaDB)
+        if: matrix.driver == 'mysql'
+        run: mysql -h 127.0.0.1 -u root -pci_password mediagenda < database/schema_mysql.sql
+
+      - name: Crear el esquema (PostgreSQL)
+        if: matrix.driver == 'pgsql'
+        env:
+          PGPASSWORD: ci_password
+        run: psql -h 127.0.0.1 -U postgres -d mediagenda -v ON_ERROR_STOP=1 -q -f database/schema_pgsql.sql
+
+      - name: Llenar con datos de demostración
+        run: php database/sembrar_demo.php --confirmar
+
+      - name: Levantar la app con el punto de entrada de Vercel
+        run: |
+          VERCEL=1 php -d error_log="$RUNNER_TEMP/php.log" -d log_errors=1 -d display_errors=0 \
+            -S 127.0.0.1:8000 api/vercel.php > "$RUNNER_TEMP/servidor.log" 2>&1 &
+          for i in $(seq 1 30); do
+            curl -s -o /dev/null http://127.0.0.1:8000/public/login.php && exit 0
+            sleep 1
+          done
+          echo "La app no respondió"; cat "$RUNNER_TEMP/servidor.log"; exit 1
+
+      - name: Pruebas de integración
+        run: python3 tests/prueba_integracion.py --base http://127.0.0.1:8000 --log "$RUNNER_TEMP/php.log"
+
+      - name: Sin errores ni avisos de PHP
+        run: |
+          if grep -E "PHP (Fatal error|Warning|Notice|Deprecated|Parse error)" "$RUNNER_TEMP/php.log"; then
+            echo "PHP dejó errores o avisos en el log"; exit 1
+          fi
+
+      - name: Logs (solo si algo falló)
+        if: failure()
+        run: |
+          echo "=== Log de PHP ==="; cat "$RUNNER_TEMP/php.log" || true
+          echo "=== Servidor ==="; cat "$RUNNER_TEMP/servidor.log" || true
