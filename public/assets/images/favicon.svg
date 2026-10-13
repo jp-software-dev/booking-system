@@ -1,5 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Ícono de MediAgenda: cruz médica blanca sobre el azul principal (--primary). -->
+  <!-- Ícono de MediAgenda: cruz médica con línea de pulso, en el azul principal (--primary). -->
   <rect width="64" height="64" rx="14" fill="#1a56db"/>
-  <path d="M26 14h12v12h12v12H38v12H26V38H14V26h12z" fill="#ffffff"/>
+  <rect x="24" y="10" width="16" height="44" rx="4" fill="#ffffff"/>
+  <rect x="10" y="24" width="44" height="16" rx="4" fill="#ffffff"/>
+  <polyline points="15,32 24,32 28,24 33,41 37,28 40,32 49,32" fill="none" stroke="#1a56db" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
