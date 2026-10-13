@@ -39,8 +39,12 @@ require __DIR__ . '/../src/views/layout/header.php';
                 </div>
             </div>
             <div class="col-lg-6 mt-5 mt-lg-0 text-center">
-                <video autoplay muted loop playsinline class="w-100 rounded-4 shadow-lg" style="object-fit: cover; max-height: 600px;">
-                    <source src="assets/videos/doctor.mp4" type="video/mp4">
+                <!-- La portada (poster) se ve mientras el video carga; width/height reservan el
+                     espacio para que la página no salte cuando aparece. -->
+                <video autoplay muted loop playsinline width="1280" height="720"
+                       poster="<?= e(asset('images/doctor-poster.jpg')) ?>"
+                       class="w-100 h-auto rounded-4 shadow-lg" style="object-fit: cover; max-height: 600px;">
+                    <source src="<?= e(asset('videos/doctor.mp4')) ?>" type="video/mp4">
                 </video>
             </div>
         </div>
