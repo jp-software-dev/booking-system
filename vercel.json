@@ -20,6 +20,22 @@
       }
     },
     {
+      "src": "/favicon\\.ico",
+      "dest": "/public/assets/images/favicon.ico",
+      "headers": {
+        "cache-control": "public, max-age=86400",
+        "x-content-type-options": "nosniff"
+      }
+    },
+    {
+      "src": "/apple-touch-icon(-precomposed)?\\.png",
+      "dest": "/public/assets/images/apple-touch-icon.png",
+      "headers": {
+        "cache-control": "public, max-age=86400",
+        "x-content-type-options": "nosniff"
+      }
+    },
+    {
       "src": "/(.*)",
       "dest": "/api/vercel.php",
       "headers": {
