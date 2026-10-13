@@ -64,3 +64,13 @@ Requirements: PHP 8.1+, MySQL or MariaDB 10.4+, Composer, and Apache with `mod_r
 5. Open `http://localhost/<project-folder>/` in your browser.
 
 > The original database dump is not versioned because it contains real data.
+
+## ✅ Automated Tests
+
+[`tests/prueba_integracion.py`](tests/prueba_integracion.py) walks through the whole app (registration, booking, rescheduling, admin panel, password recovery, protected files and demo mode). GitHub Actions ([`.github/workflows/pruebas.yml`](.github/workflows/pruebas.yml)) runs it on every pull request to `main` against MariaDB 10.4 and PostgreSQL 15, using the same entry point as Vercel.
+
+To run it locally against a **throwaway** database seeded with demo data (it creates and deletes records):
+
+```bash
+python tests/prueba_integracion.py --base http://localhost/<project-folder> --log <path-to-php-error-log>
+```

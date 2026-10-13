@@ -6,5 +6,6 @@
 /.hintrc
 # Esquemas, migraciones y scripts de base de datos: se usan para preparar la base, no en la app.
 /database
-# Documentación del repositorio: no se usa en la app.
+# Documentación y pruebas del repositorio: no se usan en la app.
 /docs
+/tests
