@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Core\Database;
+use App\Http\Sesion;
 use PDO;
 
 /**
@@ -133,6 +134,22 @@ final class Receta
         $receta['medicamentos'] = (new Tratamiento($this->db))->listarPorReceta($idReceta);
 
         return $receta;
+    }
+
+    /**
+     * Indica si el usuario autenticado puede ver la receta: el administrador,
+     * el médico que la emitió o el paciente que la recibió.
+     *
+     * @param array<string, mixed> $receta Receta con id_doctor e id_paciente.
+     */
+    public static function puedeVer(array $receta): bool
+    {
+        return match (Sesion::rol()) {
+            Sesion::ROL_ADMIN    => true,
+            Sesion::ROL_DOCTOR   => (int) $receta['id_doctor'] === Sesion::doctorId(),
+            Sesion::ROL_PACIENTE => (int) $receta['id_paciente'] === Sesion::usuarioId(),
+            default              => false,
+        };
     }
 
     /**
