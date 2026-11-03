@@ -1,12 +1,13 @@
 /**
  * CLIENTE DE LA API Y UTILIDADES DE INTERFAZ
  *
- * Se carga en todas las páginas desde el layout (footer.php).
+ * Se carga en todas las páginas desde el layout (en el <head> de header.php).
  *
  * - apiClient: funciones para llamar a los endpoints de /api. Las peticiones
  *   POST envían el token CSRF en la cabecera X-CSRF-Token.
  * - mostrarAlerta / limpiarAlerta: avisos de Bootstrap con texto seguro.
  * - bloquearBoton: estado "procesando" de los botones de envío.
+ * - notificar: avisos flotantes (toasts) que se cierran solos.
  *
  * Todos los endpoints responden JSON con la forma { status, message, ... }
  * incluso cuando el código HTTP es de error (400, 403, 409...), así que la
@@ -136,4 +137,52 @@ function bloquearBoton(boton, textoProceso) {
  */
 function mensajeDeError(respuesta, porDefecto = MENSAJE_ERROR_CONEXION) {
     return respuesta?.message || porDefecto;
+}
+
+/**
+ * Muestra un aviso flotante (toast) en la esquina inferior y lo cierra solo.
+ * El texto se inserta como texto (no como HTML). Los lectores de pantalla lo
+ * anuncian porque el contenedor tiene aria-live.
+ *
+ * @param {'exito'|'error'|'info'} tipo    Tipo de aviso (define el ícono).
+ * @param {string}                 mensaje Texto a mostrar.
+ * @param {number}                 [duracion=4500] Milisegundos antes de cerrarse.
+ */
+function notificar(tipo, mensaje, duracion = 4500) {
+    const contenedor = document.getElementById('maAvisos');
+    if (!contenedor) {
+        return;
+    }
+
+    const iconos = { exito: 'bi-check-circle-fill', error: 'bi-exclamation-circle-fill', info: 'bi-info-circle-fill' };
+    const aviso = document.createElement('div');
+    aviso.className = `ma-aviso ${tipo}`;
+    aviso.setAttribute('role', tipo === 'error' ? 'alert' : 'status');
+
+    const icono = document.createElement('i');
+    icono.className = `bi ${iconos[tipo] || iconos.info}`;
+    icono.setAttribute('aria-hidden', 'true');
+
+    const texto = document.createElement('span');
+    texto.textContent = mensaje;
+
+    const cerrar = document.createElement('button');
+    cerrar.type = 'button';
+    cerrar.setAttribute('aria-label', 'Cerrar aviso');
+    cerrar.innerHTML = '<i class="bi bi-x" aria-hidden="true"></i>';
+
+    const quitar = () => {
+        if (aviso.classList.contains('saliendo')) {
+            return;
+        }
+        aviso.classList.add('saliendo');
+        aviso.addEventListener('animationend', () => aviso.remove(), { once: true });
+        // Respaldo por si la animación está desactivada (reducir movimiento).
+        setTimeout(() => aviso.remove(), 400);
+    };
+
+    cerrar.addEventListener('click', quitar);
+    aviso.append(icono, texto, cerrar);
+    contenedor.appendChild(aviso);
+    setTimeout(quitar, duracion);
 }
