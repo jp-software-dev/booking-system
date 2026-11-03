@@ -93,3 +93,6 @@ $RECYCLE.BIN/
 *.code-workspace
 *.swp
 *.swo
+# HERRAMIENTAS DE DISEÑO (bocetos y estado local de la guía de diseño)
+.impeccable/mocks/
+.impeccable/questions/
