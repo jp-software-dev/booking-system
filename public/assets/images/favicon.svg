@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Ícono de MediAgenda: cruz médica con línea de pulso, en el azul principal (--primary). -->
+  <!-- Ícono de MediAgenda: cruz médica con línea de pulso en el azul principal de la marca. -->
   <rect width="64" height="64" rx="14" fill="#1a56db"/>
   <rect x="24" y="10" width="16" height="44" rx="4" fill="#ffffff"/>
   <rect x="10" y="24" width="44" height="16" rx="4" fill="#ffffff"/>
