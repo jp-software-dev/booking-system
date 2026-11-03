@@ -51,4 +51,5 @@ foreach ($resumen as $tipo => $cantidad) {
 }
 echo "\nCuentas de prueba:\n";
 echo "  Administrador: " . ModoDemo::ADMIN_USUARIO . " / " . ModoDemo::PASSWORD . "\n";
+echo "  Médico:        " . ModoDemo::DOCTOR_USUARIO . " / " . ModoDemo::PASSWORD . "\n";
 echo "  Paciente:      " . ModoDemo::PACIENTE_EMAIL . " / " . ModoDemo::PASSWORD . "\n";
