@@ -40,6 +40,7 @@ que se le aplicaron después, en el orden en que se agregaron al repositorio:
 | 13 | `migration_slot_activo_real.sql` | Columna generada `citas.slot_activo` con índice único (impide dos citas activas del mismo médico a la misma hora). |
 | 14 | `migration_eliminar_curp.sql` | Elimina `pacientes.curp`. **Irreversible.** |
 | 15 | `migration_sesiones.sql` | Tabla `sesiones`. Solo si se usa `SESSION_DRIVER=database`. |
+| 16 | `migration_recetas_tratamientos.sql` | Rol `doctor` en `usuarios` (columna `id_doctor`), tablas `recetas`, `tratamientos`, `tomas` y `suscripciones_push`. Para PostgreSQL: `migration_recetas_tratamientos_pgsql.sql`. |
 
 ## Antes de aplicar una migración
 
