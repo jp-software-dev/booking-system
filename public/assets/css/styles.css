@@ -409,6 +409,9 @@ body.con-tabbar { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 .tratamiento-barra i { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: var(--tapa, var(--ma-accion)); transform-origin: left; animation: ma-crecer var(--ma-lento) var(--ma-curva) both; }
 
 /* === 6. COMPONENTES COMPARTIDOS === */
+.min-w-0 { min-width: 0; }
+.flex-none { flex: none; }
+
 .ma-chip { display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 999px; padding: 0.25rem 0.7rem; font-size: 0.78rem; font-weight: 800; background: var(--ma-superficie-2); color: var(--ma-tinta-2); }
 .ma-chip.exito { background: var(--ma-exito-suave); color: #17694b; }
 .ma-chip.aviso { background: var(--ma-aviso-suave); color: #7a4d00; }
