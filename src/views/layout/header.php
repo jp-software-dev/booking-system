@@ -2,70 +2,84 @@
 /**
  * LAYOUT: ENCABEZADO Y NAVEGACIÓN
  *
- * Abre el documento HTML, carga los estilos y dibuja la barra de navegación de
- * escritorio y el menú lateral de móvil. Cada página lo incluye después de
- * config/config.php y de haber preparado sus datos.
+ * Abre el documento HTML, carga los estilos y dibuja la navegación según el rol:
+ *   - Escritorio: barra superior con la navegación en píldoras.
+ *   - Celular: menú lateral (público, doctor y administrador) y, para el
+ *     paciente, una barra inferior al alcance del pulgar.
+ *
+ * Cada página lo incluye después de config/config.php y de haber preparado sus datos.
  *
  * Variables opcionales que la página puede definir antes de incluirlo:
  * @var list<string> $estilosExtra Hojas de estilo adicionales dentro de public/assets
  *                                 (ej. ['css/calendar.css']).
+ * @var string       $tituloPagina Título de la pestaña (por defecto, el nombre de la app).
  */
 
+use App\Demo\ModoDemo;
 use App\Helpers\CsrfHelper;
 use App\Http\Sesion;
 
 $paginaActual = basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
 $csrfToken = CsrfHelper::generateToken();
 $autenticado = Sesion::estaAutenticado();
-$esAdmin = Sesion::esAdmin();
+$rol = Sesion::rol();
 
-// === OPCIONES DE MENÚ ===
-// 'barra' => true indica que la opción también aparece en la barra superior de escritorio.
+// === OPCIONES DE MENÚ POR ROL ===
+// 'activa' lista las páginas que marcan la opción como actual (además de su url).
 $menuPublico = [
-    ['url' => 'index.php',    'icono' => 'bi-house-door-fill', 'texto' => 'Inicio'],
-    ['url' => 'contacto.php', 'icono' => 'bi-telephone-fill',  'texto' => 'Contacto'],
+    ['url' => 'index.php',    'icono' => 'bi-house-door', 'texto' => 'Inicio'],
+    ['url' => 'contacto.php', 'icono' => 'bi-telephone',  'texto' => 'Contacto'],
 ];
 
-$menuUsuario = $esAdmin
-    ? [
-        ['url' => 'admin.php',              'icono' => 'bi-speedometer2',    'texto' => 'Panel de Citas'],
-        ['url' => 'admin_dashboard.php',    'icono' => 'bi-bar-chart-fill',  'texto' => 'Dashboard'],
-        ['url' => 'agenda.php',             'icono' => 'bi-calendar-plus',   'texto' => 'Agendar Cita'],
-        ['url' => 'admin_historial.php',    'icono' => 'bi-clock-history',   'texto' => 'Historial de Citas'],
-        ['url' => 'admin_consultorios.php', 'icono' => 'bi-door-open',       'texto' => 'Consultorios'],
-        ['url' => 'admin_equipo.php',       'icono' => 'bi-people',          'texto' => 'Equipo Médico'],
-        ['url' => 'admin_pacientes.php',    'icono' => 'bi-people-fill',     'texto' => 'Pacientes'],
-        ['url' => 'admin_bitacora.php',     'icono' => 'bi-journal-text',    'texto' => 'Bitácora'],
-    ]
-    : [
-        ['url' => 'agenda.php',    'icono' => 'bi-calendar-plus', 'texto' => 'Reservar Cita',      'barra' => true],
-        ['url' => 'historial.php', 'icono' => 'bi-clock-history', 'texto' => 'Historial Médico',   'barra' => true],
-        ['url' => 'cuenta.php',    'icono' => 'bi-gear-fill',     'texto' => 'Administrar Cuenta'],
-    ];
+$menuPorRol = [
+    Sesion::ROL_PACIENTE => [
+        ['url' => 'tratamientos.php', 'icono' => 'bi-capsule',       'texto' => 'Mi semana'],
+        ['url' => 'agenda.php',       'icono' => 'bi-calendar-plus', 'texto' => 'Agendar'],
+        ['url' => 'historial.php',    'icono' => 'bi-clock-history', 'texto' => 'Mis citas'],
+        ['url' => 'cuenta.php',       'icono' => 'bi-person',        'texto' => 'Mi cuenta'],
+    ],
+    Sesion::ROL_DOCTOR => [
+        ['url' => 'doctor.php',         'icono' => 'bi-calendar-week',    'texto' => 'Mis citas'],
+        ['url' => 'doctor_recetas.php', 'icono' => 'bi-file-earmark-medical', 'texto' => 'Recetas'],
+    ],
+    Sesion::ROL_ADMIN => [
+        ['url' => 'admin.php',              'icono' => 'bi-calendar-check', 'texto' => 'Citas'],
+        ['url' => 'admin_dashboard.php',    'icono' => 'bi-bar-chart',      'texto' => 'Métricas'],
+        ['url' => 'agenda.php',             'icono' => 'bi-calendar-plus',  'texto' => 'Agendar'],
+        ['url' => 'admin_historial.php',    'icono' => 'bi-clock-history',  'texto' => 'Historial'],
+        ['url' => 'admin_pacientes.php',    'icono' => 'bi-people',         'texto' => 'Pacientes'],
+        ['url' => 'admin_equipo.php',       'icono' => 'bi-person-badge',   'texto' => 'Equipo'],
+        ['url' => 'admin_consultorios.php', 'icono' => 'bi-door-open',      'texto' => 'Consultorios'],
+        ['url' => 'admin_bitacora.php',     'icono' => 'bi-journal-text',   'texto' => 'Bitácora'],
+    ],
+];
 
-// Opciones visibles en la barra superior de escritorio.
-$menuBarra = $menuPublico;
-if ($autenticado) {
-    $menuBarra = array_merge($menuBarra, array_filter($menuUsuario, static fn (array $op): bool => !empty($op['barra'])));
-}
+$menu = $autenticado ? ($menuPorRol[$rol] ?? []) : $menuPublico;
+$conTabbar = $rol === Sesion::ROL_PACIENTE;
 
-/**
- * Indica si la opción de menú corresponde a la página actual.
- */
+/** Indica si la opción de menú corresponde a la página actual. */
 $esActiva = static fn (array $opcion): bool => $opcion['url'] === $paginaActual;
+
+// Inicial del nombre para el avatar.
+$inicial = mb_strtoupper(mb_substr(Sesion::nombre('U'), 0, 1));
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="<?= e($csrfToken) ?>">
-    <title><?= e(APP_NAME) ?> | Gestión Hospitalaria</title>
+    <meta name="theme-color" content="#ffffff">
+    <title><?= e(isset($tituloPagina) ? $tituloPagina . ' · ' . APP_NAME : APP_NAME . ' | Citas y tratamientos') ?></title>
     <!-- Favicon: ICO para navegadores antiguos, SVG nítido en cualquier tamaño y PNG para iPhone/iPad. -->
     <link rel="icon" href="<?= e(asset('images/favicon.ico')) ?>" sizes="any">
     <link rel="icon" type="image/svg+xml" href="<?= e(asset('images/favicon.svg')) ?>">
     <link rel="icon" type="image/png" sizes="32x32" href="<?= e(asset('images/favicon-32.png')) ?>">
     <link rel="apple-touch-icon" href="<?= e(asset('images/apple-touch-icon.png')) ?>">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="<?= e(asset('css/styles.css')) ?>">
@@ -76,127 +90,96 @@ $esActiva = static fn (array $opcion): bool => $opcion['url'] === $paginaActual;
          puedan usar apiClient desde el primer momento. Es un archivo pequeño. -->
     <script src="<?= e(asset('js/api_client.js')) ?>"></script>
 </head>
-<body class="d-flex flex-column min-vh-100 bg-light">
+<body class="d-flex flex-column min-vh-100 bg-light<?= $conTabbar ? ' con-tabbar' : '' ?>">
 
-<?php if (\App\Demo\ModoDemo::activo()): ?>
+<?php if (ModoDemo::activo()): ?>
     <!-- === AVISO DE MODO DEMOSTRACIÓN === -->
-    <div class="bg-warning-subtle text-warning-emphasis text-center small py-2 px-3 border-bottom">
-        <i class="bi bi-info-circle-fill me-1"></i>
+    <div class="ma-demo">
+        <i class="bi bi-info-circle-fill me-1" aria-hidden="true"></i>
         <strong>Demo:</strong> todos los datos son ficticios y se reinician cada día.
     </div>
 <?php endif; ?>
 
-<!-- === BARRA DE NAVEGACIÓN (ESCRITORIO) === -->
-<nav class="navbar navbar-expand-lg bg-white sticky-top py-3 shadow-sm">
-    <div class="container">
-        <a class="navbar-brand d-flex align-items-center" href="index.php">
-            <div class="bg-primary bg-opacity-10 rounded-3 p-2 me-2 text-primary d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                <i class="bi bi-hospital-fill fs-4"></i>
-            </div>
-            <span class="fw-bolder text-dark-blue fs-4"><?= e(APP_NAME) ?></span>
+<!-- === ENCABEZADO === -->
+<header class="ma-header">
+    <div class="container ma-header-fila">
+        <a class="ma-marca" href="<?= $autenticado ? e(Sesion::paginaInicio()) : 'index.php' ?>">
+            <img src="<?= e(asset('images/favicon.svg')) ?>" alt="" width="34" height="34">
+            <span><?= e(APP_NAME) ?></span>
         </a>
 
-        <button class="navbar-toggler border-0 p-2 shadow-none d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMenu" aria-controls="offcanvasMenu" aria-label="Abrir menú">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <div class="collapse navbar-collapse d-none d-lg-flex">
-            <ul class="navbar-nav mx-auto gap-2">
-                <?php foreach ($menuBarra as $opcion): ?>
-                    <li class="nav-item">
-                        <a class="nav-link rounded-pill px-3 fw-medium <?= $esActiva($opcion) ? 'active text-primary bg-primary bg-opacity-10' : 'text-secondary' ?>" href="<?= e($opcion['url']) ?>"><?= e($opcion['texto']) ?></a>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
-
-            <div class="navbar-nav align-items-center">
-                <?php if ($autenticado): ?>
-                    <div class="dropdown">
-                        <button class="btn btn-light rounded-pill px-4 dropdown-toggle fw-bold d-flex align-items-center gap-2 border shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-person-circle text-primary fs-5"></i>
-                            <?= e(Sesion::nombre()) ?>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg mt-2 p-2 rounded-4" style="min-width: 220px;">
-                            <?php foreach ($menuUsuario as $opcion): ?>
-                                <li><a class="dropdown-item rounded-3 py-2 fw-medium" href="<?= e($opcion['url']) ?>"><i class="bi <?= e($opcion['icono']) ?> me-2 text-primary"></i><?= e($opcion['texto']) ?></a></li>
-                            <?php endforeach; ?>
-                            <li><hr class="dropdown-divider my-2"></li>
-                            <li>
-                                <form action="../api/logout.php" method="POST">
-                                    <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>">
-                                    <button type="submit" class="dropdown-item text-danger rounded-3 py-2 fw-bold border-0 bg-transparent w-100 text-start"><i class="bi bi-power me-2"></i>Cerrar Sesión</button>
-                                </form>
-                            </li>
-                        </ul>
-                    </div>
-                <?php elseif ($paginaActual !== 'login.php'): ?>
-                    <a href="login.php" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm">INICIAR SESIÓN</a>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
-</nav>
-
-<!-- === MENÚ LATERAL (MÓVIL) === -->
-<div class="offcanvas offcanvas-end d-lg-none" tabindex="-1" id="offcanvasMenu" aria-labelledby="offcanvasMenuLabel" style="width: 300px;">
-    <div class="offcanvas-header border-bottom bg-light p-4 d-flex flex-column align-items-start">
-        <div class="d-flex justify-content-between w-100 mb-4">
-            <h5 class="offcanvas-title fw-bolder text-primary d-flex align-items-center" id="offcanvasMenuLabel">
-                <i class="bi bi-hospital-fill me-2 fs-3"></i> <?= e(APP_NAME) ?>
-            </h5>
-            <button type="button" class="btn-close shadow-none" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
-        </div>
-
-        <?php if ($autenticado): ?>
-            <div class="d-flex align-items-center w-100 mt-2">
-                <div class="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm" style="width: 55px; height: 55px;">
-                    <i class="bi bi-person-fill fs-2"></i>
-                </div>
-                <div>
-                    <h5 class="fw-bold text-dark mb-0 text-truncate" style="max-width: 170px;"><?= e(Sesion::nombre()) ?></h5>
-                    <small class="text-secondary fw-medium"><?= $esAdmin ? 'Administrador' : 'Paciente' ?></small>
-                </div>
-            </div>
-        <?php endif; ?>
-    </div>
-
-    <div class="offcanvas-body p-3">
-        <ul class="nav flex-column gap-2">
-            <?php foreach ($menuPublico as $opcion): ?>
-                <li class="nav-item">
-                    <a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?= $esActiva($opcion) ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white' ?>" href="<?= e($opcion['url']) ?>">
-                        <i class="bi <?= e($opcion['icono']) ?> fs-5 me-3 <?= $esActiva($opcion) ? 'text-primary' : 'text-secondary' ?>"></i> <?= e($opcion['texto']) ?>
-                    </a>
-                </li>
+        <nav class="ma-nav d-none d-xl-flex" aria-label="Navegación principal">
+            <?php foreach ($menu as $opcion): ?>
+                <a href="<?= e($opcion['url']) ?>" class="<?= $esActiva($opcion) ? 'activa' : '' ?>"<?= $esActiva($opcion) ? ' aria-current="page"' : '' ?>><?= e($opcion['texto']) ?></a>
             <?php endforeach; ?>
+        </nav>
 
+        <div class="ms-auto d-flex align-items-center gap-2">
             <?php if ($autenticado): ?>
-                <li class="mt-4 mb-2 text-uppercase text-primary fw-bold small px-2" style="font-size: 0.75rem; letter-spacing: 1px;">Mis Opciones</li>
-                <?php foreach ($menuUsuario as $opcion): ?>
-                    <li class="nav-item">
-                        <a class="nav-link text-dark fw-bold d-flex align-items-center p-3 rounded-3 <?= $esActiva($opcion) ? 'bg-primary bg-opacity-10 text-primary' : 'bg-white' ?>" href="<?= e($opcion['url']) ?>">
-                            <i class="bi <?= e($opcion['icono']) ?> fs-5 me-3 text-secondary"></i> <?= e($opcion['texto']) ?>
-                        </a>
-                    </li>
-                <?php endforeach; ?>
+                <div class="dropdown">
+                    <button class="ma-usuario" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="ma-avatar" aria-hidden="true"><?= e($inicial) ?></span>
+                        <span class="d-none d-sm-flex flex-column align-items-start text-start">
+                            <span class="lh-sm"><?= e(Sesion::nombre()) ?></span>
+                            <span class="ma-rol"><?= e(Sesion::nombreRol()) ?></span>
+                        </span>
+                        <i class="bi bi-chevron-down small text-secondary" aria-hidden="true"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end mt-2" style="min-width: 230px;">
+                        <?php if ($rol === Sesion::ROL_PACIENTE): ?>
+                            <li><a class="dropdown-item" href="cuenta.php"><i class="bi bi-person me-2" aria-hidden="true"></i>Mi cuenta</a></li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                        <?php endif; ?>
+                        <li>
+                            <form action="../api/logout.php" method="POST">
+                                <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>">
+                                <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right me-2" aria-hidden="true"></i>Cerrar sesión</button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            <?php elseif ($paginaActual !== 'login.php'): ?>
+                <a href="login.php" class="btn btn-primary">Iniciar sesión</a>
             <?php endif; ?>
-        </ul>
 
-        <?php if (!$autenticado): ?>
-            <a href="login.php" class="btn btn-primary w-100 rounded-pill py-3 mt-4 fw-bold shadow-sm">INICIAR SESIÓN</a>
-        <?php endif; ?>
-    </div>
-
-    <?php if ($autenticado): ?>
-        <div class="p-4 border-top bg-light">
-            <form action="../api/logout.php" method="POST">
-                <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>">
-                <button type="submit" class="btn btn-danger w-100 rounded-pill py-3 fw-bold shadow d-flex align-items-center justify-content-center">
-                    <i class="bi bi-power me-2 fs-5"></i> Cerrar Sesión
+            <?php if (!$conTabbar): ?>
+                <button class="ma-menu-boton d-xl-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuMovil" aria-controls="menuMovil" aria-label="Abrir menú">
+                    <i class="bi bi-list fs-4" aria-hidden="true"></i>
                 </button>
-            </form>
+            <?php endif; ?>
         </div>
-    <?php endif; ?>
-</div>
+    </div>
+</header>
 
-<main>
+<?php if (!$conTabbar): ?>
+    <!-- === MENÚ LATERAL (CELULAR Y TABLETA) === -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="menuMovil" aria-labelledby="menuMovilTitulo" style="width: 300px;">
+        <div class="offcanvas-header border-bottom">
+            <span class="ma-marca" id="menuMovilTitulo">
+                <img src="<?= e(asset('images/favicon.svg')) ?>" alt="" width="34" height="34"><?= e(APP_NAME) ?>
+            </span>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+        </div>
+        <div class="offcanvas-body d-flex flex-column gap-1 p-3">
+            <?php foreach ($menu as $opcion): ?>
+                <a class="dropdown-item d-flex align-items-center gap-3 py-3 <?= $esActiva($opcion) ? 'bg-primary-subtle text-primary-emphasis' : '' ?>" href="<?= e($opcion['url']) ?>">
+                    <i class="bi <?= e($opcion['icono']) ?> fs-5" aria-hidden="true"></i><?= e($opcion['texto']) ?>
+                </a>
+            <?php endforeach; ?>
+            <?php if (!$autenticado): ?>
+                <a href="login.php" class="btn btn-primary btn-lg mt-3">Iniciar sesión</a>
+            <?php endif; ?>
+        </div>
+    </div>
+<?php else: ?>
+    <!-- === BARRA INFERIOR DEL PACIENTE (CELULAR Y TABLETA) === -->
+    <nav class="ma-tabbar d-xl-none" aria-label="Navegación principal">
+        <?php foreach ($menu as $opcion): ?>
+            <a href="<?= e($opcion['url']) ?>" class="<?= $esActiva($opcion) ? 'activa' : '' ?>"<?= $esActiva($opcion) ? ' aria-current="page"' : '' ?>>
+                <i class="bi <?= e($opcion['icono']) ?>" aria-hidden="true"></i><?= e($opcion['texto']) ?>
+            </a>
+        <?php endforeach; ?>
+    </nav>
+<?php endif; ?>
+
+<main class="flex-grow-1">

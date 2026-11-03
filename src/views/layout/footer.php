@@ -2,8 +2,8 @@
 /**
  * LAYOUT: PIE DE PÁGINA
  *
- * Cierra el contenido principal, dibuja el pie de página y carga Bootstrap.
- * (api_client.js se carga en el <head>, ver header.php.)
+ * Cierra el contenido principal, dibuja el pie de página, el contenedor de los
+ * avisos flotantes y carga Bootstrap. (api_client.js se carga en el <head>.)
  *
  * Variables opcionales que la página puede definir antes de incluirlo:
  * @var list<string> $scriptsExtra Scripts adicionales dentro de public/assets
@@ -12,11 +12,15 @@
 ?>
 </main>
 
-<footer class="footer py-4 mt-auto bg-white border-top">
-    <div class="container text-center text-muted small">
-        &copy; <?= date('Y') ?> <span class="fw-bold text-primary"><?= e(APP_NAME) ?></span>. Todos los derechos reservados.
+<footer class="ma-footer py-4 mt-auto">
+    <div class="container d-flex flex-wrap justify-content-between gap-2">
+        <span>&copy; <?= date('Y') ?> <strong class="text-dark-blue"><?= e(APP_NAME) ?></strong></span>
+        <span>Citas, recetas y recordatorios de medicamentos</span>
     </div>
 </footer>
+
+<!-- Avisos flotantes (los crea notificar() de api_client.js). -->
+<div class="ma-avisos" id="maAvisos" aria-live="polite" aria-atomic="false"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <?php foreach ($scriptsExtra ?? [] as $script): ?>
