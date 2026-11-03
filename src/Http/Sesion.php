@@ -22,6 +22,9 @@ final class Sesion
     /** Rol de los pacientes registrados (tabla `pacientes`). */
     public const ROL_PACIENTE = 'paciente';
 
+    /** Rol de los médicos con acceso (tabla `usuarios` ligada a `doctores`). */
+    public const ROL_DOCTOR = 'doctor';
+
     /**
      * Configura la cookie de sesión de forma segura y arranca la sesión.
      *
@@ -61,17 +64,22 @@ final class Sesion
      *
      * Regenera el identificador de sesión para evitar ataques de fijación de sesión.
      *
-     * @param int    $idUsuario id_usuario (admin) o id_paciente (paciente).
-     * @param string $nombre    Nombre que se muestra en la barra de navegación.
-     * @param string $rol       Sesion::ROL_ADMIN o Sesion::ROL_PACIENTE.
+     * @param int      $idUsuario id_usuario (admin y doctor) o id_paciente (paciente).
+     * @param string   $nombre    Nombre que se muestra en la barra de navegación.
+     * @param string   $rol       Sesion::ROL_ADMIN, Sesion::ROL_DOCTOR o Sesion::ROL_PACIENTE.
+     * @param int|null $idDoctor  Médico que corresponde a la cuenta (solo rol doctor).
      */
-    public static function autenticar(int $idUsuario, string $nombre, string $rol): void
+    public static function autenticar(int $idUsuario, string $nombre, string $rol, ?int $idDoctor = null): void
     {
         session_regenerate_id(true);
 
         $_SESSION['user_id']   = $idUsuario;
         $_SESSION['user_name'] = $nombre;
         $_SESSION['role']      = $rol;
+
+        if ($idDoctor !== null) {
+            $_SESSION['doctor_id'] = $idDoctor;
+        }
     }
 
     /**
@@ -110,6 +118,14 @@ final class Sesion
     public static function usuarioId(): ?int
     {
         return isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
+    }
+
+    /**
+     * Devuelve el id del médico de la cuenta doctor, o null si la sesión no es de un doctor.
+     */
+    public static function doctorId(): ?int
+    {
+        return self::esDoctor() && isset($_SESSION['doctor_id']) ? (int) $_SESSION['doctor_id'] : null;
     }
 
     /**
@@ -159,6 +175,26 @@ final class Sesion
     }
 
     /**
+     * Indica si el usuario autenticado es un doctor.
+     */
+    public static function esDoctor(): bool
+    {
+        return self::tieneRol(self::ROL_DOCTOR);
+    }
+
+    /**
+     * Nombre legible del rol del usuario autenticado (para la interfaz).
+     */
+    public static function nombreRol(): string
+    {
+        return match (self::rol()) {
+            self::ROL_ADMIN  => 'Administración',
+            self::ROL_DOCTOR => 'Médico',
+            default          => 'Paciente',
+        };
+    }
+
+    /**
      * Protege una página: si no hay sesión con alguno de los roles indicados,
      * redirige a login.php y termina la ejecución.
      *
@@ -189,6 +225,10 @@ final class Sesion
      */
     public static function paginaInicio(): string
     {
-        return self::esAdmin() ? 'admin.php' : 'agenda.php';
+        return match (self::rol()) {
+            self::ROL_ADMIN  => 'admin.php',
+            self::ROL_DOCTOR => 'doctor.php',
+            default          => 'tratamientos.php',
+        };
     }
 }
