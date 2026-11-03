@@ -82,12 +82,72 @@ if (!function_exists('clase_estado_cita')) {
     function clase_estado_cita(string $estado): string
     {
         return match ($estado) {
-            'Pendiente'  => 'bg-warning text-dark',
-            'Confirmada' => 'bg-info text-dark',
+            'Pendiente'  => 'bg-warning-subtle text-warning-emphasis',
+            'Confirmada' => 'bg-primary-subtle text-primary-emphasis',
             'En Curso'   => 'bg-primary text-white',
-            'Completada' => 'bg-success text-white',
-            'Cancelada'  => 'bg-danger text-white',
-            default      => 'bg-secondary text-white',
+            'Completada' => 'bg-success-subtle text-success-emphasis',
+            'Cancelada'  => 'bg-danger-subtle text-danger-emphasis',
+            default      => 'bg-light text-secondary',
         };
     }
+}
+
+if (!function_exists('fecha_larga')) {
+    /**
+     * Fecha en español, legible (ej. "martes 3 de noviembre").
+     *
+     * @param string $fecha       Fecha que entienda strtotime().
+     * @param bool   $conAnio     true para agregar el año ("... de 2026").
+     */
+    function fecha_larga(string $fecha, bool $conAnio = false): string
+    {
+        $marca = (int) strtotime($fecha);
+        $texto = DIAS_SEMANA[(int) date('N', $marca)] . ' ' . date('j', $marca) . ' de ' . MESES[(int) date('n', $marca)];
+
+        return $conAnio ? $texto . ' de ' . date('Y', $marca) : $texto;
+    }
+}
+
+if (!function_exists('dia_corto')) {
+    /**
+     * Día de la semana abreviado en español (ej. "mar").
+     */
+    function dia_corto(string $fecha): string
+    {
+        return mb_substr(DIAS_SEMANA[(int) date('N', (int) strtotime($fecha))], 0, 3);
+    }
+}
+
+if (!function_exists('mes_corto')) {
+    /**
+     * Mes abreviado en español (ej. "nov").
+     */
+    function mes_corto(string $fecha): string
+    {
+        return mb_substr(MESES[(int) date('n', (int) strtotime($fecha))], 0, 3);
+    }
+}
+
+if (!function_exists('edad')) {
+    /**
+     * Edad cumplida a partir de la fecha de nacimiento, o null si no hay fecha.
+     */
+    function edad(?string $fechaNacimiento): ?int
+    {
+        if ($fechaNacimiento === null || $fechaNacimiento === '') {
+            return null;
+        }
+
+        return (new DateTimeImmutable($fechaNacimiento))->diff(new DateTimeImmutable('today'))->y;
+    }
+}
+
+/** Nombres de los días según date('N'): 1 = lunes ... 7 = domingo. */
+if (!defined('DIAS_SEMANA')) {
+    define('DIAS_SEMANA', [1 => 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']);
+}
+
+/** Nombres de los meses según date('n'). */
+if (!defined('MESES')) {
+    define('MESES', [1 => 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']);
 }
