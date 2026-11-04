@@ -25,19 +25,24 @@ if (Sesion::estaAutenticado()) {
 require __DIR__ . '/../src/views/layout/header.php';
 ?>
 <style>
-    /* Pasos del formulario: solo el paso activo es visible. */
-    .step-container { display: none; animation: entrarPaso 0.3s ease-out forwards; }
-    .step-container.active { display: block; }
-    @keyframes entrarPaso { from { transform: translateX(15px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-    .step-indicator { width: 32px; height: 32px; border-radius: 50%; background: #e5e7eb; color: #6b7280; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-    .step-indicator.active { background: var(--primary); color: #ffffff; }
-    .step-line { flex: 1; height: 2px; background: #e5e7eb; margin: 0 10px; }
-    .step-line.active { background: var(--primary); }
+    /* Pasos del formulario: solo el paso activo es visible y entra deslizándose. */
+    .step-container { display: none; }
+    .step-container.active { display: block; animation: entrarPaso var(--ma-medio) var(--ma-curva) both; }
+    @keyframes entrarPaso { from { transform: translateX(14px); opacity: 0; } }
+    /* Indicador de avance: cada paso es un compartimento cuya tapa se llena al llegar a él. */
+    .step-indicator { position: relative; width: 38px; height: 38px; border-radius: 12px; background: var(--ma-superficie-2); color: var(--ma-tinta-3); display: grid; place-items: center; font-weight: 800; overflow: hidden; transition: background-color var(--ma-medio) var(--ma-curva), color var(--ma-medio) var(--ma-curva); }
+    .step-indicator::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 7px; background: var(--ma-linea-fuerte); transition: background-color var(--ma-medio) var(--ma-curva); }
+    .step-indicator.active { background: var(--ma-accion-suave); color: var(--ma-accion-fuerte); }
+    .step-indicator.active::before { background: var(--ma-accion); }
+    .step-line { flex: 1; height: 3px; border-radius: 999px; background: var(--ma-linea); margin: 0 8px; transition: background-color var(--ma-medio) var(--ma-curva); }
+    .step-line.active { background: var(--ma-accion); }
+    .paso-titulo { font-size: 1rem; font-weight: 800; margin-bottom: 1rem; }
 </style>
 
-<div class="d-flex align-items-center justify-content-center auth-bg py-5" style="min-height: 85vh;">
-    <div class="card auth-card p-4 p-md-5" style="max-width: 480px; width: 100%;">
-        <h4 class="text-center fw-bold text-dark-blue mb-4">Crear Cuenta</h4>
+<div class="d-flex align-items-center justify-content-center auth-bg flex-grow-1 py-5">
+    <div class="card auth-card p-4 p-md-5" style="max-width: 500px; width: 100%;">
+        <h1 class="ma-titulo mb-1">Crea tu cuenta</h1>
+        <p class="ma-subtitulo mb-4">Cuatro pasos y podrás agendar tus citas y llevar tus medicamentos.</p>
 
         <!-- Indicador de avance -->
         <div class="d-flex align-items-center justify-content-between mb-4 px-2">
@@ -50,7 +55,7 @@ require __DIR__ . '/../src/views/layout/header.php';
         <?php if (ModoDemo::activo()): ?>
             <!-- === AVISO DE PRIVACIDAD (solo en modo demo) === -->
             <div class="alert alert-warning small mb-4">
-                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true"></i>
                 <strong>Usa datos ficticios.</strong> En la demo cualquier visitante puede entrar como
                 administrador y ver los datos que registres. No se envían correos y todo se borra cada día.
             </div>
@@ -67,28 +72,28 @@ require __DIR__ . '/../src/views/layout/header.php';
 
             <!-- Paso 1: nombre -->
             <div class="step-container active" id="step-1">
-                <h6 class="fw-bold text-secondary mb-3">Nombre completo</h6>
+                <h2 class="paso-titulo">Tu nombre</h2>
                 <div class="form-floating mb-3"><input type="text" name="nombre" id="nombre" class="form-control" maxlength="50" placeholder="Nombre(s)" required><label for="nombre">Nombre(s)</label></div>
-                <div class="form-floating mb-3"><input type="text" name="apellido_paterno" id="apellido_paterno" class="form-control" maxlength="50" placeholder="Apellido paterno" required><label for="apellido_paterno">Apellido Paterno</label></div>
-                <div class="form-floating mb-4"><input type="text" name="apellido_materno" id="apellido_materno" class="form-control" maxlength="50" placeholder="Apellido materno"><label for="apellido_materno">Apellido Materno (opcional)</label></div>
-                <button type="button" class="btn btn-primary w-100 fw-bold py-2" data-siguiente="1">Siguiente</button>
+                <div class="form-floating mb-3"><input type="text" name="apellido_paterno" id="apellido_paterno" class="form-control" maxlength="50" placeholder="Apellido paterno" required><label for="apellido_paterno">Apellido paterno</label></div>
+                <div class="form-floating mb-4"><input type="text" name="apellido_materno" id="apellido_materno" class="form-control" maxlength="50" placeholder="Apellido materno"><label for="apellido_materno">Apellido materno (opcional)</label></div>
+                <button type="button" class="btn btn-primary w-100" data-siguiente="1">Siguiente</button>
             </div>
 
             <!-- Paso 2: contacto -->
             <div class="step-container" id="step-2">
-                <h6 class="fw-bold text-secondary mb-3">Información de contacto</h6>
-                <div class="form-floating mb-3"><input type="email" name="email" id="email" class="form-control" maxlength="100" placeholder="Correo" required><label for="email">Correo Electrónico</label></div>
-                <div class="form-floating mb-4"><input type="text" name="telefono" id="telefono" class="form-control" maxlength="10" inputmode="numeric" placeholder="Teléfono" required><label for="telefono">Teléfono Móvil (10 dígitos)</label></div>
+                <h2 class="paso-titulo">¿Cómo te contactamos?</h2>
+                <div class="form-floating mb-3"><input type="email" name="email" id="email" class="form-control" maxlength="100" placeholder="Correo" required><label for="email">Correo electrónico</label></div>
+                <div class="form-floating mb-4"><input type="text" name="telefono" id="telefono" class="form-control" maxlength="10" inputmode="numeric" placeholder="Teléfono" required><label for="telefono">Celular (10 dígitos)</label></div>
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-light w-50 fw-bold border" data-anterior="2">Atrás</button>
-                    <button type="button" class="btn btn-primary w-50 fw-bold" data-siguiente="2">Siguiente</button>
+                    <button type="button" class="btn btn-light w-50" data-anterior="2">Atrás</button>
+                    <button type="button" class="btn btn-primary w-50" data-siguiente="2">Siguiente</button>
                 </div>
             </div>
 
             <!-- Paso 3: datos personales -->
             <div class="step-container" id="step-3">
-                <h6 class="fw-bold text-secondary mb-3">Información personal</h6>
-                <div class="form-floating mb-3"><input type="date" name="fecha_nacimiento" id="fecha_nacimiento" class="form-control" max="<?= e(date('Y-m-d')) ?>" required><label for="fecha_nacimiento">Fecha de Nacimiento</label></div>
+                <h2 class="paso-titulo">Sobre ti</h2>
+                <div class="form-floating mb-3"><input type="date" name="fecha_nacimiento" id="fecha_nacimiento" class="form-control" max="<?= e(date('Y-m-d')) ?>" required><label for="fecha_nacimiento">Fecha de nacimiento</label></div>
                 <div class="form-floating mb-3">
                     <select name="genero" id="genero" class="form-select" required>
                         <option value=""></option>
@@ -99,20 +104,20 @@ require __DIR__ . '/../src/views/layout/header.php';
                     <label for="genero">Género</label>
                 </div>
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-light w-50 fw-bold border" data-anterior="3">Atrás</button>
-                    <button type="button" class="btn btn-primary w-50 fw-bold" data-siguiente="3">Siguiente</button>
+                    <button type="button" class="btn btn-light w-50" data-anterior="3">Atrás</button>
+                    <button type="button" class="btn btn-primary w-50" data-siguiente="3">Siguiente</button>
                 </div>
             </div>
 
             <!-- Paso 4: contraseña -->
             <div class="step-container" id="step-4">
-                <h6 class="fw-bold text-secondary mb-3">Seguridad</h6>
+                <h2 class="paso-titulo">Tu contraseña</h2>
                 <div class="form-floating mb-3"><input type="password" name="password" id="password" class="form-control" minlength="8" maxlength="200" placeholder="Contraseña" autocomplete="new-password" required><label for="password">Contraseña (mínimo 8 caracteres)</label></div>
-                <div class="progress mb-3" style="height: 4px;"><div id="passwordStrength" class="progress-bar" style="width: 0%;"></div></div>
-                <div class="form-floating mb-4"><input type="password" name="confirm_password" id="confirm_password" class="form-control" minlength="8" maxlength="200" placeholder="Confirmar" autocomplete="new-password" required><label for="confirm_password">Confirmar Contraseña</label></div>
+                <div class="progress mb-3" style="height: 4px;" aria-hidden="true"><div id="passwordStrength" class="progress-bar" style="width: 0%;"></div></div>
+                <div class="form-floating mb-4"><input type="password" name="confirm_password" id="confirm_password" class="form-control" minlength="8" maxlength="200" placeholder="Confirmar" autocomplete="new-password" required><label for="confirm_password">Confirma la contraseña</label></div>
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-light w-50 fw-bold border" data-anterior="4">Atrás</button>
-                    <button type="submit" id="btnRegistro" class="btn btn-primary w-50 fw-bold">CREAR CUENTA</button>
+                    <button type="button" class="btn btn-light w-50" data-anterior="4">Atrás</button>
+                    <button type="submit" id="btnRegistro" class="btn btn-primary w-50">Crear cuenta</button>
                 </div>
             </div>
         </form>
