@@ -480,6 +480,41 @@ body.con-tabbar .ma-avisos { bottom: calc(76px + env(safe-area-inset-bottom)); }
    algunos bots omiten los campos ocultos de esa forma. */
 .hp-field { position: absolute !important; left: -9999px !important; top: -9999px !important; width: 1px; height: 1px; overflow: hidden; }
 
+/* === 8b. PORTADA (index.php) === */
+.portada-hero { padding-block: clamp(2.5rem, 6vw, 5.5rem); background: radial-gradient(900px 480px at 85% 20%, #e1ebfd 0%, transparent 65%), var(--ma-fondo); }
+.portada-titulo { font-size: clamp(2.3rem, 1.4rem + 3.4vw, 4rem); line-height: 1.04; letter-spacing: -0.035em; font-weight: 800; margin-bottom: 1.25rem; }
+.portada-lema { font-size: clamp(1.05rem, 1rem + 0.35vw, 1.25rem); color: var(--ma-tinta-2); max-width: 52ch; margin-bottom: 2rem; }
+
+.portada-pastillero { position: relative; background: var(--ma-superficie); border-radius: 22px; box-shadow: var(--ma-sombra-alta); padding: 1.4rem; }
+.portada-pastillero .compartimento { min-height: 86px; }
+/* La tapa de hoy se levanta sola cada pocos segundos: la firma de la app. */
+.portada-tapa-viva .tapa { animation: ma-tapa-viva 5.5s var(--ma-curva) 1s infinite; }
+@keyframes ma-tapa-viva {
+    0%, 30% { transform: none; opacity: 1; }
+    42%, 80% { transform: rotateX(-74deg); opacity: 0.55; }
+    92%, 100% { transform: none; opacity: 1; }
+}
+.portada-aviso { position: absolute; right: -14px; bottom: -22px; width: min(320px, 85%); animation: ma-aviso-entra var(--ma-lento) var(--ma-curva) 1.2s both; }
+
+.portada-seccion { padding-block: clamp(3rem, 6vw, 5rem); background: var(--ma-superficie); }
+.portada-seccion-clara { background: var(--ma-fondo); }
+.portada-subtitulo { font-size: clamp(1.6rem, 1.2rem + 1.5vw, 2.4rem); letter-spacing: -0.03em; margin-bottom: 2rem; max-width: 22ch; }
+
+.portada-pasos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2rem; counter-reset: paso; margin: 0; }
+.portada-pasos li { position: relative; padding-top: 0.25rem; }
+.portada-pasos h3 { font-size: 1.15rem; font-weight: 800; margin: 0.9rem 0 0.35rem; }
+.portada-pasos p { color: var(--ma-tinta-2); max-width: 36ch; }
+.portada-paso-numero { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--ma-accion); color: #fff; font-weight: 800; font-variant-numeric: tabular-nums; }
+.portada-muestra { background: var(--ma-superficie-2); border-radius: 14px; padding: 0.9rem 1rem; }
+
+.portada-cierre { padding-block: clamp(2.5rem, 5vw, 4rem); background: var(--ma-tinta); color: #fff; }
+.portada-cierre-texto { color: #c8d3e6; }
+
+@media (max-width: 991.98px) {
+    .portada-pasos { grid-template-columns: 1fr; gap: 1.5rem; }
+    .portada-aviso { position: relative; right: auto; bottom: auto; width: 100%; margin-top: 1rem; }
+}
+
 /* === 9. MOVIMIENTO === */
 /* Transición entre páginas del mismo sitio (navegadores con View Transitions). */
 @view-transition { navigation: auto; }
@@ -502,4 +537,5 @@ body.con-tabbar .ma-avisos { bottom: calc(76px + env(safe-area-inset-bottom)); }
     *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
     @view-transition { navigation: none; }
     .compartimento.tomada .tapa { transform: none; opacity: 0.35; }
+    .portada-tapa-viva .tapa { animation: none; }
 }
