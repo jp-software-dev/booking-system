@@ -31,13 +31,14 @@ $citas = $citasModelo->listarConFiltro($filtro, $paginacion);
 $urlPdf = '../api/generar_pdf.php?' . http_build_query($filtro->parametrosUrl());
 
 // === VISTA ===
+$tituloPagina = 'Historial';
 require __DIR__ . '/../src/views/layout/header.php';
 ?>
-<div class="container-fluid py-4 px-lg-5" style="min-height: 85vh;">
+<div class="container-fluid ma-pagina px-lg-5">
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
         <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <h5 class="fw-bold text-dark-blue mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>Historial de Citas Pasadas</h5>
-            <a href="<?= e($urlPdf) ?>" class="btn btn-outline-danger rounded-pill px-4 fw-medium">
+            <h1 class="fs-5 fw-bold mb-0"><i class="bi bi-clock-history me-2 text-primary" aria-hidden="true"></i>Historial de citas pasadas</h1>
+            <a href="<?= e($urlPdf) ?>" class="btn btn-outline-primary">
                 <i class="bi bi-file-pdf me-1"></i> PDF
             </a>
         </div>

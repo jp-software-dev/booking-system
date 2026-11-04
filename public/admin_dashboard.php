@@ -15,6 +15,7 @@ use App\Http\Sesion;
 
 Sesion::exigirRol(Sesion::ROL_ADMIN);
 
+$tituloPagina = 'Métricas';
 require __DIR__ . '/../src/views/layout/header.php';
 ?>
 
@@ -26,10 +27,10 @@ require __DIR__ . '/../src/views/layout/header.php';
 .rango-pill-group .rango-btn.active { background: #1a56db; color: #fff; box-shadow: 0 1px 3px rgba(26,86,219,0.35); }
 </style>
 
-<div class="container-fluid py-4 px-lg-5" style="min-height: 85vh;">
+<div class="container-fluid ma-pagina px-lg-5">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
-            <h2 class="fw-bold text-dark-blue mb-1">Dashboard</h2>
+            <h1 class="ma-titulo">Métricas de la clínica</h1>
             <p class="text-secondary mb-0">Métricas operativas del sistema.</p>
         </div>
         <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -56,31 +57,31 @@ require __DIR__ . '/../src/views/layout/header.php';
     <div class="row g-3 mb-4">
         <div class="col-6 col-lg-3">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
-                <span class="text-secondary small fw-bold text-uppercase">Total Citas</span>
+                <span class="text-secondary small fw-bold">Citas en total</span>
                 <span class="fs-3 fw-bold text-dark-blue" id="kpiTotal">—</span>
             </div>
         </div>
         <div class="col-6 col-lg-3">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
-                <span class="text-secondary small fw-bold text-uppercase">Completadas</span>
+                <span class="text-secondary small fw-bold">Completadas</span>
                 <span class="fs-3 fw-bold text-success" id="kpiCompletadas">—</span>
             </div>
         </div>
         <div class="col-6 col-lg-3">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
-                <span class="text-secondary small fw-bold text-uppercase">Canceladas</span>
+                <span class="text-secondary small fw-bold">Canceladas</span>
                 <span class="fs-3 fw-bold text-danger" id="kpiCanceladas">—</span>
             </div>
         </div>
         <div class="col-6 col-lg-3">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
-                <span class="text-secondary small fw-bold text-uppercase">Tasa de Cancelación</span>
+                <span class="text-secondary small fw-bold">Tasa de cancelación</span>
                 <span class="fs-3 fw-bold text-dark-blue" id="kpiTasa">—</span>
             </div>
         </div>
         <div class="col-6 col-lg-3">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
-                <span class="text-secondary small fw-bold text-uppercase">Pacientes Activos</span>
+                <span class="text-secondary small fw-bold">Pacientes activos</span>
                 <span class="fs-3 fw-bold text-dark-blue" id="kpiPacientesActivos">—</span>
             </div>
         </div>
@@ -89,13 +90,13 @@ require __DIR__ . '/../src/views/layout/header.php';
     <div class="row g-3 mb-3">
         <div class="col-lg-5">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
-                <h6 class="fw-bold text-dark-blue mb-3">Pacientes Nuevos por Mes (últimos 12 meses)</h6>
+                <h2 class="fs-6 fw-bold text-dark-blue mb-3">Pacientes nuevos por mes (últimos 12 meses)</h2>
                 <canvas id="chartPacientesNuevos" height="220"></canvas>
             </div>
         </div>
         <div class="col-lg-7">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
-                <h6 class="fw-bold text-dark-blue mb-3">Ocupación por Doctor (rango seleccionado)</h6>
+                <h2 class="fs-6 fw-bold text-dark-blue mb-3">Ocupación por médico (rango seleccionado)</h2>
                 <canvas id="chartOcupacion" height="220"></canvas>
             </div>
         </div>
@@ -104,13 +105,13 @@ require __DIR__ . '/../src/views/layout/header.php';
     <div class="row g-3 mb-3">
         <div class="col-lg-5">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
-                <h6 class="fw-bold text-dark-blue mb-3">Citas por Estado</h6>
+                <h2 class="fs-6 fw-bold text-dark-blue mb-3">Citas por estado</h2>
                 <canvas id="chartEstado" height="220"></canvas>
             </div>
         </div>
         <div class="col-lg-7">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
-                <h6 class="fw-bold text-dark-blue mb-3">Citas por Especialidad</h6>
+                <h2 class="fs-6 fw-bold text-dark-blue mb-3">Citas por especialidad</h2>
                 <canvas id="chartEspecialidad" height="220"></canvas>
             </div>
         </div>
@@ -119,13 +120,13 @@ require __DIR__ . '/../src/views/layout/header.php';
     <div class="row g-3">
         <div class="col-lg-5">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
-                <h6 class="fw-bold text-dark-blue mb-3">Top Doctores</h6>
+                <h2 class="fs-6 fw-bold text-dark-blue mb-3">Médicos con más citas</h2>
                 <canvas id="chartDoctores" height="240"></canvas>
             </div>
         </div>
         <div class="col-lg-7">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
-                <h6 class="fw-bold text-dark-blue mb-3">Tendencia Mensual (últimos 12 meses)</h6>
+                <h2 class="fs-6 fw-bold text-dark-blue mb-3">Tendencia mensual (últimos 12 meses)</h2>
                 <canvas id="chartTendencia" height="240"></canvas>
             </div>
         </div>

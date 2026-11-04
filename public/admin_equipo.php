@@ -152,27 +152,28 @@ $opcionesEspecialidad = static function () use ($especialidades): void {
 };
 
 // === VISTA ===
+$tituloPagina = 'Equipo';
 require __DIR__ . '/../src/views/layout/header.php';
 ?>
-<div class="container py-5">
+<div class="container ma-pagina">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
-            <h2 class="fw-bold text-dark-blue mb-0"><i class="bi bi-people-fill text-primary me-2"></i>Equipo Médico y Enfermería</h2>
+            <h1 class="ma-titulo mb-0">Equipo médico</h1>
             <p class="text-secondary mb-0 mt-1">Directorio y control del personal del hospital.</p>
         </div>
-        <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalPersonal">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalPersonal">
             <i class="bi bi-person-plus-fill me-2"></i>Dar de alta
         </button>
     </div>
 
     <div id="equipoAlert"></div>
 
-    <h5 class="fw-bold text-dark-blue mb-3"><i class="bi bi-heart-pulse-fill text-primary me-2"></i>Equipo de Doctores</h5>
+    <h2 class="fs-5 fw-bold mb-3"><i class="bi bi-heart-pulse-fill text-primary me-2" aria-hidden="true"></i>Equipo de Doctores</h2>
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
         <?php $tablaPersonal(array_values($doctores), 'No hay doctores registrados.'); ?>
     </div>
 
-    <h5 class="fw-bold text-dark-blue mb-3"><i class="bi bi-bandaid-fill text-info me-2"></i>Equipo de Enfermeros</h5>
+    <h2 class="fs-5 fw-bold mb-3"><i class="bi bi-bandaid-fill text-info me-2" aria-hidden="true"></i>Equipo de Enfermeros</h2>
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
         <?php $tablaPersonal(array_values($enfermeros), 'No hay enfermeros registrados.'); ?>
     </div>
@@ -229,8 +230,8 @@ require __DIR__ . '/../src/views/layout/header.php';
                     </div>
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">Guardar Miembro</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Miembro</button>
                 </div>
             </form>
         </div>
@@ -282,8 +283,8 @@ require __DIR__ . '/../src/views/layout/header.php';
                     </div>
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">Guardar Cambios</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                 </div>
             </form>
         </div>
@@ -309,7 +310,7 @@ require __DIR__ . '/../src/views/layout/header.php';
                 </div>
             </div>
             <div class="modal-footer border-0 bg-light rounded-bottom-4">
-                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>
