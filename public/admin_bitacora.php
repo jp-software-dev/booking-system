@@ -12,22 +12,13 @@
 require_once __DIR__ . '/../config/config.php';
 
 use App\Helpers\Paginacion;
-use App\Helpers\ValidationHelper;
 use App\Http\Sesion;
 use App\Models\Auditoria;
 
 Sesion::exigirRol(Sesion::ROL_ADMIN);
 
 // === FILTROS ===
-$leer = static fn (string $clave): string => is_string($_GET[$clave] ?? null) ? trim($_GET[$clave]) : '';
-
-$filtros = [
-    'accion'  => $leer('accion'),
-    'usuario' => mb_substr($leer('usuario'), 0, 100),
-    // Las fechas inválidas se ignoran en lugar de producir un error.
-    'desde'   => ValidationHelper::validateDate($leer('desde')) ? $leer('desde') : '',
-    'hasta'   => ValidationHelper::validateDate($leer('hasta')) ? $leer('hasta') : '',
-];
+$filtros = Auditoria::filtrosDesdeConsulta($_GET);
 
 // === DATOS ===
 $auditoria = new Auditoria();
@@ -35,17 +26,32 @@ $acciones = $auditoria->accionesRegistradas();
 $paginacion = new Paginacion($auditoria->contarConFiltro($filtros), $_GET);
 $registros = $auditoria->listarConFiltro($filtros, $paginacion);
 
+// Enlaces de exportación con los mismos filtros de la vista.
+$consultaExportar = http_build_query(array_filter($filtros, static fn (string $v): bool => $v !== ''));
+$enlaceExportar = static fn (string $formato): string => '../api/exportar_bitacora.php?formato=' . $formato . ($consultaExportar !== '' ? '&' . $consultaExportar : '');
+$hayFiltros = $consultaExportar !== '';
+
 // === VISTA ===
+$tituloPagina = 'Bitácora';
 require __DIR__ . '/../src/views/layout/header.php';
 ?>
-<div class="container-fluid py-4 px-lg-5" style="min-height: 85vh;">
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-        <div class="card-header bg-white border-bottom py-3 px-4">
-            <h5 class="fw-bold text-dark-blue mb-0"><i class="bi bi-journal-text me-2 text-primary"></i>Bitácora de Auditoría</h5>
+<div class="container-fluid ma-pagina px-lg-5">
+    <div class="ma-encabezado-pagina">
+        <div>
+            <h1 class="ma-titulo">Bitácora de auditoría</h1>
+            <p class="ma-subtitulo">
+                <i class="bi bi-lock me-1" aria-hidden="true"></i>Solo lectura · <?= number_format($paginacion->totalRegistros) ?> registro(s)<?= $hayFiltros ? ' con estos filtros' : '' ?>
+            </p>
         </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-light" href="<?= e($enlaceExportar('csv')) ?>"><i class="bi bi-filetype-csv me-1" aria-hidden="true"></i>Exportar CSV</a>
+            <a class="btn btn-outline-primary" href="<?= e($enlaceExportar('pdf')) ?>"><i class="bi bi-filetype-pdf me-1" aria-hidden="true"></i>Exportar PDF</a>
+        </div>
+    </div>
 
+    <div class="card overflow-hidden">
         <!-- === FILTROS === -->
-        <div class="bg-light p-3 border-bottom">
+        <div class="p-3 border-bottom" style="background: var(--ma-superficie-2);">
             <form method="GET" class="row g-2 align-items-end">
                 <div class="col-md-2">
                     <label for="filtro_accion" class="form-label small fw-bold text-secondary mb-1">Tipo de acción</label>
