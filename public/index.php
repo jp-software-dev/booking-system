@@ -41,6 +41,7 @@ $roles = [
 ];
 
 // === VISTA ===
+$estilosExtra = ['css/calendar.css']; // horarios de ejemplo en "Cómo funciona"
 require __DIR__ . '/../src/views/layout/header.php';
 ?>
 <!-- === PRIMERA PANTALLA === -->
@@ -100,8 +101,8 @@ require __DIR__ . '/../src/views/layout/header.php';
                 <h3>El paciente agenda</h3>
                 <p>Elige médico, día y hora entre los horarios libres de ese médico.</p>
                 <div class="portada-muestra d-flex gap-2">
-                    <span class="time-slot manana" style="width: auto; padding-inline: 18px 12px; margin: 0;">10:00 AM</span>
-                    <span class="time-slot tarde" style="width: auto; padding-inline: 18px 12px; margin: 0;">4:30 PM</span>
+                    <span class="time-slot manana" style="width: auto; padding-inline: 14px; margin: 0;">10:00 AM</span>
+                    <span class="time-slot tarde" style="width: auto; padding-inline: 14px; margin: 0;">4:30 PM</span>
                 </div>
             </li>
             <li>

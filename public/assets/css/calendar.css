@@ -43,23 +43,21 @@
     position: relative;
     width: 100%;
     margin-bottom: 6px;
-    padding: 9px 0 9px 10px;
-    border: 1px solid var(--ma-linea);
+    padding: 9px 0;
+    border: 1px solid color-mix(in srgb, var(--tapa, var(--ma-linea-fuerte)) 40%, var(--ma-linea));
     border-radius: 12px;
-    background: var(--ma-superficie);
+    background: var(--tapa-suave, var(--ma-superficie));
     color: var(--ma-tinta);
     font-size: 0.85rem; font-weight: 800; font-variant-numeric: tabular-nums;
     text-align: center;
     overflow: hidden;
     transition: background-color var(--ma-rapido) var(--ma-curva), border-color var(--ma-rapido) var(--ma-curva), transform var(--ma-rapido) var(--ma-curva);
 }
-/* Franja de color a la izquierda: el momento del día. */
-.time-slot::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 5px; background: var(--tapa, var(--ma-linea-fuerte)); }
-.time-slot:hover:not(:disabled) { background: var(--tapa-suave, var(--ma-accion-suave)); border-color: var(--tapa, var(--ma-accion)); transform: translateY(-1px); }
+/* El color del momento del día tiñe fondo y borde (como los compartimentos del pastillero). */
+.time-slot:hover:not(:disabled) { background: var(--ma-superficie); border-color: var(--tapa, var(--ma-accion)); transform: translateY(-1px); }
 .time-slot:active:not(:disabled) { transform: scale(0.97); }
 .time-slot:focus-visible { outline: 3px solid rgba(47, 111, 228, 0.45); outline-offset: 2px; }
 .time-slot:disabled { background: transparent; border-color: transparent; color: var(--ma-tinta-3); cursor: default; }
-.time-slot:disabled::before { display: none; }
 .time-slot.booked:disabled { background: var(--ma-alerta-suave); color: var(--ma-alerta-texto); font-size: 0.78rem; }
 
 /* === MINI CALENDARIO MENSUAL === */
