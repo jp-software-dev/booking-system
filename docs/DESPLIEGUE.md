@@ -188,17 +188,17 @@ las extensiones `pg_cron` y `pg_net`.
      $$
      select net.http_post(
        url := 'https://mediagenda.vanguarddevsec.com/api/enviar_recordatorios.php',
-       headers := jsonb_build_object(
-         'Authorization', 'Bearer ' || (
-           select decrypted_secret from vault.decrypted_secrets
-           where name = 'mediagenda_cron_secret'
-         )
-       ),
-       body := '{}'::jsonb
-     );
+       headers := jsonb_build_object('Authorization', 'Bearer ' || s.decrypted_secret),
+       body := '{}'::jsonb,
+       timeout_milliseconds := 20000
+     )
+     from vault.decrypted_secrets s
+     where s.name = 'mediagenda_cron_secret';
      $$
    );
    ```
+
+   Si el secreto aún no está en Vault, la tarea corre pero no llama a nadie.
 
    Para revisar las últimas llamadas: `select * from net._http_response order by created desc limit 5;`.
    Para quitar la tarea: `select cron.unschedule('mediagenda-recordatorios');`.
