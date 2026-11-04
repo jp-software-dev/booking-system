@@ -19,6 +19,7 @@ use App\Http\Sesion;
 use App\Models\Cita;
 use App\Models\Receta;
 use App\Models\Tratamiento;
+use App\Services\NotificadorPush;
 
 Sesion::exigirRol(Sesion::ROL_PACIENTE);
 $idPaciente = (int) Sesion::usuarioId();
@@ -88,6 +89,7 @@ if ($proximaToma !== null) {
 
 // === VISTA ===
 $tituloPagina = 'Mi semana';
+$clavePushPublica = NotificadorPush::clavePublica();
 $scriptsExtra = ['js/receta.js', 'js/tratamientos.js'];
 require __DIR__ . '/../src/views/layout/header.php';
 ?>
@@ -114,7 +116,7 @@ require __DIR__ . '/../src/views/layout/header.php';
             <div class="fw-bold">Recibe un aviso a la hora de cada toma</div>
             <div class="small text-secondary" id="avisoNotificacionesTexto">Aunque tengas MediAgenda cerrada, en este navegador o en tu celular.</div>
         </div>
-        <button type="button" class="btn btn-primary" id="btnActivarNotificaciones">Activar avisos</button>
+        <div class="d-flex gap-2 flex-wrap" id="avisoNotificacionesAcciones"></div>
     </div>
 
     <div class="row g-4">

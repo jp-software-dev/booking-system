@@ -13,6 +13,7 @@
  * @var list<string> $estilosExtra Hojas de estilo adicionales dentro de public/assets
  *                                 (ej. ['css/calendar.css']).
  * @var string       $tituloPagina Título de la pestaña (por defecto, el nombre de la app).
+ * @var string       $clavePushPublica Clave pública VAPID, solo en páginas que suscriben a avisos push.
  */
 
 use App\Demo\ModoDemo;
@@ -70,6 +71,10 @@ $inicial = mb_strtoupper(mb_substr(Sesion::nombre('U'), 0, 1));
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="<?= e($csrfToken) ?>">
     <meta name="theme-color" content="#ffffff">
+    <?php if (!empty($clavePushPublica)): ?>
+        <!-- Clave pública VAPID: la usa el navegador para suscribirse a los avisos push. -->
+        <meta name="vapid-public-key" content="<?= e($clavePushPublica) ?>">
+    <?php endif; ?>
     <title><?= e(isset($tituloPagina) ? $tituloPagina . ' · ' . APP_NAME : APP_NAME . ' | Citas y tratamientos') ?></title>
     <!-- Favicon: ICO para navegadores antiguos, SVG nítido en cualquier tamaño y PNG para iPhone/iPad. -->
     <link rel="icon" href="<?= e(asset('images/favicon.ico')) ?>" sizes="any">
