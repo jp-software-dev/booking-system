@@ -120,6 +120,7 @@ p { text-wrap: pretty; }
 .text-secondary { color: var(--ma-tinta-2) !important; }
 .text-muted { color: var(--ma-tinta-3) !important; }
 a { text-underline-offset: 3px; }
+code { color: var(--ma-accion-fuerte); font-size: 0.9em; }
 
 /* Cifras tabulares donde hay horas, fechas, conteos y tablas. */
 .table, .ma-cifras, .badge, time { font-variant-numeric: tabular-nums; }
