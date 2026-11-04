@@ -406,7 +406,9 @@ check("envío de recordatorios sin secreto -> 401", codigo == 401, (codigo, r))
 # === ADMINISTRACIÓN: ACCESOS DE MÉDICOS Y BITÁCORA ===
 codigo, html = a.pagina("/public/admin_equipo.php")
 check("el equipo muestra los accesos de los médicos", "data-acceso-doctor" in html and "demo.doctor" in html, codigo)
-codigo, r = a.api("gestionar_acceso_doctor.php", {"id_doctor": 1, "accion": "quitar"})
+# El id del médico de prueba se lee de la página: tras varias resiembras ya no es 1.
+con_demo = re.search(r'data-acceso-doctor\s+data-id="(\d+)" data-nombre="[^"]*" data-usuario="demo\.doctor"', html)
+codigo, r = a.api("gestionar_acceso_doctor.php", {"id_doctor": con_demo.group(1) if con_demo else 1, "accion": "quitar"})
 check("demo: no se quita el acceso del médico de prueba (403)", codigo == 403, (codigo, r))
 sin_acceso = re.search(r'data-acceso-doctor\s+data-id="(\d+)" data-nombre="[^"]*" data-usuario=""', html)
 id_doc = sin_acceso.group(1) if sin_acceso else None
