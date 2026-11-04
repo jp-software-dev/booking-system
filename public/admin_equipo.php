@@ -4,7 +4,7 @@
  * VISTA: EQUIPO MÉDICO Y ENFERMERÍA (ADMIN)
  *
  * Directorio del personal con alta, edición, detalle y baja de médicos y
- * enfermeros.
+ * enfermeros, y el acceso de cada médico a la plataforma (usuario y contraseña).
  *
  * Acceso: administrador.
  */
@@ -13,6 +13,7 @@ require_once __DIR__ . '/../config/config.php';
 
 use App\Http\Sesion;
 use App\Models\Consultorio;
+use App\Models\CuentaDoctor;
 use App\Models\Especialidad;
 use App\Models\Personal;
 
@@ -23,6 +24,7 @@ $equipo = (new Personal())->listarEquipoCompleto();
 $especialidades = (new Especialidad())->listar();
 $consultorios = (new Consultorio())->listarTodos();
 $nombresConsultorio = array_column($consultorios, 'nombre', 'id_consultorio');
+$accesos = (new CuentaDoctor())->usuariosPorDoctor();
 
 $doctores = array_filter($equipo, static fn (array $m): bool => $m['puesto'] === 'Doctor');
 $enfermeros = array_filter($equipo, static fn (array $m): bool => $m['puesto'] === 'Enfermero');
@@ -32,11 +34,12 @@ $enfermeros = array_filter($equipo, static fn (array $m): bool => $m['puesto'] =
  *
  * @param array<string, mixed> $miembro Fila de Personal::listarEquipoCompleto().
  */
-$filaPersonal = static function (array $miembro) use ($nombresConsultorio): void {
+$filaPersonal = static function (array $miembro) use ($nombresConsultorio, $accesos): void {
     $esDoctor = $miembro['puesto'] === 'Doctor';
     $nombreCompleto = $miembro['nombre'] . ' ' . $miembro['apellido_paterno'];
     $idConsultorio = $miembro['id_consultorio'] !== null ? (int) $miembro['id_consultorio'] : null;
     $consultorio = $idConsultorio !== null ? ($nombresConsultorio[$idConsultorio] ?? '#' . $idConsultorio) : 'Sin asignar';
+    $usuarioAcceso = $esDoctor ? ($accesos[(int) $miembro['id']] ?? null) : null;
     ?>
     <tr>
         <td class="ps-4 py-3" data-label="Nombre">
@@ -44,7 +47,15 @@ $filaPersonal = static function (array $miembro) use ($nombresConsultorio): void
                 <div class="bg-light rounded-circle p-2 me-3 text-center" style="width: 40px; height: 40px;">
                     <i class="bi <?= $esDoctor ? 'bi-heart-pulse-fill text-primary' : 'bi-bandaid-fill text-info' ?>"></i>
                 </div>
-                <span class="fw-bold text-dark"><?= e($nombreCompleto) ?></span>
+                <div>
+                    <span class="fw-bold text-dark d-block"><?= e($nombreCompleto) ?></span>
+                    <?php if ($esDoctor): ?>
+                        <span class="ma-chip <?= $usuarioAcceso !== null ? 'exito' : '' ?> mt-1">
+                            <i class="bi <?= $usuarioAcceso !== null ? 'bi-key-fill' : 'bi-key' ?>" aria-hidden="true"></i>
+                            <?= $usuarioAcceso !== null ? e($usuarioAcceso) : 'Sin acceso' ?>
+                        </span>
+                    <?php endif; ?>
+                </div>
             </div>
         </td>
         <td data-label="Puesto"><span class="badge rounded-pill <?= $esDoctor ? 'bg-primary' : 'bg-info text-dark' ?> px-3"><?= e($miembro['puesto']) ?></span></td>
@@ -57,6 +68,12 @@ $filaPersonal = static function (array $miembro) use ($nombresConsultorio): void
             <?php endif; ?>
         </td>
         <td class="pe-4 text-end">
+            <?php if ($esDoctor): ?>
+                <button type="button" class="btn btn-sm btn-light px-3 me-1" data-acceso-doctor
+                        data-id="<?= (int) $miembro['id'] ?>" data-nombre="<?= e($nombreCompleto) ?>" data-usuario="<?= e($usuarioAcceso ?? '') ?>">
+                    <i class="bi bi-key me-1" aria-hidden="true"></i>Acceso
+                </button>
+            <?php endif; ?>
             <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" title="Ver detalle" data-ver-personal
                     data-nombre-completo="<?= e($nombreCompleto) ?>"
                     data-puesto="<?= e($miembro['puesto']) ?>"
@@ -135,27 +152,28 @@ $opcionesEspecialidad = static function () use ($especialidades): void {
 };
 
 // === VISTA ===
+$tituloPagina = 'Equipo';
 require __DIR__ . '/../src/views/layout/header.php';
 ?>
-<div class="container py-5">
+<div class="container ma-pagina">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
-            <h2 class="fw-bold text-dark-blue mb-0"><i class="bi bi-people-fill text-primary me-2"></i>Equipo Médico y Enfermería</h2>
+            <h1 class="ma-titulo mb-0">Equipo médico</h1>
             <p class="text-secondary mb-0 mt-1">Directorio y control del personal del hospital.</p>
         </div>
-        <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalPersonal">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalPersonal">
             <i class="bi bi-person-plus-fill me-2"></i>Dar de alta
         </button>
     </div>
 
     <div id="equipoAlert"></div>
 
-    <h5 class="fw-bold text-dark-blue mb-3"><i class="bi bi-heart-pulse-fill text-primary me-2"></i>Equipo de Doctores</h5>
+    <h2 class="fs-5 fw-bold mb-3"><i class="bi bi-heart-pulse-fill text-primary me-2" aria-hidden="true"></i>Equipo de Doctores</h2>
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
         <?php $tablaPersonal(array_values($doctores), 'No hay doctores registrados.'); ?>
     </div>
 
-    <h5 class="fw-bold text-dark-blue mb-3"><i class="bi bi-bandaid-fill text-info me-2"></i>Equipo de Enfermeros</h5>
+    <h2 class="fs-5 fw-bold mb-3"><i class="bi bi-bandaid-fill text-info me-2" aria-hidden="true"></i>Equipo de Enfermeros</h2>
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
         <?php $tablaPersonal(array_values($enfermeros), 'No hay enfermeros registrados.'); ?>
     </div>
@@ -212,8 +230,8 @@ require __DIR__ . '/../src/views/layout/header.php';
                     </div>
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">Guardar Miembro</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Miembro</button>
                 </div>
             </form>
         </div>
@@ -265,8 +283,8 @@ require __DIR__ . '/../src/views/layout/header.php';
                     </div>
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">Guardar Cambios</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                 </div>
             </form>
         </div>
@@ -292,8 +310,47 @@ require __DIR__ . '/../src/views/layout/header.php';
                 </div>
             </div>
             <div class="modal-footer border-0 bg-light rounded-bottom-4">
-                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- === MODAL: ACCESO DEL MÉDICO A LA PLATAFORMA === -->
+<div class="modal fade" id="modalAcceso" tabindex="-1" aria-labelledby="modalAccesoTitulo" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="formAcceso" novalidate>
+                <input type="hidden" id="acceso_id_doctor">
+                <div class="modal-header">
+                    <div>
+                        <h2 class="modal-title fs-5" id="modalAccesoTitulo">Acceso a la plataforma</h2>
+                        <div class="small text-secondary" id="acceso_nombre"></div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="alertaAcceso"></div>
+                    <p class="small text-secondary" id="acceso_explicacion"></p>
+                    <div class="mb-3" id="acceso_campo_usuario">
+                        <label for="acceso_usuario" class="form-label">Usuario</label>
+                        <input type="text" class="form-control" id="acceso_usuario" maxlength="30" autocomplete="off" placeholder="Ej. laura.mendez">
+                        <div class="form-text">4 a 30 caracteres: letras minúsculas, números, punto, guion o guion bajo.</div>
+                    </div>
+                    <div class="mb-1">
+                        <label for="acceso_password" class="form-label" id="acceso_etiqueta_password">Contraseña</label>
+                        <input type="password" class="form-control" id="acceso_password" minlength="8" maxlength="200" autocomplete="new-password">
+                        <div class="form-text">Mínimo 8 caracteres. Compártela con el médico por un medio seguro.</div>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-outline-danger" id="btnQuitarAcceso">Quitar acceso</button>
+                    <div class="d-flex gap-2 ms-auto">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btnGuardarAcceso">Crear acceso</button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -381,6 +438,63 @@ document.querySelectorAll('[data-baja-personal]').forEach((boton) => {
         mostrarAlerta('equipoAlert', 'danger', mensajeDeError(respuesta));
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
+});
+// === ACCESO DEL MÉDICO ===
+// Sin cuenta: se crea con usuario y contraseña. Con cuenta: se cambia la contraseña o se quita el acceso.
+let accesoTieneCuenta = false;
+
+/** Envía una acción de acceso y recarga la página si se aplicó. */
+async function enviarAcceso(datos, boton, textoProceso) {
+    limpiarAlerta('alertaAcceso');
+    const restaurar = bloquearBoton(boton, textoProceso);
+    const respuesta = await apiClient.post('gestionar_acceso_doctor.php', datos);
+
+    if (respuesta?.status === 'success') {
+        modal('modalAcceso').hide();
+        notificar('exito', respuesta.message);
+        setTimeout(() => location.reload(), 900);
+        return;
+    }
+
+    mostrarAlerta('alertaAcceso', 'danger', mensajeDeError(respuesta));
+    restaurar();
+}
+
+document.querySelectorAll('[data-acceso-doctor]').forEach((boton) => {
+    boton.addEventListener('click', () => {
+        const { id, nombre, usuario } = boton.dataset;
+        accesoTieneCuenta = usuario !== '';
+
+        document.getElementById('formAcceso').reset();
+        limpiarAlerta('alertaAcceso');
+        document.getElementById('acceso_id_doctor').value = id;
+        document.getElementById('acceso_nombre').textContent = nombre;
+        document.getElementById('acceso_explicacion').textContent = accesoTieneCuenta
+            ? `Entra con el usuario ${usuario}. Escribe una contraseña nueva para reemplazar la actual.`
+            : 'Crea un usuario y una contraseña para que este médico vea sus citas y emita recetas.';
+        document.getElementById('acceso_campo_usuario').classList.toggle('d-none', accesoTieneCuenta);
+        document.getElementById('acceso_etiqueta_password').textContent = accesoTieneCuenta ? 'Contraseña nueva' : 'Contraseña';
+        document.getElementById('btnGuardarAcceso').textContent = accesoTieneCuenta ? 'Cambiar contraseña' : 'Crear acceso';
+        document.getElementById('btnQuitarAcceso').classList.toggle('d-none', !accesoTieneCuenta);
+        modal('modalAcceso').show();
+    });
+});
+
+document.getElementById('formAcceso').addEventListener('submit', (evento) => {
+    evento.preventDefault();
+    enviarAcceso({
+        id_doctor: Number(document.getElementById('acceso_id_doctor').value),
+        accion: accesoTieneCuenta ? 'password' : 'crear',
+        usuario: document.getElementById('acceso_usuario').value.trim(),
+        password: document.getElementById('acceso_password').value,
+    }, document.getElementById('btnGuardarAcceso'), 'Guardando...');
+});
+
+document.getElementById('btnQuitarAcceso').addEventListener('click', (evento) => {
+    if (!confirm('El médico ya no podrá entrar a la plataforma. Su información y sus recetas se conservan. ¿Quitar el acceso?')) {
+        return;
+    }
+    enviarAcceso({ id_doctor: Number(document.getElementById('acceso_id_doctor').value), accion: 'quitar' }, evento.currentTarget, 'Quitando...');
 });
 </script>
 

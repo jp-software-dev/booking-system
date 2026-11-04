@@ -92,6 +92,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         boton.className = 'time-slot';
 
         const [horas, minutos] = hora.split(':').map(Number);
+        // Color del momento del día, como las tapas del pastillero (Tratamiento::momentoDelDia).
+        boton.classList.add(horas >= 5 && horas < 12 ? 'manana' : (horas >= 12 && horas < 19 ? 'tarde' : 'noche'));
         const fechaHora = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), horas, minutos);
         const fechaTexto = formatearFecha(dia);
 

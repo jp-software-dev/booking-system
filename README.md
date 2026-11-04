@@ -23,14 +23,14 @@
 
 Hosted on Vercel (PHP serverless runtime) with a PostgreSQL database on Supabase. See [`docs/DESPLIEGUE.md`](docs/DESPLIEGUE.md) (Spanish) for the full deployment guide.
 
-> The doctor account and the prescription features are being built on the `developer` branch; they reach the live demo when that branch is merged into `main`.
+> The doctor account, prescriptions and medication reminders are complete on the `developer` branch; they reach the live demo when that branch is merged into `main`.
 
 ## ✨ Key Features
 
 ### Patients
 * **Appointment booking:** per-doctor availability calendar; book, reschedule and cancel appointments, and browse the appointment history.
-* **Prescriptions** 🚧 *(in progress)*: every prescription a doctor issues will be listed for the patient, with a downloadable PDF.
-* **Medication reminders** 🚧 *(in progress)*: a weekly "pill organizer" view of every dose, the ability to add personal reminders (medication, every N hours, for N days) and mark each dose as taken or skipped, and browser push notifications at the exact time of each dose.
+* **Prescriptions:** every prescription a doctor issues becomes a treatment in the patient's week, with a downloadable PDF.
+* **Medication reminders:** a weekly "pill organizer" view of every dose, personal reminders (medication, every N hours, for N days), marking each dose as taken or skipped, and browser push notifications at the exact time of each dose (installable as an app on the phone).
 
 ### Doctors
 * **Weekly schedule:** the week laid out as a pill organizer (day × morning / afternoon / night) with every appointment, plus the day-by-day list.
@@ -41,7 +41,7 @@ Hosted on Vercel (PHP serverless runtime) with a PostgreSQL database on Supabase
 * **Appointment panel and analytics dashboard** with charts for operational and performance analysis.
 * **Staff management:** doctors, nurses, specialties and offices, including creating, resetting and revoking each doctor's login.
 * **Patient directory** with account status.
-* **Audit log (read-only):** every relevant action is recorded and can only be queried, never edited. Export to CSV and PDF 🚧 *(in progress)*.
+* **Audit log (read-only):** every relevant action is recorded and can only be queried, never edited. Export to CSV and PDF.
 
 ### Across the platform
 * **Email notifications** (PHPMailer): booking, confirmation and cancellation, password recovery and password-change confirmation.

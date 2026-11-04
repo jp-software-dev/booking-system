@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-04T00:00:00Z",
+  "title": "Design System: MediAgenda",
+  "extensions": {
+    "colorMeta": {
+      "accion": { "role": "primary", "displayName": "Azul consulta", "tonalRamp": ["#0f2350", "#163576", "#1f57c3", "#2f6fe4", "#6a98ec", "#a3c0f4", "#c3d6f8", "#e8f0fd"] },
+      "tapa-manana": { "role": "secondary", "displayName": "Ámbar mañana", "tonalRamp": ["#4a3205", "#7a4d00", "#a86b00", "#f2b134", "#f6c869", "#f9da9a", "#fbe8c2", "#fdf3dc"] },
+      "tapa-tarde": { "role": "secondary", "displayName": "Verde tarde", "tonalRamp": ["#0b3b29", "#17694b", "#1f8a63", "#3fb489", "#6fc8a6", "#9fdbc3", "#c6eadc", "#e0f4ec"] },
+      "tapa-noche": { "role": "secondary", "displayName": "Azul noche", "tonalRamp": ["#0f2350", "#163576", "#1f57c3", "#2f6fe4", "#6a98ec", "#a3c0f4", "#c3d6f8", "#e8f0fd"] },
+      "alerta": { "role": "tertiary", "displayName": "Rosa alerta", "tonalRamp": ["#4d1220", "#8f2236", "#b8324a", "#e5677a", "#ec8e9c", "#f2b8c2", "#f8d3d9", "#fde8ec"] },
+      "fondo-niebla": { "role": "neutral", "displayName": "Niebla" },
+      "tinta": { "role": "neutral", "displayName": "Tinta noche", "tonalRamp": ["#0b1426", "#16233b", "#2c3a55", "#4d5b76", "#6b7894", "#9aa6bd", "#cfd8e6", "#f2f5fa"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Solo el titular de la portada." },
+      "headline": { "displayName": "Encabezado de pantalla", "purpose": "El h1 de cada vista." },
+      "title": { "displayName": "Título de panel", "purpose": "Títulos de panel y tarjeta." },
+      "body": { "displayName": "Texto", "purpose": "Texto corrido y subtítulos." },
+      "label": { "displayName": "Etiqueta", "purpose": "Etiquetas de formulario y metadatos." },
+      "cifra": { "displayName": "Cifra", "purpose": "Horas, fechas, folios y contadores con números tabulares." }
+    },
+    "shadows": [
+      { "name": "reposo", "value": "0 1px 2px rgba(22, 35, 59, 0.05), 0 6px 18px -10px rgba(22, 35, 59, 0.18)", "purpose": "Paneles y tarjetas sobre el fondo niebla." },
+      { "name": "flotante", "value": "0 2px 6px rgba(22, 35, 59, 0.06), 0 22px 48px -20px rgba(22, 35, 59, 0.32)", "purpose": "Menús, modales y avisos." }
+    ],
+    "motion": [
+      { "name": "curva", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Salida exponencial para todas las transiciones; sin rebote." },
+      { "name": "curva-entrada", "value": "cubic-bezier(0.7, 0, 0.84, 0)", "purpose": "Salidas de elementos que desaparecen." },
+      { "name": "rapido", "value": "160ms", "purpose": "Hover, presión y menús." },
+      { "name": "medio", "value": "280ms", "purpose": "Avisos, alertas y modales." },
+      { "name": "lento", "value": "520ms", "purpose": "La tapa del compartimento al levantarse." }
+    ],
+    "breakpoints": [
+      { "name": "md", "value": "768px" },
+      { "name": "xl", "value": "1200px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botón primario",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción principal de cada pantalla.",
+      "html": "<button class=\"ds-btn-primario\">Agendar una cita</button>",
+      "css": ".ds-btn-primario { background: #2f6fe4; color: #fff; border: 1px solid #2f6fe4; border-radius: 14px; padding: 0.6rem 1.1rem; font: 700 1rem 'Nunito Sans', system-ui, sans-serif; cursor: pointer; transition: background-color 160ms cubic-bezier(0.16,1,0.3,1), transform 160ms cubic-bezier(0.16,1,0.3,1); } .ds-btn-primario:hover { background: #1f57c3; border-color: #1f57c3; } .ds-btn-primario:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(47,111,228,0.3); } .ds-btn-primario:active { transform: scale(0.97); }"
+    },
+    {
+      "name": "Botón claro",
+      "kind": "button",
+      "refersTo": "button-light",
+      "description": "Acciones secundarias.",
+      "html": "<button class=\"ds-btn-claro\">Crear una cuenta</button>",
+      "css": ".ds-btn-claro { background: #fff; color: #16233b; border: 1px solid #e1e7f0; border-radius: 14px; padding: 0.6rem 1.1rem; font: 700 1rem 'Nunito Sans', system-ui, sans-serif; cursor: pointer; transition: background-color 160ms cubic-bezier(0.16,1,0.3,1); } .ds-btn-claro:hover { background: #f7f9fc; border-color: #cfd8e6; } .ds-btn-claro:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(47,111,228,0.3); }"
+    },
+    {
+      "name": "Campo de texto",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campos de formulario.",
+      "html": "<input class=\"ds-campo\" placeholder=\"Correo electrónico\">",
+      "css": ".ds-campo { background: #fff; color: #16233b; border: 1px solid #cfd8e6; border-radius: 12px; padding: 0.62rem 0.9rem; font: 400 1rem 'Nunito Sans', system-ui, sans-serif; transition: border-color 160ms, box-shadow 160ms; } .ds-campo::placeholder { color: #6b7894; } .ds-campo:focus { outline: none; border-color: #2f6fe4; box-shadow: 0 0 0 4px rgba(47,111,228,0.16); }"
+    },
+    {
+      "name": "Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Conteos y estados informativos.",
+      "html": "<span class=\"ds-chip\">12 en total</span> <span class=\"ds-chip ds-chip-exito\">8 completadas</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; border-radius: 999px; padding: 0.25rem 0.7rem; font: 800 0.78rem 'Nunito Sans', system-ui, sans-serif; background: #f7f9fc; color: #4d5b76; font-variant-numeric: tabular-nums; } .ds-chip-exito { background: #e0f4ec; color: #17694b; }"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Contenedor de listas, tablas y formularios.",
+      "html": "<section class=\"ds-panel\"><h2>Datos de contacto</h2><p>Escríbenos o llámanos.</p></section>",
+      "css": ".ds-panel { background: #fff; border-radius: 16px; padding: 1.4rem; box-shadow: 0 1px 2px rgba(22,35,59,0.05), 0 6px 18px -10px rgba(22,35,59,0.18); font-family: 'Nunito Sans', system-ui, sans-serif; color: #16233b; } .ds-panel h2 { font-size: 1.05rem; font-weight: 800; margin: 0 0 0.5rem; } .ds-panel p { color: #4d5b76; margin: 0; }"
+    },
+    {
+      "name": "Compartimento del pastillero",
+      "kind": "custom",
+      "refersTo": "compartimento-manana",
+      "description": "La pieza firma: una toma por día y momento; la tapa se levanta al pasar el cursor (en la app, al registrar la toma).",
+      "html": "<div class=\"ds-compartimento\"><span class=\"ds-tapa\"></span><time>08:00</time><span>Amoxicilina</span></div>",
+      "css": ".ds-compartimento { position: relative; width: 120px; min-height: 92px; border-radius: 18px; background: #fdf3dc; border: 1.5px solid rgba(242,177,52,0.35); padding: 28px 8px 8px; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; overflow: hidden; perspective: 400px; font: 800 0.8rem 'Nunito Sans', system-ui, sans-serif; color: #16233b; } .ds-compartimento time { color: #4d5b76; font-size: 0.7rem; font-variant-numeric: tabular-nums; } .ds-tapa { position: absolute; left: 0; right: 0; top: 0; height: 22px; background: #f2b134; border-radius: 16px 16px 7px 7px; transform-origin: top center; transition: transform 520ms cubic-bezier(0.16,1,0.3,1), opacity 520ms cubic-bezier(0.16,1,0.3,1); } .ds-compartimento:hover .ds-tapa { transform: rotateX(-74deg); opacity: 0.55; } @media (prefers-reduced-motion: reduce) { .ds-tapa { transition: none; } }"
+    },
+    {
+      "name": "Horario para agendar",
+      "kind": "custom",
+      "refersTo": "compartimento-tarde",
+      "description": "Horario libre teñido por el momento del día.",
+      "html": "<button class=\"ds-horario\">4:30 PM</button>",
+      "css": ".ds-horario { width: 110px; padding: 9px 0; border-radius: 12px; border: 1px solid #a0d3c7; background: #e0f4ec; color: #16233b; font: 800 0.85rem 'Nunito Sans', system-ui, sans-serif; font-variant-numeric: tabular-nums; cursor: pointer; transition: background-color 160ms cubic-bezier(0.16,1,0.3,1), border-color 160ms, transform 160ms; } .ds-horario:hover { background: #fff; border-color: #3fb489; transform: translateY(-1px); } .ds-horario:focus-visible { outline: 3px solid rgba(47,111,228,0.45); outline-offset: 2px; } .ds-horario:active { transform: scale(0.97); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "El pastillero semanal",
+    "overview": "Toda la app se lee como el pastillero de plástico que un paciente tiene en la cocina: una cuadrícula de días por momentos (mañana, tarde, noche), cada compartimento con una tapa de color que se levanta cuando la dosis ya se tomó. Esa misma gramática ordena la semana del paciente, la agenda del médico, los horarios para agendar y hasta el horario de la clínica en Contacto. Lo que no cabe en una cuadrícula (listas, tablas, formularios) vive en paneles blancos sobre un fondo de niebla azulada.\n\nLa sensación es de clínica moderna y cálida: tipografía redonda y gruesa (Nunito Sans 800 en títulos), esquinas generosas, color solo donde significa algo. El azul es la única voz de acción; el ámbar, el verde y el azul de las tapas dicen cuándo, nunca qué hacer. El movimiento es corto y con salida exponencial, sin rebotes, y desaparece con prefers-reduced-motion.",
+    "keyCharacteristics": [
+      "Cuadrícula día × momento como estructura principal; los compartimentos son la unidad visual.",
+      "Tres colores de tapa ligados a la hora (05–11 mañana, 12–18 tarde, resto noche).",
+      "Un solo color de acción (azul) para botones, enlaces, foco y selección.",
+      "Paneles blancos planos con sombra muy difusa sobre fondo niebla.",
+      "Cifras siempre tabulares (horas, folios, contadores)."
+    ],
+    "rules": [
+      { "name": "La regla de la única voz", "body": "Solo el azul de acción invita a hacer clic. Si algo es interactivo y no es azul, es un botón claro con borde de línea.", "section": "colors" },
+      { "name": "La regla del reloj", "body": "Ámbar, verde y azul noche significan hora del día. No se reutilizan para categorías, estados ni decoración.", "section": "colors" },
+      { "name": "La regla de las cifras", "body": "Horas, fechas, folios y contadores usan números tabulares para que las columnas no bailen.", "section": "typography" },
+      { "name": "La regla sin gritos", "body": "Nada de mayúsculas forzadas ni texto en versales; los títulos van en tipo oración (\"Citas por estado\", no \"CITAS POR ESTADO\").", "section": "typography" },
+      { "name": "La regla de lo que flota", "body": "Solo lo que está por encima del contenido lleva la sombra alta; nada se eleva en hover salvo un desplazamiento de 1 px.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do colorear por momento del día solo con las tres tapas (ámbar, verde, azul noche) y sus fondos suaves.",
+      "Do usar el azul de acción (#2f6fe4) para todo lo clicable principal y para el foco.",
+      "Do usar números tabulares en horas, fechas, folios y contadores.",
+      "Do mantener cada animación entre 160 y 520 ms con la curva cubic-bezier(0.16, 1, 0.3, 1) y anularla con prefers-reduced-motion.",
+      "Do comprobar que cada pantalla quepa en 390 px sin desbordar la página."
+    ],
+    "donts": [
+      "Don't usar franjas de color en un costado de tarjetas o botones; el color va como tinte, tapa o punto.",
+      "Don't forzar mayúsculas en títulos, etiquetas o botones.",
+      "Don't usar degradados en texto ni rótulos pequeños sobre los títulos (\"eyebrows\").",
+      "Don't usar ámbar, verde o azul noche para categorías o estados que no sean la hora del día.",
+      "Don't mostrar datos reales: la demo usa nombres, correos y teléfonos ficticios."
+    ]
+  }
+}

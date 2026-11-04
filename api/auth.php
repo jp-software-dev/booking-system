@@ -3,8 +3,9 @@
 /**
  * ENDPOINT: INICIO DE SESIÓN
  *
- * Autentica a administradores (por nombre de usuario, tabla `usuarios`) y a
- * pacientes (por correo, tablas `pacientes` + `pacientes_credenciales`).
+ * Autentica a administradores y médicos (por nombre de usuario, tabla `usuarios`)
+ * y a pacientes (por correo, tablas `pacientes` + `pacientes_credenciales`).
+ * Un médico solo entra si su cuenta está ligada a un médico activo.
  *
  * Método:    POST (JSON)
  * Acceso:    público, con token CSRF
@@ -74,17 +75,25 @@ if ((!$esCorreo && !$esUsuario) || strlen($password) > 200) {
 $db = Database::getInstance();
 $hashAVerificar = HASH_FICTICIO;
 $usuario = null;          // Datos de sesión si la cuenta existe y su rol tiene acceso.
-$rolSinAcceso = false;    // Cuenta de `usuarios` con un rol sin funciones (ej. 'recepcion').
+$rolSinAcceso = false;    // Cuenta de `usuarios` sin acceso (rol 'recepcion' o médico dado de baja).
 
 // El nombre de usuario no distingue mayúsculas (LOWER funciona igual en MySQL y PostgreSQL).
-$stmt = $db->prepare('SELECT id_usuario, nombre, password_hash, rol FROM usuarios WHERE LOWER(usuario) = LOWER(?)');
+$stmt = $db->prepare(
+    "SELECT u.id_usuario, u.nombre, u.password_hash, u.rol, u.id_doctor, d.estado AS estado_doctor
+     FROM usuarios u LEFT JOIN doctores d ON d.id_doctor = u.id_doctor
+     WHERE LOWER(u.usuario) = LOWER(?)"
+);
 $stmt->execute([$identificador]);
-$admin = $stmt->fetch();
+$cuenta = $stmt->fetch();
 
-if ($admin) {
-    $hashAVerificar = (string) $admin['password_hash'];
-    if ($admin['rol'] === Sesion::ROL_ADMIN) {
-        $usuario = ['id' => (int) $admin['id_usuario'], 'nombre' => (string) $admin['nombre'], 'rol' => Sesion::ROL_ADMIN, 'tabla' => 'usuarios'];
+if ($cuenta) {
+    $hashAVerificar = (string) $cuenta['password_hash'];
+    $base = ['id' => (int) $cuenta['id_usuario'], 'nombre' => (string) $cuenta['nombre'], 'tabla' => 'usuarios', 'id_doctor' => null];
+
+    if ($cuenta['rol'] === Sesion::ROL_ADMIN) {
+        $usuario = $base + ['rol' => Sesion::ROL_ADMIN];
+    } elseif ($cuenta['rol'] === Sesion::ROL_DOCTOR && $cuenta['id_doctor'] !== null && $cuenta['estado_doctor'] === 'Activo') {
+        $usuario = ['rol' => Sesion::ROL_DOCTOR, 'id_doctor' => (int) $cuenta['id_doctor']] + $base;
     } else {
         $rolSinAcceso = true;
     }
@@ -92,7 +101,7 @@ if ($admin) {
     $paciente = (new Paciente($db))->obtenerCredencialesPorEmail($identificador);
     if ($paciente !== null) {
         $hashAVerificar = (string) $paciente['password_hash'];
-        $usuario = ['id' => (int) $paciente['id_paciente'], 'nombre' => (string) $paciente['nombre'], 'rol' => Sesion::ROL_PACIENTE, 'tabla' => 'pacientes'];
+        $usuario = ['id' => (int) $paciente['id_paciente'], 'nombre' => (string) $paciente['nombre'], 'rol' => Sesion::ROL_PACIENTE, 'tabla' => 'pacientes', 'id_doctor' => null];
     }
 }
 
@@ -120,7 +129,7 @@ if (password_needs_rehash($hashAVerificar, PASSWORD_DEFAULT)) {
     }
 }
 
-Sesion::autenticar($usuario['id'], $usuario['nombre'], $usuario['rol']);
+Sesion::autenticar($usuario['id'], $usuario['nombre'], $usuario['rol'], $usuario['id_doctor']);
 RateLimiter::resetAttempts($claveLimite);
 Bitacora::registrar('login_exitoso', 'sesion', $usuario['id']);
 

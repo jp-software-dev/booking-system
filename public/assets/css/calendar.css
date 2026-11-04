@@ -1,131 +1,90 @@
 /* ==========================================================================
    ESTILOS DE LA AGENDA DE CITAS (agenda.php + calendar.js)
-   La variable --primary se define en styles.css.
+   Los colores (--ma-*) y las tapas por momento del día (.manana, .tarde,
+   .noche) se definen en styles.css.
    ========================================================================== */
 
-:root {
-    --calendar-bg: #ffffff;
-    --calendar-border: #e5e7eb;
-    --slot-hover: #eff6ff;
-    --slot-disabled: #f3f4f6;
-    --slot-booked: #fee2e2;
-    --slot-booked-text: #dc3545;
-}
-
-/* === AGENDA SEMANAL: UNA COLUMNA POR DÍA === */
+/* === AGENDA SEMANAL: CADA DÍA ES UN COMPARTIMENTO === */
 .agenda-grid {
     display: flex;
-    flex-direction: row;
     flex-wrap: nowrap;
-    gap: 12px;
-    padding: 8px 0 16px 0;
+    gap: 10px;
+    padding: 4px 2px 12px;
     min-width: max-content;
 }
 
 .agenda-col {
-    flex: 0 0 170px;
-    width: 170px;
+    flex: 0 0 150px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    border-right: 1px solid var(--calendar-border);
-    padding: 0 10px;
+    padding: 12px 10px;
+    border-radius: var(--ma-radio-compartimento);
+    background: var(--ma-superficie-2);
+    transition: background-color var(--ma-medio) var(--ma-curva), box-shadow var(--ma-medio) var(--ma-curva);
 }
-.agenda-col:last-child { border-right: none; }
+.agenda-col.active { background: var(--ma-accion-suave); box-shadow: inset 0 0 0 2px var(--ma-accion); }
 
-.day-label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #6b7280;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-}
+.day-label { font-size: 0.75rem; font-weight: 800; color: var(--ma-tinta-2); text-transform: uppercase; letter-spacing: 0.04em; }
 
 .date-circle {
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 20px;
-    line-height: 1;
-    transition: all 0.2s ease;
+    width: 44px; height: 44px;
+    display: grid; place-items: center;
+    border-radius: 14px;
+    font-size: 1.3rem; font-weight: 800; font-variant-numeric: tabular-nums;
+    color: var(--ma-tinta);
+    margin: 4px 0 14px;
 }
-.agenda-col.today-col .date-circle { outline: 2px solid var(--primary); color: var(--primary); }
-.agenda-col.active .date-circle { background-color: var(--primary); color: #ffffff; outline: none; }
+.agenda-col.today-col .date-circle { background: var(--ma-superficie); box-shadow: 0 0 0 2px var(--ma-accion); color: var(--ma-accion-fuerte); }
+.agenda-col.active .date-circle { background: var(--ma-accion); color: #fff; box-shadow: none; }
 
-/* === BOTONES DE HORARIO === */
+/* === HORARIOS: PÍLDORAS CON EL COLOR DEL MOMENTO DEL DÍA === */
 .time-slot {
+    position: relative;
     width: 100%;
-    background: var(--calendar-bg);
-    border: 1px solid var(--calendar-border);
-    border-radius: 50px;
-    padding: 10px 0;
-    margin-bottom: 8px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--primary);
+    margin-bottom: 6px;
+    padding: 9px 0;
+    border: 1px solid color-mix(in srgb, var(--tapa, var(--ma-linea-fuerte)) 40%, var(--ma-linea));
+    border-radius: 12px;
+    background: var(--tapa-suave, var(--ma-superficie));
+    color: var(--ma-tinta);
+    font-size: 0.85rem; font-weight: 800; font-variant-numeric: tabular-nums;
     text-align: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    overflow: hidden;
+    transition: background-color var(--ma-rapido) var(--ma-curva), border-color var(--ma-rapido) var(--ma-curva), transform var(--ma-rapido) var(--ma-curva);
 }
-.time-slot:hover:not(:disabled) { background: var(--slot-hover); border-color: var(--primary); transform: translateY(-2px); }
-.time-slot:disabled { background: var(--slot-disabled); color: #9ca3af; border-color: transparent; cursor: not-allowed; }
-.time-slot.booked:disabled { background: var(--slot-booked); color: var(--slot-booked-text); }
+/* El color del momento del día tiñe fondo y borde (como los compartimentos del pastillero). */
+.time-slot:hover:not(:disabled) { background: var(--ma-superficie); border-color: var(--tapa, var(--ma-accion)); transform: translateY(-1px); }
+.time-slot:active:not(:disabled) { transform: scale(0.97); }
+.time-slot:focus-visible { outline: 3px solid rgba(47, 111, 228, 0.45); outline-offset: 2px; }
+.time-slot:disabled { background: transparent; border-color: transparent; color: var(--ma-tinta-3); cursor: default; }
+.time-slot.booked:disabled { background: var(--ma-alerta-suave); color: var(--ma-alerta-texto); font-size: 0.78rem; }
 
 /* === MINI CALENDARIO MENSUAL === */
-.mini-cal { background: var(--calendar-bg); border: 1px solid var(--calendar-border); border-radius: 12px; padding: 1.5rem; width: 100%; }
-.mini-cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; font-weight: 700; color: #111827; }
-.mini-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
-.mini-cal-day { font-size: 0.75rem; font-weight: 700; color: #6b7280; padding: 6px 0; }
+.mini-cal { background: var(--ma-superficie); border-radius: var(--ma-radio-tarjeta); padding: 1rem; width: 100%; }
+.ma-panel .mini-cal { padding: 0; }
+.mini-cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; font-weight: 800; color: var(--ma-tinta); }
+.mini-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+.mini-cal-day { font-size: 0.72rem; font-weight: 800; color: var(--ma-tinta-3); padding: 4px 0; }
 .mini-cal-date {
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    font-size: 0.9rem;
-    font-weight: 500;
-    line-height: 1;
-    color: #111827;
+    aspect-ratio: 1;
+    display: grid; place-items: center;
+    border-radius: 10px;
+    font-size: 0.88rem; font-weight: 700; font-variant-numeric: tabular-nums;
+    color: var(--ma-tinta);
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background-color var(--ma-rapido) var(--ma-curva);
 }
-.mini-cal-date:hover { background: var(--slot-hover); }
-.mini-cal-date.active { background: var(--primary); color: #ffffff; }
-.mini-cal-date.today { border: 2px solid var(--primary); font-weight: 700; }
-.mini-cal-date.text-muted.opacity-50 { background: transparent; color: var(--calendar-border) !important; cursor: default; pointer-events: none; border: none; }
-#mini-prev-month, #mini-next-month { cursor: pointer; padding: 6px 10px; border-radius: 8px; transition: background 0.2s ease; color: #111827; }
-#mini-prev-month:hover, #mini-next-month:hover { background: var(--slot-hover); }
+.mini-cal-date:hover { background: var(--ma-accion-suave); }
+.mini-cal-date.active { background: var(--ma-accion); color: #fff; }
+.mini-cal-date.today { box-shadow: inset 0 0 0 2px var(--ma-accion); font-weight: 800; }
+.mini-cal-date.text-muted.opacity-50 { color: var(--ma-linea-fuerte) !important; cursor: default; pointer-events: none; background: transparent; }
+#mini-prev-month, #mini-next-month { cursor: pointer; padding: 6px 9px; border-radius: 10px; color: var(--ma-tinta); transition: background-color var(--ma-rapido) var(--ma-curva); }
+#mini-prev-month:hover, #mini-next-month:hover { background: var(--ma-superficie-2); }
 
-/* Botones de semana anterior / siguiente. */
-.hover-effect:hover { background-color: var(--calendar-border) !important; }
-
-/* === MÓVIL: DOS COLUMNAS CENTRADAS === */
+/* === CELULAR: DOS DÍAS A LA VEZ === */
 @media (max-width: 768px) {
-    .agenda-grid {
-        width: 100%;
-        min-width: 0;
-        justify-content: center;
-        gap: 0;
-        padding: 0 5px 15px 5px;
-    }
-
-    .agenda-col {
-        flex: 0 0 48%;
-        max-width: 48%;
-        padding: 0 8px;
-        border-left: 1px solid var(--calendar-border);
-        border-right: 1px solid var(--calendar-border);
-    }
-    .agenda-col:first-child { border-right: none; }
-
-    .day-label { font-size: 0.70rem; margin-bottom: 4px; }
-    .date-circle { width: 38px; height: 38px; font-size: 1.1rem; margin-bottom: 15px; }
-    .time-slot { border-radius: 8px; }
+    .agenda-grid { width: 100%; min-width: 0; gap: 8px; }
+    .agenda-col { flex: 1 1 0; min-width: 0; padding: 10px 6px; }
+    .date-circle { width: 40px; height: 40px; font-size: 1.15rem; margin-bottom: 10px; }
 }

@@ -6,17 +6,20 @@ namespace App\Models;
 
 use App\Core\Database;
 use App\Helpers\Paginacion;
+use DateTimeImmutable;
 use PDO;
 
 /**
- * CONSULTA DE LA BITÁCORA DE AUDITORÍA
+ * CONSULTA DE LA BITÁCORA DE AUDITORÍA (SOLO LECTURA)
  *
- * Lectura filtrada de la tabla `bitacora` para admin_bitacora.php. (La
- * escritura se hace con App\Helpers\Bitacora.)
+ * Lectura filtrada de la tabla `bitacora` para admin_bitacora.php y su
+ * exportación a CSV y PDF (api/exportar_bitacora.php). La bitácora es de solo
+ * consulta: los registros solo se agregan (App\Helpers\Bitacora) y ninguna
+ * pantalla ni endpoint los edita o borra.
  *
  * bitacora.id_usuario apunta a pacientes.id_paciente cuando rol = 'paciente'
- * y a usuarios.id_usuario cuando rol = 'admin'; por eso el nombre del usuario
- * se resuelve con una subconsulta que une ambas tablas.
+ * y a usuarios.id_usuario cuando rol = 'admin' o 'doctor'; por eso el nombre
+ * del usuario se resuelve con una subconsulta que une ambas tablas.
  */
 final class Auditoria
 {
@@ -25,7 +28,7 @@ final class Auditoria
         LEFT JOIN (
             SELECT id_paciente AS id_usuario, 'paciente' AS rol, CONCAT(nombre, ' ', apellido_paterno) AS nombre_usuario FROM pacientes
             UNION ALL
-            SELECT id_usuario, 'admin', nombre FROM usuarios
+            SELECT id_usuario, rol, nombre FROM usuarios
         ) u ON u.id_usuario = b.id_usuario AND u.rol = b.rol";
 
     private PDO $db;
@@ -36,6 +39,45 @@ final class Auditoria
     public function __construct(?PDO $db = null)
     {
         $this->db = $db ?? Database::getInstance();
+    }
+
+    /**
+     * Lee y valida los filtros desde la URL. Las fechas inválidas se ignoran.
+     *
+     * @param array<string, mixed> $consulta Parámetros de la URL (normalmente $_GET).
+     * @return array{accion: string, usuario: string, desde: string, hasta: string}
+     */
+    public static function filtrosDesdeConsulta(array $consulta): array
+    {
+        $leer = static fn (string $clave): string => is_string($consulta[$clave] ?? null) ? trim($consulta[$clave]) : '';
+        $fecha = static fn (string $valor): string => DateTimeImmutable::createFromFormat('!Y-m-d', $valor) !== false ? $valor : '';
+
+        return [
+            'accion'  => mb_substr($leer('accion'), 0, 100),
+            'usuario' => mb_substr($leer('usuario'), 0, 100),
+            'desde'   => $fecha($leer('desde')),
+            'hasta'   => $fecha($leer('hasta')),
+        ];
+    }
+
+    /**
+     * Registros que cumplen los filtros para exportar, del más reciente al más antiguo.
+     *
+     * @param array{accion: string, usuario: string, desde: string, hasta: string} $filtros
+     * @param int $limite Máximo de registros.
+     * @return list<array<string, mixed>>
+     */
+    public function listarParaExportar(array $filtros, int $limite): array
+    {
+        [$where, $params] = self::construirFiltro($filtros);
+
+        $stmt = $this->db->prepare(
+            'SELECT b.id, b.id_usuario, b.rol, b.accion, b.entidad, b.id_entidad, b.detalle, b.fecha, u.nombre_usuario '
+            . self::FROM . ' ' . $where . ' ORDER BY b.fecha DESC, b.id DESC LIMIT ' . max(1, $limite)
+        );
+        $stmt->execute($params);
+
+        return $stmt->fetchAll();
     }
 
     /**

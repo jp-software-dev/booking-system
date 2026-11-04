@@ -427,4 +427,51 @@ final class Cita
 
         return $stmt->fetch() ?: null;
     }
+
+    /**
+     * Agenda de un médico entre dos fechas (inclusive): paciente, motivo y si ya
+     * tiene receta emitida en esa cita. Se usa en el panel del doctor.
+     *
+     * @param int    $idDoctor Médico.
+     * @param string $desde    Fecha inicial (Y-m-d).
+     * @param string $hasta    Fecha final (Y-m-d).
+     * @return list<array<string, mixed>>
+     */
+    public function listarAgendaDoctor(int $idDoctor, string $desde, string $hasta): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT c.id_cita, c.fecha_cita, c.hora_inicio, c.motivo_consulta, c.estado_cita,
+                    p.id_paciente, p.nombre AS paciente_nombre, p.apellido_paterno AS paciente_apellido,
+                    p.fecha_nacimiento, co.nombre AS consultorio_nombre,
+                    (SELECT MIN(r.id_receta) FROM recetas r WHERE r.id_cita = c.id_cita) AS id_receta
+             FROM citas c
+             JOIN pacientes p ON c.id_paciente = p.id_paciente
+             LEFT JOIN consultorios co ON c.id_consultorio = co.id_consultorio
+             WHERE c.id_doctor = ? AND c.fecha_cita >= ? AND c.fecha_cita <= ?
+             ORDER BY c.fecha_cita ASC, c.hora_inicio ASC'
+        );
+        $stmt->execute([$idDoctor, $desde, $hasta]);
+
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Devuelve la cita si pertenece al médico, o null.
+     *
+     * @param int $idCita   Cita.
+     * @param int $idDoctor Médico.
+     * @return array<string, mixed>|null
+     */
+    public function obtenerDeDoctor(int $idCita, int $idDoctor): ?array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT c.id_cita, c.id_paciente, c.fecha_cita, c.hora_inicio, c.estado_cita,
+                    p.nombre AS paciente_nombre, p.apellido_paterno AS paciente_apellido
+             FROM citas c JOIN pacientes p ON c.id_paciente = p.id_paciente
+             WHERE c.id_cita = ? AND c.id_doctor = ?'
+        );
+        $stmt->execute([$idCita, $idDoctor]);
+
+        return $stmt->fetch() ?: null;
+    }
 }

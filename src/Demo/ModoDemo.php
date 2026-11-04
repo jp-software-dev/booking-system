@@ -12,8 +12,8 @@ use App\Models\Paciente;
  *
  * Con DEMO_MODE=true en el .env la aplicación funciona como demo pública:
  *   - muestra un aviso en todas las páginas y las credenciales de prueba en el login;
- *   - protege la cuenta de paciente de prueba (no se puede cambiar su contraseña,
- *     sus datos ni eliminarla), para que un visitante no la deje inutilizable;
+ *   - protege las cuentas de prueba (paciente y médico): no se puede cambiar su
+ *     contraseña, sus datos ni eliminarlas, para que un visitante no las deje inutilizables;
  *   - permite reiniciar los datos con api/demo_reset.php o database/sembrar_demo.php.
  *
  * Las credenciales de prueba son públicas a propósito: solo existen en la base
@@ -24,10 +24,13 @@ final class ModoDemo
     /** Usuario administrador de prueba. */
     public const ADMIN_USUARIO = 'demo.admin';
 
+    /** Usuario del médico de prueba. */
+    public const DOCTOR_USUARIO = 'demo.doctor';
+
     /** Correo del paciente de prueba (dominio reservado para ejemplos). */
     public const PACIENTE_EMAIL = 'paciente@example.com';
 
-    /** Contraseña de ambas cuentas de prueba. */
+    /** Contraseña de las cuentas de prueba. */
     public const PASSWORD = 'Demo2026!';
 
     /** Mensaje para las acciones bloqueadas en la cuenta de prueba. */

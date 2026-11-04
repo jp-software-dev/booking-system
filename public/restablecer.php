@@ -26,16 +26,16 @@ $tokenValido = (new TokenPassword())->emailDeRestablecimiento($token) !== null;
 
 require __DIR__ . '/../src/views/layout/header.php';
 ?>
-<div class="d-flex align-items-center justify-content-center auth-bg py-5" style="min-height: 85vh;">
+<div class="d-flex align-items-center justify-content-center auth-bg flex-grow-1 py-5">
     <?php if (!$tokenValido): ?>
         <div class="card auth-card p-5 w-100 text-center" style="max-width: 450px;">
-            <h4 class="fw-bold text-danger">Enlace inválido</h4>
+            <h1 class="ma-titulo fs-3 text-danger">Enlace inválido</h1>
             <p class="text-secondary">El enlace venció o ya fue utilizado.</p>
             <a href="recuperar.php" class="btn btn-outline-danger mt-2">Solicitar uno nuevo</a>
         </div>
     <?php else: ?>
         <div class="card auth-card p-5 w-100" style="max-width: 450px;">
-            <div class="text-center mb-4"><h3 class="fw-bold text-dark-blue">Nueva Contraseña</h3></div>
+            <div class="text-center mb-4"><h1 class="ma-titulo fs-3">Nueva contraseña</h1></div>
             <div id="restablecerAlert"></div>
             <form id="formRestablecer">
                 <input type="hidden" name="token" value="<?= e($token) ?>">
@@ -53,7 +53,7 @@ require __DIR__ . '/../src/views/layout/header.php';
                         <input type="password" id="confirm_password" class="form-control border-start-0 ps-0" minlength="8" maxlength="200" autocomplete="new-password" required>
                     </div>
                 </div>
-                <button type="submit" id="btnRestablecer" class="btn btn-primary w-100 btn-lg fw-bold">Guardar contraseña</button>
+                <button type="submit" id="btnRestablecer" class="btn btn-primary w-100 btn-lg">Guardar contraseña</button>
             </form>
         </div>
     <?php endif; ?>

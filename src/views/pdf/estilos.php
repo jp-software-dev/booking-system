@@ -7,15 +7,15 @@
  */
 ?>
 <style>
-    body { font-family: Helvetica, Arial, sans-serif; font-size: 12px; color: #333333; }
-    .encabezado { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #1a73e8; padding-bottom: 10px; }
-    .encabezado h1 { color: #1a73e8; margin: 0; font-size: 24px; }
+    body { font-family: Helvetica, Arial, sans-serif; font-size: 12px; color: #16233b; }
+    .encabezado { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #2f6fe4; padding-bottom: 10px; }
+    .encabezado h1 { color: #16233b; margin: 0; font-size: 24px; }
     .encabezado p { margin: 5px 0 0 0; color: #666666; }
-    h2 { font-size: 15px; color: #1a73e8; margin-top: 25px; }
+    h2 { font-size: 15px; color: #1f57c3; margin-top: 25px; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th { background-color: #f1f3f4; font-weight: bold; text-align: left; padding: 8px; border: 1px solid #dddddd; }
-    td { padding: 8px; border: 1px solid #dddddd; }
-    .tabla-datos td:first-child { font-weight: bold; width: 220px; background-color: #f8f9fa; }
+    th { background-color: #f2f5fa; font-weight: bold; text-align: left; padding: 8px; border: 1px solid #e1e7f0; }
+    td { padding: 8px; border: 1px solid #e1e7f0; }
+    .tabla-datos td:first-child { font-weight: bold; width: 220px; background-color: #f7f9fc; }
     .estado-pendiente { color: #d97706; font-weight: bold; }
     .estado-confirmada { color: #0f766e; font-weight: bold; }
     .estado-en-curso { color: #1d4ed8; font-weight: bold; }

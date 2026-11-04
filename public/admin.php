@@ -36,27 +36,34 @@ $urlPdf = '../api/generar_pdf.php?' . http_build_query($filtro->parametrosUrl())
 $horarios = Horario::slots();
 
 // === VISTA ===
+$tituloPagina = 'Citas';
 require __DIR__ . '/../src/views/layout/header.php';
 ?>
-<div class="container-fluid py-4 px-lg-5" style="min-height: 85vh;">
-    <!-- === CONTADORES GLOBALES === -->
-    <div class="d-flex flex-wrap gap-2 mb-3">
-        <span class="badge bg-dark fs-6 fw-bold shadow-sm">TOTAL CITAS: <?= $totales['total'] ?></span>
-        <span class="badge bg-warning text-dark fs-6 fw-bold shadow-sm">PENDIENTES: <?= $totales['pendientes'] ?></span>
-        <span class="badge bg-info text-dark fs-6 fw-bold shadow-sm">CONFIRMADAS: <?= $totales['confirmadas'] ?></span>
-        <span class="badge bg-success fs-6 fw-bold shadow-sm">COMPLETADAS: <?= $totales['completadas'] ?></span>
+<div class="container-fluid ma-pagina px-lg-5">
+    <!-- === ENCABEZADO Y CONTADORES GLOBALES === -->
+    <div class="ma-encabezado-pagina">
+        <div>
+            <h1 class="ma-titulo">Citas</h1>
+            <p class="ma-subtitulo">Todas las citas de la clínica: confirma, reprograma o cancela.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2 ma-cifras">
+            <span class="ma-chip"><?= $totales['total'] ?> en total</span>
+            <span class="ma-chip aviso"><?= $totales['pendientes'] ?> pendientes</span>
+            <span class="ma-chip info"><?= $totales['confirmadas'] ?> confirmadas</span>
+            <span class="ma-chip exito"><?= $totales['completadas'] ?> completadas</span>
+        </div>
     </div>
 
     <div id="panelAlert"></div>
 
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
         <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <h5 class="fw-bold text-dark-blue mb-0"><i class="bi bi-list-task me-2 text-primary"></i>Gestión de Citas</h5>
+            <h2 class="fs-5 fw-bold mb-0"><i class="bi bi-list-task me-2 text-primary" aria-hidden="true"></i>Gestión de Citas</h2>
             <div class="d-flex gap-2">
-                <button type="button" class="btn btn-primary rounded-pill px-4 shadow-sm fw-medium" data-bs-toggle="modal" data-bs-target="#modalNuevaCitaAdmin">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNuevaCitaAdmin">
                     <i class="bi bi-plus-lg me-1"></i> Nueva Cita
                 </button>
-                <a href="<?= e($urlPdf) ?>" class="btn btn-outline-danger rounded-pill px-4 fw-medium">
+                <a href="<?= e($urlPdf) ?>" class="btn btn-outline-primary">
                     <i class="bi bi-file-pdf me-1"></i> PDF
                 </a>
             </div>
@@ -95,7 +102,7 @@ require __DIR__ . '/../src/views/layout/header.php';
                 </div>
                 <div class="col-md-2 d-flex gap-2">
                     <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3 fw-medium shadow-sm">Filtrar</button>
-                    <a href="admin.php" class="btn btn-light btn-sm rounded-pill px-4 fw-bold border text-uppercase shadow-sm">Limpiar</a>
+                    <a href="admin.php" class="btn btn-light btn-sm">Limpiar</a>
                 </div>
             </form>
         </div>
@@ -211,8 +218,8 @@ require __DIR__ . '/../src/views/layout/header.php';
                     </div>
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm"><i class="bi bi-check-lg me-1"></i> Crear Cita</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i> Crear Cita</button>
                 </div>
             </form>
         </div>
@@ -247,8 +254,8 @@ require __DIR__ . '/../src/views/layout/header.php';
                     </div>
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">Guardar Cambios</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                 </div>
             </form>
         </div>

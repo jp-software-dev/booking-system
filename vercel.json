@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["pdx1"],
   "framework": null,
-  "buildCommand": "mkdir -p dist/public && cp -R public/assets dist/public/assets",
+  "buildCommand": "mkdir -p dist/public && cp -R public/assets dist/public/assets && cp public/sw.js public/manifest.webmanifest dist/public/",
   "outputDirectory": "dist",
   "functions": {
     "api/vercel.php": {
@@ -16,6 +16,24 @@
       "dest": "/public/assets/$1/$2",
       "headers": {
         "cache-control": "public, max-age=86400",
+        "x-content-type-options": "nosniff"
+      }
+    },
+    {
+      "src": "/public/sw\\.js",
+      "dest": "/public/sw.js",
+      "headers": {
+        "cache-control": "no-cache",
+        "content-type": "text/javascript; charset=utf-8",
+        "x-content-type-options": "nosniff"
+      }
+    },
+    {
+      "src": "/public/manifest\\.webmanifest",
+      "dest": "/public/manifest.webmanifest",
+      "headers": {
+        "cache-control": "public, max-age=3600",
+        "content-type": "application/manifest+json",
         "x-content-type-options": "nosniff"
       }
     },

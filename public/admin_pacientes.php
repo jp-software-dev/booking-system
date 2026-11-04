@@ -42,16 +42,17 @@ if ($idVer === null) {
 }
 
 // === VISTA ===
+$tituloPagina = 'Pacientes';
 require __DIR__ . '/../src/views/layout/header.php';
 ?>
 <?php if ($idVer !== null): ?>
     <!-- === FICHA DEL PACIENTE === -->
-    <div class="container py-5" style="min-height: 85vh;">
+    <div class="container ma-pagina">
         <a href="admin_pacientes.php" class="text-decoration-none fw-medium text-secondary mb-3 d-inline-block"><i class="bi bi-arrow-left me-1"></i> Volver al listado</a>
 
         <div class="card border-0 shadow-sm rounded-4 mb-4">
             <div class="card-header bg-white border-bottom py-3 px-4">
-                <h5 class="fw-bold text-dark-blue mb-0"><i class="bi bi-person-vcard text-primary me-2"></i>Datos del Paciente</h5>
+                <h1 class="fs-5 fw-bold mb-0"><i class="bi bi-person-vcard me-2 text-primary" aria-hidden="true"></i>Datos del paciente</h1>
             </div>
             <div class="card-body p-4">
                 <?php if ($paciente['cuenta_eliminada']): ?>
@@ -69,7 +70,7 @@ require __DIR__ . '/../src/views/layout/header.php';
 
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
             <div class="card-header bg-white border-bottom py-3 px-4">
-                <h5 class="fw-bold text-dark-blue mb-0"><i class="bi bi-clock-history text-secondary me-2"></i>Historial de Citas</h5>
+                <h2 class="fs-5 fw-bold mb-0"><i class="bi bi-clock-history me-2 text-secondary" aria-hidden="true"></i>Historial de citas</h2>
             </div>
             <div class="table-responsive border-0">
                 <table class="table table-hover align-middle mb-0">
@@ -106,10 +107,10 @@ require __DIR__ . '/../src/views/layout/header.php';
 
 <?php else: ?>
     <!-- === LISTADO DE PACIENTES === -->
-    <div class="container-fluid py-4 px-lg-5" style="min-height: 85vh;">
+    <div class="container-fluid ma-pagina px-lg-5">
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
             <div class="card-header bg-white border-bottom py-3 px-4">
-                <h5 class="fw-bold text-dark-blue mb-0"><i class="bi bi-people me-2 text-primary"></i>Pacientes</h5>
+                <h1 class="fs-5 fw-bold mb-0"><i class="bi bi-people me-2 text-primary" aria-hidden="true"></i>Pacientes</h1>
             </div>
 
             <div class="bg-light p-3 border-bottom">

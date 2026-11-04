@@ -27,120 +27,78 @@ $citasActivas = array_filter($citas, static fn (array $c): bool => in_array($c['
 $citasPasadas = array_filter($citas, static fn (array $c): bool => !in_array($c['estado_cita'], Cita::ESTADOS_ACTIVOS, true));
 
 // === VISTA ===
+$tituloPagina = 'Mis citas';
 require __DIR__ . '/../src/views/layout/header.php';
 ?>
-<div class="container py-5" style="min-height: 85vh;">
-    <div class="d-flex justify-content-between align-items-center mb-5 flex-wrap gap-3">
+<div class="container ma-pagina">
+    <div class="ma-encabezado-pagina">
         <div>
-            <h2 class="fw-bold text-dark-blue mb-2">Mi Historial de Citas</h2>
-            <p class="text-secondary mb-0">Consulta el estado de tus citas y tus atenciones completadas.</p>
+            <h1 class="ma-titulo">Mis citas</h1>
+            <p class="ma-subtitulo"><?= count($citasActivas) ?> próxima(s) · <?= count($citasPasadas) ?> en tu historial</p>
         </div>
-        <a href="agenda.php" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm">
-            <i class="bi bi-calendar-plus me-2"></i>Reservar Nueva Cita
-        </a>
+        <a href="agenda.php" class="btn btn-primary"><i class="bi bi-calendar-plus me-1" aria-hidden="true"></i>Agendar una cita</a>
     </div>
 
     <div id="historialAlert"></div>
 
-    <!-- === PRÓXIMAS CITAS ACTIVAS === -->
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-5">
-        <div class="card-header bg-white border-bottom py-3 px-4">
-            <h5 class="fw-bold text-dark-blue mb-0"><i class="bi bi-calendar-check text-primary me-2"></i> Próximas Citas Activas</h5>
-        </div>
-        <div class="table-responsive border-0">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th class="ps-4">Fecha y Hora</th>
-                        <th>Médico Especialista</th>
-                        <th>Consultorio</th>
-                        <th class="d-none d-md-table-cell">Motivo de Consulta</th>
-                        <th>Estado</th>
-                        <th class="text-end pe-4">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="border-top-0">
-                    <?php foreach ($citasActivas as $cita): ?>
-                        <?php $modificable = in_array($cita['estado_cita'], Cita::ESTADOS_MODIFICABLES, true); ?>
-                        <tr>
-                            <td class="ps-4" data-label="Fecha y hora">
-                                <div class="text-dark fw-medium"><?= fecha_corta($cita['fecha_cita']) ?></div>
-                                <small class="text-secondary"><?= hora_corta($cita['hora_inicio']) ?></small>
-                            </td>
-                            <td class="text-dark fw-medium" data-label="Médico">Dr. <?= e($cita['doctor_nombre'] . ' ' . $cita['doctor_apellido']) ?></td>
-                            <td class="text-secondary" data-label="Consultorio"><?= e($cita['consultorio_nombre'] ?? 'Por asignar') ?></td>
-                            <td class="d-none d-md-table-cell text-secondary text-truncate" style="max-width: 200px;" title="<?= e($cita['motivo_consulta']) ?>"><?= e($cita['motivo_consulta']) ?></td>
-                            <td data-label="Estado"><span class="badge rounded-pill <?= clase_estado_cita($cita['estado_cita']) ?> px-3 py-1"><?= e($cita['estado_cita']) ?></span></td>
-                            <td class="text-end pe-4">
-                                <?php if ($modificable): ?>
-                                    <div class="btn-group">
-                                        <button type="button" class="btn btn-sm btn-outline-primary" data-accion="reprogramar"
-                                                data-id="<?= (int) $cita['id_cita'] ?>"
-                                                data-fecha="<?= e($cita['fecha_cita']) ?>"
-                                                data-hora="<?= e(substr($cita['hora_inicio'], 0, 5)) ?>"
-                                                data-motivo="<?= e($cita['motivo_consulta']) ?>">
-                                            <i class="bi bi-pencil-square me-1"></i>Reprogramar
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-outline-danger" data-accion="cancelar" data-id="<?= (int) $cita['id_cita'] ?>">
-                                            <i class="bi bi-x-circle me-1"></i>Cancelar
-                                        </button>
-                                    </div>
-                                <?php else: ?>
-                                    <span class="text-muted small">Sin acciones</span>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                    <?php if ($citasActivas === []): ?>
-                        <tr><td colspan="6" class="text-center text-muted py-4">No tienes citas programadas actualmente.</td></tr>
+    <!-- === PRÓXIMAS CITAS === -->
+    <section class="ma-panel mb-4" aria-labelledby="tituloProximas">
+        <h2 class="ma-panel-titulo" id="tituloProximas">Próximas</h2>
+        <?php if ($citasActivas === []): ?>
+            <div class="ma-vacio">
+                <i class="bi bi-calendar2-plus" aria-hidden="true"></i>
+                <strong>No tienes citas programadas</strong>
+                Agenda una cuando la necesites.
+            </div>
+        <?php endif; ?>
+        <ul class="list-unstyled mb-0">
+            <?php foreach ($citasActivas as $cita): ?>
+                <?php $modificable = in_array($cita['estado_cita'], Cita::ESTADOS_MODIFICABLES, true); ?>
+                <li class="d-flex flex-wrap align-items-center gap-3 py-3 border-bottom">
+                    <span class="ma-fecha"><b><?= e(date('j', strtotime((string) $cita['fecha_cita']))) ?></b><small><?= e(mes_corto((string) $cita['fecha_cita'])) ?></small></span>
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="fw-bold"><?= e(ucfirst(fecha_larga((string) $cita['fecha_cita']))) ?> · <?= hora_corta($cita['hora_inicio']) ?></div>
+                        <div class="small text-secondary">Dr(a). <?= e($cita['doctor_nombre'] . ' ' . $cita['doctor_apellido']) ?> · <?= e($cita['consultorio_nombre'] ?? 'Consultorio por asignar') ?></div>
+                        <div class="small text-secondary text-truncate" style="max-width: 60ch;" title="<?= e($cita['motivo_consulta']) ?>"><?= e($cita['motivo_consulta']) ?></div>
+                    </div>
+                    <span class="badge <?= clase_estado_cita($cita['estado_cita']) ?>"><?= e($cita['estado_cita']) ?></span>
+                    <?php if ($modificable): ?>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-light" data-accion="reprogramar"
+                                    data-id="<?= (int) $cita['id_cita'] ?>"
+                                    data-fecha="<?= e($cita['fecha_cita']) ?>"
+                                    data-hora="<?= e(substr($cita['hora_inicio'], 0, 5)) ?>"
+                                    data-motivo="<?= e($cita['motivo_consulta']) ?>">Reprogramar</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-accion="cancelar" data-id="<?= (int) $cita['id_cita'] ?>">Cancelar</button>
+                        </div>
                     <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    </section>
 
-    <!-- === ATENCIONES PASADAS === -->
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-        <div class="card-header bg-white border-bottom py-3 px-4">
-            <h5 class="fw-bold text-dark-blue mb-0"><i class="bi bi-clock-history text-secondary me-2"></i> Historial de Atenciones Pasadas</h5>
-        </div>
-        <div class="table-responsive border-0">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th class="ps-4">Fecha y Hora</th>
-                        <th>Médico Especialista</th>
-                        <th>Consultorio</th>
-                        <th class="d-none d-md-table-cell">Motivo de Consulta</th>
-                        <th class="text-end">Estado Final</th>
-                        <th class="text-end pe-4"></th>
-                    </tr>
-                </thead>
-                <tbody class="border-top-0">
-                    <?php foreach ($citasPasadas as $cita): ?>
-                        <tr>
-                            <td class="ps-4" data-label="Fecha y hora">
-                                <div class="text-dark fw-medium"><?= fecha_corta($cita['fecha_cita']) ?></div>
-                                <small class="text-secondary"><?= hora_corta($cita['hora_inicio']) ?></small>
-                            </td>
-                            <td class="text-dark fw-medium" data-label="Médico">Dr. <?= e($cita['doctor_nombre'] . ' ' . $cita['doctor_apellido']) ?></td>
-                            <td class="text-secondary" data-label="Consultorio"><?= e($cita['consultorio_nombre'] ?? 'N/A') ?></td>
-                            <td class="d-none d-md-table-cell text-secondary text-truncate" style="max-width: 200px;" title="<?= e($cita['motivo_consulta']) ?>"><?= e($cita['motivo_consulta']) ?></td>
-                            <td class="text-end" data-label="Estado"><span class="badge rounded-pill <?= clase_estado_cita($cita['estado_cita']) ?> px-3 py-1"><?= e($cita['estado_cita']) ?></span></td>
-                            <td class="text-end pe-4">
-                                <button type="button" class="btn btn-sm btn-outline-danger rounded-circle" title="Quitar de mi historial" data-accion="ocultar" data-id="<?= (int) $cita['id_cita'] ?>">
-                                    <i class="bi bi-trash3"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                    <?php if ($citasPasadas === []): ?>
-                        <tr><td colspan="6" class="text-center text-muted py-4">No hay registros en tu historial de atención.</td></tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
+    <!-- === HISTORIAL (COMPLETADAS Y CANCELADAS) === -->
+    <section class="ma-panel" aria-labelledby="tituloHistorial">
+        <h2 class="ma-panel-titulo" id="tituloHistorial">Historial</h2>
+        <?php if ($citasPasadas === []): ?>
+            <p class="text-secondary mb-0">Aquí aparecerán tus citas completadas y canceladas.</p>
+        <?php endif; ?>
+        <ul class="list-unstyled mb-0">
+            <?php foreach ($citasPasadas as $cita): ?>
+                <li class="d-flex flex-wrap align-items-center gap-3 py-3 border-bottom">
+                    <span class="ma-fecha" style="background: var(--ma-superficie-2); color: var(--ma-tinta-2);"><b><?= e(date('j', strtotime((string) $cita['fecha_cita']))) ?></b><small><?= e(mes_corto((string) $cita['fecha_cita'])) ?></small></span>
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="fw-bold"><?= e(ucfirst(fecha_larga((string) $cita['fecha_cita'], true))) ?> · <?= hora_corta($cita['hora_inicio']) ?></div>
+                        <div class="small text-secondary">Dr(a). <?= e($cita['doctor_nombre'] . ' ' . $cita['doctor_apellido']) ?> · <span class="text-truncate"><?= e($cita['motivo_consulta']) ?></span></div>
+                    </div>
+                    <span class="badge <?= clase_estado_cita($cita['estado_cita']) ?>"><?= e($cita['estado_cita']) ?></span>
+                    <button type="button" class="btn btn-sm btn-light" aria-label="Quitar de mi historial la cita del <?= e(fecha_corta($cita['fecha_cita'])) ?>" title="Quitar de mi historial" data-accion="ocultar" data-id="<?= (int) $cita['id_cita'] ?>">
+                        <i class="bi bi-eye-slash" aria-hidden="true"></i>
+                    </button>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    </section>
 </div>
 
 <!-- === MODAL: REPROGRAMAR CITA === -->
@@ -148,7 +106,7 @@ require __DIR__ . '/../src/views/layout/header.php';
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4">
             <div class="modal-header border-0 bg-primary text-white rounded-top-4">
-                <h5 class="modal-title fw-bold" id="modalReprogramarTitulo"><i class="bi bi-pencil-square me-2"></i>Reprogramar Cita</h5>
+                <h2 class="modal-title fs-5" id="modalReprogramarTitulo">Reprogramar cita</h2>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <form id="formReprogramar">

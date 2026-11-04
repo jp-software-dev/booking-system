@@ -7,6 +7,8 @@ namespace App\Demo;
 use App\Core\Database;
 use App\Core\Env;
 use App\Helpers\Horario;
+use App\Models\Receta;
+use App\Models\Tratamiento;
 use DateTimeImmutable;
 use PDO;
 use Throwable;
@@ -18,7 +20,8 @@ use Throwable;
  * médicos, enfermeros, pacientes y unas 800 citas repartidas entre los últimos
  * 4 meses y las próximas 3 semanas (fechas relativas al día en que se ejecuta).
  *
- * Crea también las cuentas de prueba de ModoDemo (administrador y paciente).
+ * Crea también las cuentas de prueba de ModoDemo (administrador, médico y
+ * paciente), recetas con sus tratamientos y el avance de sus tomas.
  * Todas las citas respetan las reglas del sistema: horario de Horario, días
  * hábiles y un solo turno activo por médico, fecha y hora.
  *
@@ -33,7 +36,7 @@ final class SembradorDemo
 
     /** Tablas en el orden en que se vacían (primero las que dependen de otras). */
     private const TABLAS = [
-        'citas', 'cambios_password_pendientes', 'password_resets', 'pacientes_credenciales', 'pacientes',
+        'tomas', 'tratamientos', 'recetas', 'suscripciones_push', 'citas', 'cambios_password_pendientes', 'password_resets', 'pacientes_credenciales', 'pacientes',
         'enfermeros', 'doctores', 'consultorios', 'especialidades', 'usuarios', 'bitacora', 'login_attempts',
     ];
 
@@ -73,6 +76,22 @@ final class SembradorDemo
         'Fiebre y tos', 'Consulta de resultados de laboratorio', 'Dolor en la rodilla', 'Vacunación',
     ];
 
+    /** Medicamentos de las recetas de ejemplo: [nombre, dosis, cada cuántas horas, días]. */
+    private const MEDICAMENTOS = [
+        ['Paracetamol', '1 tableta de 500 mg', 8, 3], ['Omeprazol', '1 cápsula de 20 mg', 24, 14],
+        ['Naproxeno', '1 tableta de 250 mg', 12, 5], ['Loratadina', '1 tableta de 10 mg', 24, 10],
+        ['Salbutamol', '2 disparos del inhalador', 6, 5], ['Metformina', '1 tableta de 850 mg', 12, 30],
+        ['Ambroxol', '10 ml de jarabe', 8, 5], ['Ciprofloxacino', '1 tableta de 500 mg', 12, 7],
+    ];
+
+    private const DIAGNOSTICOS = [
+        'Infección de vías respiratorias altas', 'Gastritis aguda', 'Lumbalgia mecánica', 'Rinitis alérgica',
+        'Bronquitis aguda', 'Control de diabetes tipo 2', 'Infección de vías urinarias', 'Cefalea tensional',
+    ];
+
+    /** Recetas máximas del médico de prueba a otros pacientes. */
+    private const RECETAS_HISTORICAS = 8;
+
     /** Pacientes ficticios además del paciente de prueba. */
     private const TOTAL_PACIENTES = 24;
 
@@ -108,8 +127,10 @@ final class SembradorDemo
             $medicos = $this->crearDoctores($especialidades, $consultorios);
             $this->crearEnfermeros($consultorios);
             $this->crearAdministrador();
+            $this->crearCuentaDoctor($medicos[0]['id']);
             [$idPacienteDemo, $pacientes] = $this->crearPacientes();
             $totalCitas = $this->crearCitas($medicos, $idPacienteDemo, $pacientes);
+            $totalRecetas = $this->crearRecetas($medicos[0]['id'], $idPacienteDemo);
 
             $this->db->commit();
         } catch (Throwable $e) {
@@ -126,6 +147,7 @@ final class SembradorDemo
             'enfermeros'     => count(self::ENFERMEROS),
             'pacientes'      => count($pacientes) + 1,
             'citas'          => $totalCitas,
+            'recetas'        => $totalRecetas,
         ];
     }
 
@@ -228,6 +250,165 @@ final class SembradorDemo
     }
 
     /**
+     * Cuenta de acceso del médico de prueba (el primero de la lista).
+     *
+     * @param int $idDoctor Médico al que se liga la cuenta.
+     */
+    private function crearCuentaDoctor(int $idDoctor): void
+    {
+        $this->db
+            ->prepare("INSERT INTO usuarios (usuario, nombre, password_hash, rol, id_doctor) VALUES (?, ?, ?, 'doctor', ?)")
+            ->execute([ModoDemo::DOCTOR_USUARIO, 'Dra. Laura Méndez', password_hash(ModoDemo::PASSWORD, PASSWORD_DEFAULT), $idDoctor]);
+    }
+
+    /**
+     * Recetas de ejemplo del médico de prueba:
+     *   - al paciente de prueba, en su cita completada de hace dos días: dos
+     *     medicamentos que siguen en curso hoy;
+     *   - un recordatorio que el paciente de prueba agregó por su cuenta;
+     *   - recetas anteriores a otros pacientes, en citas completadas del médico.
+     * Las tomas que ya pasaron quedan registradas (la mayoría tomadas, algunas omitidas).
+     *
+     * @param int $idDoctor       Médico de prueba.
+     * @param int $idPacienteDemo Paciente de prueba.
+     * @return int Recetas creadas.
+     */
+    private function crearRecetas(int $idDoctor, int $idPacienteDemo): int
+    {
+        $recetas = new Receta($this->db);
+        $tratamientos = new Tratamiento($this->db);
+        $idsTratamiento = [];
+
+        $consulta = $this->db->prepare(
+            "SELECT id_cita, id_paciente, fecha_cita FROM citas
+             WHERE id_doctor = ? AND estado_cita = 'Completada' ORDER BY fecha_cita DESC, hora_inicio DESC"
+        );
+        $consulta->execute([$idDoctor]);
+        $citasCompletadas = $consulta->fetchAll();
+
+        // --- Receta del paciente de prueba ---
+        $citaDemo = null;
+        foreach ($citasCompletadas as $cita) {
+            if ((int) $cita['id_paciente'] === $idPacienteDemo) {
+                $citaDemo = $cita;
+                break;
+            }
+        }
+        $fechaDemo = $citaDemo['fecha_cita'] ?? (new DateTimeImmutable('-2 days'))->format('Y-m-d');
+        $idReceta = $this->crearReceta(
+            $recetas, $idPacienteDemo, $idDoctor, $citaDemo !== null ? (int) $citaDemo['id_cita'] : null,
+            'Faringoamigdalitis bacteriana',
+            "Tomar los medicamentos con alimentos.\nAbundantes líquidos y reposo relativo.\nRegresar si la fiebre continúa después de 48 horas.",
+            "{$fechaDemo} 09:40:00"
+        );
+        $idsTratamiento[] = $tratamientos->crear($this->datosTratamiento(
+            $idPacienteDemo, $idReceta, 'Amoxicilina', '1 cápsula de 500 mg', 8, 7, "{$fechaDemo} 10:00", 'Completar los 7 días aunque te sientas mejor'
+        ));
+        $idsTratamiento[] = $tratamientos->crear($this->datosTratamiento(
+            $idPacienteDemo, $idReceta, 'Ibuprofeno', '1 tableta de 400 mg', 12, 5, "{$fechaDemo} 14:00", 'Solo si hay dolor o fiebre'
+        ));
+
+        // --- Recordatorio propio del paciente de prueba ---
+        $inicioPropio = (new DateTimeImmutable('-9 days'))->format('Y-m-d') . ' 22:00';
+        $idsTratamiento[] = $tratamientos->crear($this->datosTratamiento(
+            $idPacienteDemo, null, 'Loratadina', '1 tableta de 10 mg', 24, 30, $inicioPropio, null, Tratamiento::ORIGEN_PACIENTE
+        ));
+
+        // --- Recetas anteriores a otros pacientes ---
+        $total = 1;
+        foreach ($citasCompletadas as $cita) {
+            if ($total > self::RECETAS_HISTORICAS) {
+                break;
+            }
+            if ((int) $cita['id_paciente'] === $idPacienteDemo) {
+                continue;
+            }
+
+            $idReceta = $this->crearReceta(
+                $recetas, (int) $cita['id_paciente'], $idDoctor, (int) $cita['id_cita'],
+                self::DIAGNOSTICOS[mt_rand(0, count(self::DIAGNOSTICOS) - 1)],
+                'Seguir las indicaciones y acudir a revisión si los síntomas no mejoran.',
+                $cita['fecha_cita'] . ' 11:20:00'
+            );
+
+            foreach ((array) array_rand(self::MEDICAMENTOS, mt_rand(1, 2)) as $indice) {
+                [$nombre, $dosis, $frecuencia, $dias] = self::MEDICAMENTOS[$indice];
+                $idsTratamiento[] = $tratamientos->crear($this->datosTratamiento(
+                    (int) $cita['id_paciente'], $idReceta, $nombre, $dosis, $frecuencia, $dias, $cita['fecha_cita'] . ' 12:00', null
+                ));
+            }
+            $total++;
+        }
+
+        $this->registrarTomasPasadas($idsTratamiento);
+
+        return $total;
+    }
+
+    /**
+     * Registra una receta con la fecha de emisión indicada.
+     */
+    private function crearReceta(Receta $recetas, int $idPaciente, int $idDoctor, ?int $idCita, string $diagnostico, string $indicaciones, string $emision): int
+    {
+        $idReceta = $recetas->crear($idPaciente, $idDoctor, $idCita, $diagnostico, $indicaciones);
+        $this->db->prepare('UPDATE recetas SET fecha_emision = ? WHERE id_receta = ?')->execute([$emision, $idReceta]);
+
+        return $idReceta;
+    }
+
+    /**
+     * Datos de un tratamiento en el formato de Tratamiento::crear().
+     *
+     * @return array<string, mixed>
+     */
+    private function datosTratamiento(
+        int $idPaciente,
+        ?int $idReceta,
+        string $medicamento,
+        string $dosis,
+        int $frecuencia,
+        int $dias,
+        string $inicio,
+        ?string $notas,
+        string $origen = Tratamiento::ORIGEN_DOCTOR
+    ): array {
+        return [
+            'id_paciente'      => $idPaciente,
+            'id_receta'        => $idReceta,
+            'origen'           => $origen,
+            'medicamento'      => $medicamento,
+            'dosis'            => $dosis,
+            'frecuencia_horas' => $frecuencia,
+            'duracion_dias'    => $dias,
+            'fecha_inicio'     => new DateTimeImmutable($inicio),
+            'notas'            => $notas,
+        ];
+    }
+
+    /**
+     * Las tomas que ya pasaron quedan registradas (88 % tomadas, el resto omitidas)
+     * y marcadas como avisadas, para que el envío de notificaciones no las repita.
+     *
+     * @param list<int> $idsTratamiento Tratamientos creados.
+     */
+    private function registrarTomasPasadas(array $idsTratamiento): void
+    {
+        if ($idsTratamiento === []) {
+            return;
+        }
+
+        $marcadores = implode(', ', array_fill(0, count($idsTratamiento), '?'));
+        $consulta = $this->db->prepare("SELECT id_toma, programada_en FROM tomas WHERE id_tratamiento IN ({$marcadores}) AND programada_en < ?");
+        $consulta->execute([...$idsTratamiento, date('Y-m-d H:i:s')]);
+
+        $actualizar = $this->db->prepare('UPDATE tomas SET estado = ?, registrada_en = ?, notificada_en = ? WHERE id_toma = ?');
+        foreach ($consulta->fetchAll() as $toma) {
+            $estado = mt_rand(1, 100) <= 88 ? Tratamiento::TOMA_TOMADA : Tratamiento::TOMA_OMITIDA;
+            $actualizar->execute([$estado, $toma['programada_en'], $toma['programada_en'], (int) $toma['id_toma']]);
+        }
+    }
+
+    /**
      * Crea el paciente de prueba y los pacientes ficticios.
      *
      * @return array{0: int, 1: list<int>} [id del paciente de prueba, ids de los demás pacientes]
@@ -275,7 +456,7 @@ final class SembradorDemo
         // --- Citas del paciente de prueba: dos próximas y tres pasadas ---
         $citasDemo = [
             [2, 0, '10:00', 'Pendiente'], [5, 2, '16:30', 'Confirmada'],
-            [-10, 1, '09:00', 'Completada'], [-30, 3, '11:30', 'Completada'], [-60, 4, '13:00', 'Cancelada'],
+            [-2, 0, '09:00', 'Completada'], [-30, 3, '11:30', 'Completada'], [-60, 4, '13:00', 'Cancelada'],
         ];
         foreach ($citasDemo as [$desplazamiento, $indiceMedico, $hora, $estado]) {
             $fecha = $this->diaHabil($desplazamiento);

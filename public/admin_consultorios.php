@@ -58,10 +58,11 @@ $medicosDisponibles = static function (array $consultorio) use ($doctores): arra
 };
 
 // === VISTA ===
+$tituloPagina = 'Consultorios';
 require __DIR__ . '/../src/views/layout/header.php';
 ?>
-<div class="container py-5">
-    <h2 class="fw-bold text-dark-blue mb-4"><i class="bi bi-door-open-fill text-primary me-2"></i>Asignación de Consultorios</h2>
+<div class="container ma-pagina">
+    <h1 class="ma-titulo mb-4">Consultorios</h1>
 
     <div id="consultoriosAlert"></div>
 
