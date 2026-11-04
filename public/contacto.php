@@ -30,80 +30,75 @@ $diasHabiles = Horario::descripcionDiasHabiles();
 $horarioCitas = Horario::horaLegible(Horario::PRIMERA_CITA) . ' – ' . Horario::horaLegible(Horario::ULTIMA_CITA);
 $diasSinCitas = Horario::diasSinCitas();
 
+// Días de la semana para la fila de compartimentos del horario.
+$diasSemana = [1 => 'Lun', 2 => 'Mar', 3 => 'Mié', 4 => 'Jue', 5 => 'Vie', 6 => 'Sáb', 7 => 'Dom'];
+
 // === VISTA ===
+$tituloPagina = 'Contacto';
 require __DIR__ . '/../src/views/layout/header.php';
 ?>
-<div class="container py-5" style="min-height: 85vh;">
-    <div class="text-center mb-5 pt-4">
-        <h1 class="fw-bolder text-dark-blue display-5">Contáctanos</h1>
-        <p class="text-secondary lead mx-auto" style="max-width: 600px;">
-            Estamos aquí para resolver tus dudas y brindarte la mejor atención médica en el momento que lo necesites.
-        </p>
+<div class="container ma-pagina">
+    <div class="ma-encabezado-pagina">
+        <div>
+            <h1 class="ma-titulo">Contacto</h1>
+            <p class="ma-subtitulo">Escríbenos o llámanos; para una cita, lo más rápido es agendarla en línea.</p>
+        </div>
+        <a href="<?= e($rutaAgendar) ?>" class="btn btn-primary"><i class="bi bi-calendar-plus me-1" aria-hidden="true"></i>Agendar una cita</a>
     </div>
 
-    <div class="row g-4 justify-content-center align-items-stretch">
+    <div class="row g-4">
         <!-- === DATOS DE CONTACTO === -->
-        <div class="col-lg-5 col-md-6">
-            <div class="card border-0 shadow-sm h-100 rounded-4 p-4">
-                <h4 class="fw-bold text-dark-blue mb-4">Detalles de Contacto</h4>
-
-                <div class="d-flex align-items-center mb-4">
-                    <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary me-4"><i class="bi bi-geo-alt-fill fs-3"></i></div>
-                    <div>
-                        <h6 class="fw-bold text-dark mb-1">Ubicación</h6>
-                        <p class="text-secondary mb-0 small"><?= e(CONTACTO_UBICACION) ?></p>
+        <div class="col-lg-5">
+            <section class="ma-panel h-100" aria-labelledby="tituloDatos">
+                <h2 class="ma-panel-titulo" id="tituloDatos">Datos de contacto</h2>
+                <dl class="mb-0">
+                    <div class="d-flex gap-3 py-3 border-bottom">
+                        <i class="bi bi-geo-alt fs-4 text-primary" aria-hidden="true"></i>
+                        <div><dt class="small text-secondary fw-bold">Ubicación</dt><dd class="fw-bold mb-0"><?= e(CONTACTO_UBICACION) ?></dd></div>
                     </div>
-                </div>
-
-                <div class="d-flex align-items-center mb-4">
-                    <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary me-4"><i class="bi bi-telephone-fill fs-3"></i></div>
-                    <div>
-                        <h6 class="fw-bold text-dark mb-1">Teléfono</h6>
-                        <p class="text-secondary mb-0 small">
-                            <?php if ($telefonoEsNumero): ?>
-                                <a href="tel:<?= e($telefonoMarcable) ?>" class="text-secondary text-decoration-none"><?= e(CONTACTO_TELEFONO) ?></a>
-                            <?php else: ?>
-                                <?= e(CONTACTO_TELEFONO) ?>
-                            <?php endif; ?>
-                        </p>
+                    <div class="d-flex gap-3 py-3 border-bottom">
+                        <i class="bi bi-telephone fs-4 text-primary" aria-hidden="true"></i>
+                        <div>
+                            <dt class="small text-secondary fw-bold">Teléfono</dt>
+                            <dd class="fw-bold mb-0 ma-cifras">
+                                <?php if ($telefonoEsNumero): ?>
+                                    <a href="tel:<?= e($telefonoMarcable) ?>" class="text-decoration-none"><?= e(CONTACTO_TELEFONO) ?></a>
+                                <?php else: ?>
+                                    <?= e(CONTACTO_TELEFONO) ?>
+                                <?php endif; ?>
+                            </dd>
+                        </div>
                     </div>
-                </div>
-
-                <div class="d-flex align-items-center">
-                    <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary me-4"><i class="bi bi-envelope-fill fs-3"></i></div>
-                    <div>
-                        <h6 class="fw-bold text-dark mb-1">Correo Electrónico</h6>
-                        <p class="text-secondary mb-0 small">
-                            <a href="mailto:<?= e(CONTACTO_EMAIL) ?>" class="text-secondary text-decoration-none"><?= e(CONTACTO_EMAIL) ?></a>
-                        </p>
+                    <div class="d-flex gap-3 pt-3">
+                        <i class="bi bi-envelope fs-4 text-primary" aria-hidden="true"></i>
+                        <div><dt class="small text-secondary fw-bold">Correo electrónico</dt><dd class="fw-bold mb-0"><a href="mailto:<?= e(CONTACTO_EMAIL) ?>" class="text-decoration-none"><?= e(CONTACTO_EMAIL) ?></a></dd></div>
                     </div>
-                </div>
-            </div>
+                </dl>
+            </section>
         </div>
 
-        <!-- === HORARIO DE ATENCIÓN (mismo horario que la agenda) === -->
-        <div class="col-lg-5 col-md-6">
-            <div class="card border-0 shadow-sm h-100 rounded-4 bg-primary text-white p-4 position-relative overflow-hidden">
-                <!-- Ícono decorativo de fondo. ("opacity-10" no existe en Bootstrap; por eso la opacidad va en línea.) -->
-                <i class="bi bi-hospital position-absolute pe-none" style="bottom: -20px; right: -20px; font-size: 12rem; opacity: 0.1;" aria-hidden="true"></i>
-                <h4 class="fw-bold mb-1 text-white"><i class="bi bi-clock-history me-2"></i> Horario de Atención</h4>
-                <p class="small text-white-50 mb-4">Citas cada <?= Horario::INTERVALO_MINUTOS ?> minutos</p>
+        <!-- === HORARIO (el mismo de la agenda, desde App\Helpers\Horario) === -->
+        <div class="col-lg-7">
+            <section class="ma-panel h-100" aria-labelledby="tituloHorario">
+                <h2 class="ma-panel-titulo" id="tituloHorario">Horario de atención</h2>
+                <p class="mb-1"><span class="fw-bold"><?= e($diasHabiles) ?></span> · <span class="ma-cifras fw-bold"><?= e($horarioCitas) ?></span></p>
+                <p class="small text-secondary mb-4">Citas cada <?= Horario::INTERVALO_MINUTOS ?> minutos.</p>
 
-                <div class="d-flex justify-content-between mb-3 border-bottom border-light border-opacity-25 pb-3">
-                    <span class="fs-6 fw-medium"><?= e($diasHabiles) ?></span>
-                    <span class="fw-bold fs-6"><?= e($horarioCitas) ?></span>
+                <div class="d-grid gap-2" style="grid-template-columns: repeat(7, minmax(0, 1fr));" role="list" aria-label="Días de atención">
+                    <?php foreach ($diasSemana as $numero => $dia): ?>
+                        <?php $habil = in_array($numero, Horario::DIAS_HABILES, true); ?>
+                        <div role="listitem" class="compartimento <?= $habil ? 'manana' : 'vacio' ?> align-items-center text-center" style="min-height: 84px;">
+                            <span class="tapa"></span>
+                            <span class="fw-bold <?= $habil ? '' : 'text-danger' ?>"><?= e($dia) ?></span>
+                            <span class="small fw-semibold <?= $habil ? 'text-secondary' : 'text-danger' ?>"><?= $habil ? 'Citas' : 'Urgencias' ?></span>
+                        </div>
+                    <?php endforeach; ?>
                 </div>
+
                 <?php foreach ($diasSinCitas as $dia): ?>
-                    <div class="d-flex justify-content-between mb-5">
-                        <span class="fs-6 fw-medium"><?= e($dia) ?></span>
-                        <span class="fw-bold fs-6 text-warning"><i class="bi bi-exclamation-circle-fill me-1"></i> Solo Urgencias</span>
-                    </div>
+                    <p class="small text-secondary mt-3 mb-0"><i class="bi bi-exclamation-circle me-1 text-danger" aria-hidden="true"></i><?= e($dia) ?>: solo urgencias, sin citas programadas.</p>
                 <?php endforeach; ?>
-
-                <div class="mt-auto pt-4 position-relative">
-                    <a href="<?= e($rutaAgendar) ?>" class="btn btn-light w-100 fw-bold py-3 fs-6 rounded-pill text-primary shadow-sm">Agendar Cita Ahora</a>
-                </div>
-            </div>
+            </section>
         </div>
     </div>
 </div>
