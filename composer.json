@@ -3,10 +3,13 @@
     "description": "MediAgenda: sistema de gestión de citas médicas en PHP.",
     "type": "project",
     "require": {
-        "php": ">=8.1",
+        "php": ">=8.2",
         "ext-pdo": "*",
+        "dompdf/dompdf": "^3.1",
+        "minishlink/web-push": "^11.0",
+        "nyholm/psr7": "^1.8",
         "phpmailer/phpmailer": "^7.0",
-        "dompdf/dompdf": "^3.1"
+        "symfony/http-client": "^7.4"
     },
     "autoload": {
         "psr-4": {
