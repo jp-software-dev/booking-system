@@ -63,7 +63,7 @@
     /* Bootstrap: misma paleta para utilidades (.text-primary, .bg-primary...) */
     --bs-body-font-family: var(--ma-fuente);
     --bs-body-color: var(--ma-tinta);
-    --bs-body-bg: var(--ma-fondo);
+    --bs-body-bg: #ffffff;           /* Bootstrap lo usa en campos, tablas y modales; la página usa --ma-fondo en body. */
     --bs-primary: #2f6fe4;
     --bs-primary-rgb: 47, 111, 228;
     --bs-primary-text-emphasis: #1f57c3;
