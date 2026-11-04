@@ -22,14 +22,14 @@ if (Sesion::estaAutenticado()) {
 
 require __DIR__ . '/../src/views/layout/header.php';
 ?>
-<div class="d-flex align-items-center justify-content-center auth-bg py-5" style="min-height: 85vh;">
+<div class="d-flex align-items-center justify-content-center auth-bg flex-grow-1 py-5">
     <div class="card auth-card p-4 p-md-5 w-100" style="max-width: 460px;">
         <div class="mb-3">
             <a href="login.php" class="text-decoration-none text-muted fw-bold small"><i class="bi bi-arrow-left me-1"></i> Volver</a>
         </div>
         <div class="text-center mb-4">
             <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;"><i class="bi bi-lock-fill text-primary fs-3"></i></div>
-            <h3 class="fw-bold text-dark-blue">¿Olvidaste tu contraseña?</h3>
+            <h1 class="ma-titulo fs-3">¿Olvidaste tu contraseña?</h1>
             <p class="text-secondary small">Ingresa tu correo y te enviaremos un enlace para restablecerla.</p>
         </div>
         <?php if (ModoDemo::activo()): ?>
@@ -47,7 +47,7 @@ require __DIR__ . '/../src/views/layout/header.php';
                 <label for="emailInput" class="form-label small fw-bold text-secondary">Correo electrónico</label>
                 <input type="email" id="emailInput" name="email" class="form-control" maxlength="100" autocomplete="email" required autofocus>
             </div>
-            <button type="submit" id="btnEnviar" class="btn btn-primary w-100 py-3 fw-bold mb-3">Enviar enlace</button>
+            <button type="submit" id="btnEnviar" class="btn btn-primary w-100 py-3 mb-3">Enviar enlace</button>
         </form>
     </div>
 </div>
