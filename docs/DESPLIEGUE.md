@@ -10,13 +10,16 @@ La instalación local con XAMPP está en el [README](../README.md).
 Navegador
    │
    ▼
-Vercel ──► CDN: /public/assets/(css|js|images|videos)/...   (copia estática de public/assets)
+Vercel ──► CDN: /public/assets/(css|js|images)/...   (copia estática de public/assets)
+   │        /public/sw.js y /public/manifest.webmanifest (avisos push y app instalable)
    │
    └─────► Función PHP api/vercel.php (runtime vercel-php, PHP 8.3)
               │  lista blanca: solo páginas de public/ y endpoints de api/
               ▼
            Supabase PostgreSQL (pooler de transacciones, puerto 6543)
               esquema "mediagenda" + usuario "mediagenda_app" con acceso solo a ese esquema
+              pg_cron + pg_net ──► cada minuto llama a api/enviar_recordatorios.php
+                                   └──► servicios push de los navegadores (Web Push / VAPID)
 ```
 
 Vercel ejecuta PHP como funciones sin servidor: cada petición puede atenderla
@@ -40,6 +43,13 @@ propio usuario.
    contraseña en texto plano. **No subas la contraseña real al repositorio.**
 2. Ejecuta [`database/schema_pgsql.sql`](../database/schema_pgsql.sql) con
    `SET search_path TO mediagenda;` en la primera línea.
+
+   Si la base ya existía antes de las recetas y los recordatorios, aplica solo
+   la migración [`database/migration_recetas_tratamientos_pgsql.sql`](../database/migration_recetas_tratamientos_pgsql.sql)
+   (también con `SET search_path TO mediagenda;`). Crea las tablas `recetas`,
+   `tratamientos`, `tomas` y `suscripciones_push`, y agrega el rol `doctor` a
+   `usuarios`. Los permisos de `mediagenda_app` sobre las tablas nuevas salen de
+   los privilegios por defecto de `supabase_setup.sql`.
 3. Copia los datos de conexión desde el botón **Connect** del panel, en la sección
    **Transaction pooler**:
 
@@ -73,7 +83,7 @@ propio usuario.
    framework se queda en **Other**: todo lo demás lo define [`vercel.json`](../vercel.json).
 2. En **Settings → Build and Deployment**, la versión de Node.js es **22.x**.
 3. En **Settings → Environment Variables**, agrega estas variables para
-   *Production* y *Preview*. Marca como **Sensitive** las dos que son secretas:
+   *Production* y *Preview*. Marca como **Sensitive** las tres que son secretas:
 
    | Variable | Valor |
    |----------|-------|
@@ -87,6 +97,9 @@ propio usuario.
    | `MAIL_DRIVER` | `log` (la demo no envía correos) |
    | `DEMO_MODE` | `true` |
    | `CRON_SECRET` | texto aleatorio de 32 caracteres o más (**Sensitive**) |
+   | `VAPID_PUBLIC_KEY` | clave pública para los avisos push (ver sección 6) |
+   | `VAPID_PRIVATE_KEY` | clave privada para los avisos push (**Sensitive**) |
+   | `VAPID_SUBJECT` | `https://mediagenda.vanguarddevsec.com` |
    | `CONTACTO_TELEFONO`, `CONTACTO_EMAIL`, `CONTACTO_UBICACION` | opcionales; sin ellas se ven textos de ejemplo |
 
 4. En **Settings → Deployment Protection**, deja **Standard Protection**: las
@@ -97,8 +110,8 @@ propio usuario.
 | Clave | Para qué |
 |-------|----------|
 | `functions` | Ejecuta `api/vercel.php` con el runtime `vercel-php@0.7.4` (PHP 8.3), que también instala las dependencias de Composer desde `composer.lock`. |
-| `buildCommand` / `outputDirectory` | Copia solo `public/assets` a `dist/`. Así el CDN sirve CSS, JS y video en las mismas URLs que en XAMPP, y ningún archivo `.php` llega al CDN. |
-| `routes` | Los archivos estáticos se sirven desde el CDN; cualquier otra ruta va a `api/vercel.php`, con cabeceras de seguridad. |
+| `buildCommand` / `outputDirectory` | Copia a `dist/` solo `public/assets`, el service worker (`public/sw.js`) y el manifiesto. Así el CDN sirve CSS, JS e imágenes en las mismas URLs que en XAMPP, y ningún archivo `.php` llega al CDN. |
+| `routes` | Los archivos estáticos se sirven desde el CDN (el service worker sin caché, para que los cambios lleguen de inmediato); cualquier otra ruta va a `api/vercel.php`, con cabeceras de seguridad. |
 | `crons` | Llama a `api/demo_reset.php` todos los días a las 09:00 UTC (03:00 en Ciudad de México). |
 | `regions` | `pdx1` (Oregón), la región más cercana a la base de Supabase (`us-west-2`). |
 
@@ -138,18 +151,82 @@ Para reiniciar a mano:
 curl -H "Authorization: Bearer $CRON_SECRET" https://mediagenda.vanguarddevsec.com/api/demo_reset.php
 ```
 
-## 6. Cuentas de prueba
+## 6. Recordatorios de medicamentos (avisos push)
+
+Cada toma de un tratamiento se guarda con su hora exacta. Un proceso revisa
+cada minuto las tomas que ya llegaron a su hora y manda un aviso push a los
+navegadores donde el paciente los activó. Las tareas de Vercel en el plan Hobby
+solo corren una vez al día, así que quien llama cada minuto es Supabase, con
+las extensiones `pg_cron` y `pg_net`.
+
+1. **Claves VAPID.** Se generan una sola vez desde tu equipo (en Windows con
+   XAMPP hace falta `OPENSSL_CONF=C:/xampp/php/extras/ssl/openssl.cnf`):
+
+   ```bash
+   php -r 'require "vendor/autoload.php"; print_r(Minishlink\WebPush\VAPID::createVapidKeys());'
+   ```
+
+   Guarda `publicKey` en `VAPID_PUBLIC_KEY` y `privateKey` en
+   `VAPID_PRIVATE_KEY` (**Sensitive**) en Vercel. Si cambias las claves, las
+   suscripciones existentes dejan de funcionar y cada paciente debe activar los
+   avisos otra vez.
+
+2. **Secreto en Vault.** En el editor SQL de Supabase, guarda el mismo
+   `CRON_SECRET` de Vercel (pégalo en el editor, nunca en el repositorio):
+
+   ```sql
+   select vault.create_secret('<CRON_SECRET>', 'mediagenda_cron_secret');
+   ```
+
+3. **Tarea cada minuto.** Con `pg_cron` y `pg_net` habilitadas en
+   **Database → Extensions**:
+
+   ```sql
+   select cron.schedule(
+     'mediagenda-recordatorios',
+     '* * * * *',
+     $$
+     select net.http_post(
+       url := 'https://mediagenda.vanguarddevsec.com/api/enviar_recordatorios.php',
+       headers := jsonb_build_object(
+         'Authorization', 'Bearer ' || (
+           select decrypted_secret from vault.decrypted_secrets
+           where name = 'mediagenda_cron_secret'
+         )
+       ),
+       body := '{}'::jsonb
+     );
+     $$
+   );
+   ```
+
+   Para revisar las últimas llamadas: `select * from net._http_response order by created desc limit 5;`.
+   Para quitar la tarea: `select cron.unschedule('mediagenda-recordatorios');`.
+
+El endpoint responde 401 sin el secreto. Cada toma se avisa una sola vez (queda
+marcada como notificada) y las suscripciones que el navegador da de baja se
+borran solas. Los avisos solo funcionan en HTTPS (o `localhost`) y el paciente
+debe permitirlos en su navegador; desde **Mi semana** puede mandarse un aviso de
+prueba.
+
+En XAMPP no hace falta Supabase: programa
+`php database/enviar_recordatorios.php` cada minuto en el Programador de tareas
+de Windows.
+
+## 7. Cuentas de prueba
 
 | Rol | Usuario | Contraseña |
 |-----|---------|------------|
 | Administrador | `demo.admin` | `Demo2026!` |
+| Médico | `demo.doctor` | `Demo2026!` |
 | Paciente | `paciente@example.com` | `Demo2026!` |
 
 Son públicas a propósito: aparecen en la pantalla de inicio de sesión. Con
 `DEMO_MODE=true` nadie puede cambiar los datos, la contraseña ni eliminar la
-cuenta del paciente de prueba.
+cuenta del paciente de prueba, ni quitar o cambiar el acceso del médico de
+prueba.
 
-## 7. Límites de los planes gratuitos
+## 8. Límites de los planes gratuitos
 
 - **Vercel Hobby:** solo para uso personal y no comercial (una demo de portafolio
   entra en ese uso). Los logs de ejecución se conservan una hora.
@@ -160,7 +237,7 @@ cuenta del paciente de prueba.
   con su página *Security Checkpoint* durante unos minutos. A los visitantes con
   navegador no les afecta.
 
-## 8. Solución de problemas
+## 9. Solución de problemas
 
 | Síntoma | Causa probable |
 |---------|----------------|
@@ -169,3 +246,6 @@ cuenta del paciente de prueba.
 | La sesión se pierde entre páginas | `SESSION_DRIVER` no es `database` o falta la tabla `sesiones`. |
 | Todos los visitantes comparten el límite de intentos de inicio de sesión | Falta `TRUST_PROXY=true`. |
 | `prepared statement ... already exists` | Conexión al pooler sin preparación emulada; revisa `App\Core\Database`. |
+| No aparece el botón para activar avisos | Falta `VAPID_PUBLIC_KEY` en Vercel o el navegador no admite push (en iPhone, solo con la app agregada a la pantalla de inicio). |
+| Los avisos no llegan a su hora | La tarea de `pg_cron` no corre o el secreto de Vault no coincide con `CRON_SECRET`: revisa `net._http_response` (un 401 indica el secreto). |
+| `column "id_doctor" does not exist` al iniciar sesión | Falta la migración de recetas y tratamientos. |
