@@ -375,13 +375,15 @@ body.con-tabbar { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 .compartimento.omitida { opacity: 0.55; }
 .compartimento.omitida .tapa { background: var(--ma-linea-fuerte); }
 
+/* Cada dosis: la hora arriba, en pequeño, y el medicamento completo debajo. */
 .dosis {
-    display: flex; align-items: baseline; justify-content: space-between; gap: 4px;
-    font-size: 0.78rem; font-weight: 700; color: var(--ma-tinta);
-    line-height: 1.2;
+    display: flex; flex-direction: column; gap: 0;
+    font-size: 0.8rem; font-weight: 800; color: var(--ma-tinta);
+    line-height: 1.15;
 }
+.dosis + .dosis { margin-top: 4px; }
 .dosis span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dosis time { color: var(--ma-tinta-2); flex: none; }
+.dosis time { order: -1; color: var(--ma-tinta-2); font-size: 0.7rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .compartimento.tomada .dosis span { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--ma-tinta) 40%, transparent); }
 
 /* Lista de tomas del día (columna lateral y vista móvil). */
@@ -469,7 +471,6 @@ body.con-tabbar .ma-avisos { bottom: calc(76px + env(safe-area-inset-bottom)); }
     .compartimento { min-height: 64px; padding: 24px 4px 6px; border-radius: 14px; }
     .tapa { height: 18px; border-radius: 12px 12px 6px 6px; }
     .dosis { font-size: 0.68rem; }
-    .dosis time { display: none; }
 }
 
 /* === 8. HONEYPOT ANTI-BOT ===
