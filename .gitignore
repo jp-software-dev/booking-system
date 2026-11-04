@@ -96,3 +96,6 @@ $RECYCLE.BIN/
 # HERRAMIENTAS DE DISEÑO (bocetos y estado local de la guía de diseño)
 .impeccable/mocks/
 .impeccable/questions/
+
+# Caché de Python de las pruebas
+__pycache__/

@@ -20,11 +20,11 @@ require __DIR__ . '/../src/views/layout/header.php';
 ?>
 
 <style>
-/* Selector de rango de fechas en forma de píldoras. */
-.rango-pill-group { background: #f1f5f9; padding: 4px; border-radius: 999px; }
-.rango-pill-group .rango-btn { border: none !important; border-radius: 999px !important; color: #475569; background: transparent; padding: 6px 14px; }
-.rango-pill-group .rango-btn:hover { background: rgba(26,86,219,0.08); color: #1a56db; }
-.rango-pill-group .rango-btn.active { background: #1a56db; color: #fff; box-shadow: 0 1px 3px rgba(26,86,219,0.35); }
+/* Selector de rango de fechas: segmentos que pasan a otra línea en pantallas angostas. */
+.rango-pill-group { display: flex; flex-wrap: wrap; gap: 4px; background: var(--ma-superficie-2); border: 1px solid var(--ma-linea); padding: 4px; border-radius: 14px; }
+.rango-pill-group .rango-btn { border: none; border-radius: 10px; color: var(--ma-tinta-2); background: transparent; padding: 6px 12px; }
+.rango-pill-group .rango-btn:hover { background: #fff; color: var(--ma-accion); }
+.rango-pill-group .rango-btn.active { background: var(--ma-accion); color: #fff; }
 </style>
 
 <div class="container-fluid ma-pagina px-lg-5">
@@ -34,7 +34,7 @@ require __DIR__ . '/../src/views/layout/header.php';
             <p class="text-secondary mb-0">Métricas operativas del sistema.</p>
         </div>
         <div class="d-flex align-items-center gap-2 flex-wrap">
-            <div class="btn-group rango-pill-group" role="group">
+            <div class="rango-pill-group" role="group" aria-label="Rango de fechas">
                 <button type="button" class="btn btn-sm btn-outline-primary rango-btn" data-rango="7d">7 días</button>
                 <button type="button" class="btn btn-sm btn-outline-primary rango-btn" data-rango="15d">15 días</button>
                 <button type="button" class="btn btn-sm btn-outline-primary rango-btn active" data-rango="30d">30 días</button>
@@ -42,7 +42,7 @@ require __DIR__ . '/../src/views/layout/header.php';
                 <button type="button" class="btn btn-sm btn-outline-primary rango-btn" data-rango="12m">12 meses</button>
                 <button type="button" class="btn btn-sm btn-outline-primary rango-btn" data-rango="custom">Personalizado</button>
             </div>
-            <div id="customRangoInputs" class="d-none d-flex align-items-center gap-2">
+            <div id="customRangoInputs" class="d-none align-items-center gap-2 flex-wrap">
                 <input type="date" id="fechaDesde" class="form-control form-control-sm">
                 <span class="text-secondary small">a</span>
                 <input type="date" id="fechaHasta" class="form-control form-control-sm">
@@ -325,6 +325,7 @@ document.querySelectorAll('.rango-btn').forEach(btn => {
         document.querySelectorAll('.rango-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById('customRangoInputs').classList.toggle('d-none', rango !== 'custom');
+        document.getElementById('customRangoInputs').classList.toggle('d-flex', rango === 'custom');
         if (rango !== 'custom') {
             rangoActual = rango;
             cargarDashboard({ rango });

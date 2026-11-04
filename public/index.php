@@ -46,7 +46,7 @@ require __DIR__ . '/../src/views/layout/header.php';
 <!-- === PRIMERA PANTALLA === -->
 <section class="portada-hero">
     <div class="container">
-        <div class="row align-items-center g-5">
+        <div class="row align-items-center g-4 g-lg-5">
             <div class="col-lg-6">
                 <h1 class="portada-titulo">Tu salud, en orden como tu pastillero.</h1>
                 <p class="portada-lema">Citas, recetas y un aviso a la hora de cada toma, en un solo lugar. El paciente sabe qué le toca, el médico receta y la clínica lo ve todo.</p>
