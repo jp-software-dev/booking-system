@@ -1,6 +1,6 @@
 /* ==========================================================================
    ESTILOS DE LA AGENDA DE CITAS (agenda.php + calendar.js)
-   La variable --primary se define en styles.css.
+   Los colores (--ma-*) se definen en styles.css.
    ========================================================================== */
 
 :root {
@@ -55,8 +55,8 @@
     line-height: 1;
     transition: all 0.2s ease;
 }
-.agenda-col.today-col .date-circle { outline: 2px solid var(--primary); color: var(--primary); }
-.agenda-col.active .date-circle { background-color: var(--primary); color: #ffffff; outline: none; }
+.agenda-col.today-col .date-circle { outline: 2px solid var(--ma-accion); color: var(--ma-accion); }
+.agenda-col.active .date-circle { background-color: var(--ma-accion); color: #ffffff; outline: none; }
 
 /* === BOTONES DE HORARIO === */
 .time-slot {
@@ -68,12 +68,12 @@
     margin-bottom: 8px;
     font-size: 0.85rem;
     font-weight: 600;
-    color: var(--primary);
+    color: var(--ma-accion);
     text-align: center;
     cursor: pointer;
     transition: all 0.2s ease;
 }
-.time-slot:hover:not(:disabled) { background: var(--slot-hover); border-color: var(--primary); transform: translateY(-2px); }
+.time-slot:hover:not(:disabled) { background: var(--slot-hover); border-color: var(--ma-accion); transform: translateY(-2px); }
 .time-slot:disabled { background: var(--slot-disabled); color: #9ca3af; border-color: transparent; cursor: not-allowed; }
 .time-slot.booked:disabled { background: var(--slot-booked); color: var(--slot-booked-text); }
 
@@ -97,8 +97,8 @@
     transition: background 0.2s;
 }
 .mini-cal-date:hover { background: var(--slot-hover); }
-.mini-cal-date.active { background: var(--primary); color: #ffffff; }
-.mini-cal-date.today { border: 2px solid var(--primary); font-weight: 700; }
+.mini-cal-date.active { background: var(--ma-accion); color: #ffffff; }
+.mini-cal-date.today { border: 2px solid var(--ma-accion); font-weight: 700; }
 .mini-cal-date.text-muted.opacity-50 { background: transparent; color: var(--calendar-border) !important; cursor: default; pointer-events: none; border: none; }
 #mini-prev-month, #mini-next-month { cursor: pointer; padding: 6px 10px; border-radius: 8px; transition: background 0.2s ease; color: #111827; }
 #mini-prev-month:hover, #mini-next-month:hover { background: var(--slot-hover); }
