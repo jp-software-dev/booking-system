@@ -20,6 +20,9 @@ require __DIR__ . '/../src/views/layout/header.php';
 ?>
 
 <style>
+/* Cada gráfica vive en una caja de altura fija: sin ella, el lienzo crece con su propio contenedor. */
+.ma-grafica { position: relative; height: 260px; }
+
 /* Selector de rango de fechas: segmentos que pasan a otra línea en pantallas angostas. */
 .rango-pill-group { display: flex; flex-wrap: wrap; gap: 4px; background: var(--ma-superficie-2); border: 1px solid var(--ma-linea); padding: 4px; border-radius: 14px; }
 .rango-pill-group .rango-btn { border: none; border-radius: 10px; color: var(--ma-tinta-2); background: transparent; padding: 6px 12px; }
@@ -27,7 +30,7 @@ require __DIR__ . '/../src/views/layout/header.php';
 .rango-pill-group .rango-btn.active { background: var(--ma-accion); color: #fff; }
 </style>
 
-<div class="container-fluid ma-pagina px-lg-5">
+<div class="container-xxl ma-pagina px-lg-4">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
             <h1 class="ma-titulo">Métricas de la clínica</h1>
@@ -55,31 +58,31 @@ require __DIR__ . '/../src/views/layout/header.php';
     <div id="alertDoctoresSinConsultorio"></div>
 
     <div class="row g-3 mb-4">
-        <div class="col-6 col-lg-3">
+        <div class="col-6 col-lg">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
                 <span class="text-secondary small fw-bold">Citas en total</span>
                 <span class="fs-3 fw-bold text-dark-blue" id="kpiTotal">—</span>
             </div>
         </div>
-        <div class="col-6 col-lg-3">
+        <div class="col-6 col-lg">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
                 <span class="text-secondary small fw-bold">Completadas</span>
                 <span class="fs-3 fw-bold text-success" id="kpiCompletadas">—</span>
             </div>
         </div>
-        <div class="col-6 col-lg-3">
+        <div class="col-6 col-lg">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
                 <span class="text-secondary small fw-bold">Canceladas</span>
                 <span class="fs-3 fw-bold text-danger" id="kpiCanceladas">—</span>
             </div>
         </div>
-        <div class="col-6 col-lg-3">
+        <div class="col-6 col-lg">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
                 <span class="text-secondary small fw-bold">Tasa de cancelación</span>
                 <span class="fs-3 fw-bold text-dark-blue" id="kpiTasa">—</span>
             </div>
         </div>
-        <div class="col-6 col-lg-3">
+        <div class="col-12 col-lg">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
                 <span class="text-secondary small fw-bold">Pacientes activos</span>
                 <span class="fs-3 fw-bold text-dark-blue" id="kpiPacientesActivos">—</span>
@@ -91,13 +94,13 @@ require __DIR__ . '/../src/views/layout/header.php';
         <div class="col-lg-5">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
                 <h2 class="fs-6 fw-bold text-dark-blue mb-3">Pacientes nuevos por mes (últimos 12 meses)</h2>
-                <canvas id="chartPacientesNuevos" height="220"></canvas>
+                <div class="ma-grafica"><canvas id="chartPacientesNuevos"></canvas></div>
             </div>
         </div>
         <div class="col-lg-7">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
                 <h2 class="fs-6 fw-bold text-dark-blue mb-3">Ocupación por médico (rango seleccionado)</h2>
-                <canvas id="chartOcupacion" height="220"></canvas>
+                <div class="ma-grafica"><canvas id="chartOcupacion"></canvas></div>
             </div>
         </div>
     </div>
@@ -106,13 +109,13 @@ require __DIR__ . '/../src/views/layout/header.php';
         <div class="col-lg-5">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
                 <h2 class="fs-6 fw-bold text-dark-blue mb-3">Citas por estado</h2>
-                <canvas id="chartEstado" height="220"></canvas>
+                <div class="ma-grafica"><canvas id="chartEstado"></canvas></div>
             </div>
         </div>
         <div class="col-lg-7">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
                 <h2 class="fs-6 fw-bold text-dark-blue mb-3">Citas por especialidad</h2>
-                <canvas id="chartEspecialidad" height="220"></canvas>
+                <div class="ma-grafica"><canvas id="chartEspecialidad"></canvas></div>
             </div>
         </div>
     </div>
@@ -121,13 +124,13 @@ require __DIR__ . '/../src/views/layout/header.php';
         <div class="col-lg-5">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
                 <h2 class="fs-6 fw-bold text-dark-blue mb-3">Médicos con más citas</h2>
-                <canvas id="chartDoctores" height="240"></canvas>
+                <div class="ma-grafica"><canvas id="chartDoctores"></canvas></div>
             </div>
         </div>
         <div class="col-lg-7">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
                 <h2 class="fs-6 fw-bold text-dark-blue mb-3">Tendencia mensual (últimos 12 meses)</h2>
-                <canvas id="chartTendencia" height="240"></canvas>
+                <div class="ma-grafica"><canvas id="chartTendencia"></canvas></div>
             </div>
         </div>
     </div>
@@ -222,7 +225,7 @@ async function cargarDashboard(params) {
             }]
         },
         options: {
-            responsive: true, cutout: '72%',
+            responsive: true, maintainAspectRatio: false, cutout: '72%',
             plugins: {
                 legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 16 } },
                 datalabels: {
@@ -244,7 +247,7 @@ async function cargarDashboard(params) {
             datasets: [{ label: 'Citas', data: m.por_especialidad.map(r => r.cantidad), backgroundColor: tonosAzules(m.por_especialidad.length), borderRadius: 8, maxBarThickness: 42 }]
         },
         options: {
-            responsive: true, plugins: { legend: { display: false }, datalabels: { display: false } },
+            responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } },
             scales: {
                 x: { grid: { display: false } },
                 y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.05)' } }
@@ -259,7 +262,7 @@ async function cargarDashboard(params) {
             datasets: [{ label: 'Citas atendidas', data: m.top_doctores.map(r => r.cantidad), backgroundColor: tonosAzules(m.top_doctores.length), borderRadius: 8, maxBarThickness: 28 }]
         },
         options: {
-            indexAxis: 'y', responsive: true, plugins: { legend: { display: false }, datalabels: { display: false } },
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } },
             scales: {
                 x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.05)' } },
                 y: { grid: { display: false } }
@@ -279,7 +282,7 @@ async function cargarDashboard(params) {
             }]
         },
         options: {
-            responsive: true, interaction: { intersect: false, mode: 'index' },
+            responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' },
             plugins: { legend: { display: false }, datalabels: { display: false } },
             scales: {
                 x: { grid: { display: false } },
@@ -295,7 +298,7 @@ async function cargarDashboard(params) {
             datasets: [{ label: 'Pacientes nuevos', data: m.pacientes_nuevos_mensual.map(r => r.cantidad), backgroundColor: '#845ef7', borderRadius: 8, maxBarThickness: 32 }]
         },
         options: {
-            responsive: true, plugins: { legend: { display: false }, datalabels: { display: false } },
+            responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } },
             scales: {
                 x: { grid: { display: false } },
                 y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.05)' } }
@@ -310,7 +313,7 @@ async function cargarDashboard(params) {
             datasets: [{ label: 'Tasa de ocupación (%)', data: m.ocupacion_doctores.map(r => r.tasa_ocupacion), backgroundColor: '#f6c343', borderRadius: 8, maxBarThickness: 28 }]
         },
         options: {
-            indexAxis: 'y', responsive: true, plugins: { legend: { display: false }, datalabels: { display: false } },
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false } },
             scales: {
                 x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' }, grid: { color: 'rgba(0,0,0,0.05)' } },
                 y: { grid: { display: false } }

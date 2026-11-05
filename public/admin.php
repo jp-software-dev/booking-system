@@ -39,7 +39,7 @@ $horarios = Horario::slots();
 $tituloPagina = 'Citas';
 require __DIR__ . '/../src/views/layout/header.php';
 ?>
-<div class="container-fluid ma-pagina px-lg-5">
+<div class="container-xxl ma-pagina px-lg-4">
     <!-- === ENCABEZADO Y CONTADORES GLOBALES === -->
     <div class="ma-encabezado-pagina">
         <div>

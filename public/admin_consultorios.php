@@ -61,7 +61,7 @@ $medicosDisponibles = static function (array $consultorio) use ($doctores): arra
 $tituloPagina = 'Consultorios';
 require __DIR__ . '/../src/views/layout/header.php';
 ?>
-<div class="container ma-pagina">
+<div class="container-xxl ma-pagina px-lg-4">
     <h1 class="ma-titulo mb-4">Consultorios</h1>
 
     <div id="consultoriosAlert"></div>

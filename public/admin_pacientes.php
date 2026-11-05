@@ -47,7 +47,7 @@ require __DIR__ . '/../src/views/layout/header.php';
 ?>
 <?php if ($idVer !== null): ?>
     <!-- === FICHA DEL PACIENTE === -->
-    <div class="container ma-pagina">
+    <div class="container-xxl ma-pagina px-lg-4">
         <a href="admin_pacientes.php" class="text-decoration-none fw-medium text-secondary mb-3 d-inline-block"><i class="bi bi-arrow-left me-1"></i> Volver al listado</a>
 
         <div class="card border-0 shadow-sm rounded-4 mb-4">
@@ -107,7 +107,7 @@ require __DIR__ . '/../src/views/layout/header.php';
 
 <?php else: ?>
     <!-- === LISTADO DE PACIENTES === -->
-    <div class="container-fluid ma-pagina px-lg-5">
+    <div class="container-xxl ma-pagina px-lg-4">
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
             <div class="card-header bg-white border-bottom py-3 px-4">
                 <h1 class="fs-5 fw-bold mb-0"><i class="bi bi-people me-2 text-primary" aria-hidden="true"></i>Pacientes</h1>
