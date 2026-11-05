@@ -269,7 +269,11 @@ codigo, r = a.api("update_status.php", {"id_cita": id_admin, "estado": "Confirma
 check("admin confirma la cita", r.get("status") == "success", r)
 codigo, r = a.api("update_status.php", {"id_cita": id_admin, "estado": "Confirmada"})
 check("mismo estado otra vez no da 'no encontrada'", r.get("status") == "success", r)
-codigo, r = a.api("update_cita_admin.php", {"id_cita": id_admin, "fecha_cita": fecha2, "hora_inicio": "17:00"})
+# Una hora libre depende de las citas sembradas ese día: se prueban varias.
+for hora in ["17:00", "17:30", "18:00", "18:30", "19:00", "19:30"]:
+    codigo, r = a.api("update_cita_admin.php", {"id_cita": id_admin, "fecha_cita": fecha2, "hora_inicio": hora})
+    if r.get("status") == "success":
+        break
 check("admin reprograma la cita", r.get("status") == "success", r)
 codigo, cuerpo = a.pedir(f"/api/generar_pdf.php?id_cita={id_admin}")
 check("PDF del panel", codigo == 200 and cuerpo[:4] == b"%PDF", cuerpo[:30])
