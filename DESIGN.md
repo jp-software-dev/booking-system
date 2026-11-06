@@ -24,6 +24,12 @@ colors:
   alerta: "#e5677a"
   alerta-texto: "#b8324a"
   alerta-suave: "#fde8ec"
+  aviso-oscuro: "#6a4500"
+  bruma-clara: "#e1ebfd"
+  linea-suave: "#c8d3e6"
+  campana: "#ffd27a"
+  tomada-clara: "#7fe0b7"
+  alerta-clara: "#ffb3c0"
 typography:
   display:
     fontFamily: "Nunito Sans, Segoe UI, system-ui, sans-serif"
@@ -53,12 +59,39 @@ typography:
     fontFamily: "Nunito Sans, Segoe UI, system-ui, sans-serif"
     fontWeight: 800
     fontFeature: "tnum"
+  micro:
+    fontFamily: "Nunito Sans, Segoe UI, system-ui, sans-serif"
+    fontSize: "0.72rem"
+    fontWeight: 800
+  caption:
+    fontFamily: "Nunito Sans, Segoe UI, system-ui, sans-serif"
+    fontSize: "0.75rem"
+    fontWeight: 700
+  small:
+    fontFamily: "Nunito Sans, Segoe UI, system-ui, sans-serif"
+    fontSize: "0.8rem"
+    fontWeight: 700
+  chip:
+    fontFamily: "Nunito Sans, Segoe UI, system-ui, sans-serif"
+    fontSize: "0.78rem"
+    fontWeight: 800
+  lead:
+    fontFamily: "Nunito Sans, Segoe UI, system-ui, sans-serif"
+    fontSize: "1.15rem"
+    fontWeight: 400
+  brand:
+    fontFamily: "Nunito Sans, Segoe UI, system-ui, sans-serif"
+    fontSize: "1.3rem"
+    fontWeight: 800
+    letterSpacing: "-0.02em"
 rounded:
   sm: "10px"
   md: "14px"
   tarjeta: "16px"
   compartimento: "18px"
+  campo: "12px"
   modal: "20px"
+  portada: "22px"
   pildora: "999px"
 components:
   button-primary:
@@ -158,6 +191,8 @@ Neutros azulados fríos con tres tapas cálidas/frescas y un único azul de acci
 - **Body** (400, 1rem, 1.5): texto corrido y subtítulos en tinta media.
 - **Label** (700, 0.875rem): etiquetas de formulario y metadatos, en tinta media, en minúsculas normales.
 
+Los textos pequeños tienen escala propia: **micro** (0.72rem) para rótulos dentro de compartimentos y fechas, **caption** (0.75rem) y **small** (0.8rem) para metadatos y encabezados de tabla, y **chip** (0.78rem) para las etiquetas. **Lead** (1.15rem) es el texto de apoyo de la portada y **brand** (1.3rem) el nombre en el encabezado.
+
 ### Named Rules
 **La regla de las cifras.** Horas, fechas, folios y contadores usan números tabulares para que las columnas no bailen.
 
@@ -180,7 +215,7 @@ Casi plano. Los paneles se separan del fondo niebla por color y por una sombra a
 
 ## Shapes
 
-Esquinas redondas y escalonadas por tamaño: 10 px en controles pequeños, 14 px en botones, 16 px en paneles, 18 px en compartimentos y 20 px en modales; píldora completa solo en chips. La tapa del compartimento tiene esquinas superiores de 16 px e inferiores de 7 px, como una tapa real. Los bordes son de 1 px en línea; los compartimentos usan 1.5 px teñido con el color de su tapa. No hay franjas de color laterales.
+Esquinas redondas y escalonadas por tamaño: 10 px en controles pequeños, 12 px en campos de formulario, 14 px en botones, 16 px en paneles, 18 px en compartimentos, 20 px en modales y 22 px en el pastillero de la portada; píldora completa solo en chips. La tapa del compartimento tiene esquinas superiores de 16 px e inferiores de 7 px, como una tapa real. Los bordes son de 1 px en línea; los compartimentos usan 1.5 px teñido con el color de su tapa. No hay franjas de color laterales.
 
 ## Components
 
