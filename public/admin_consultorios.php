@@ -75,7 +75,7 @@ require __DIR__ . '/../src/views/layout/header.php';
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm rounded-4 p-4 position-relative" data-consultorio="<?= $idConsultorio ?>">
                     <div class="position-absolute top-0 end-0 p-3">
-                        <span class="badge rounded-pill <?= $asignado ? 'bg-danger' : 'bg-success' ?>" data-insignia><?= $asignado ? 'Ocupado' : 'Disponible' ?></span>
+                        <span class="ma-chip <?= $asignado ? 'alerta' : 'exito' ?>" data-insignia><?= $asignado ? 'Ocupado' : 'Disponible' ?></span>
                     </div>
 
                     <h4 class="fw-bold text-dark-blue mb-1"><?= e($consultorio['nombre']) ?></h4>
@@ -167,7 +167,7 @@ document.querySelectorAll('.form-asignar').forEach((formulario) => {
         const nombreMedico = tarjeta.querySelector('[data-nombre-medico]');
         const ocupado = selector.value !== '';
 
-        insignia.className = `badge rounded-pill ${ocupado ? 'bg-danger' : 'bg-success'}`;
+        insignia.className = `ma-chip ${ocupado ? 'alerta' : 'exito'}`;
         insignia.textContent = ocupado ? 'Ocupado' : 'Disponible';
         nombreMedico.className = ocupado ? 'fw-bold text-dark' : 'text-muted';
         nombreMedico.textContent = ocupado ? selector.selectedOptions[0].textContent.trim() : 'Ningún médico asignado';

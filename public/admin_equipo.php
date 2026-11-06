@@ -58,7 +58,7 @@ $filaPersonal = static function (array $miembro) use ($nombresConsultorio, $acce
                 </div>
             </div>
         </td>
-        <td data-label="Puesto"><span class="badge rounded-pill <?= $esDoctor ? 'bg-primary' : 'bg-info text-dark' ?> px-3"><?= e($miembro['puesto']) ?></span></td>
+        <td data-label="Puesto"><span class="ma-chip <?= $esDoctor ? 'info' : '' ?>"><?= e($miembro['puesto']) ?></span></td>
         <td class="text-secondary" data-label="Especialidad / turno"><?= e($miembro['detalle']) ?></td>
         <td class="text-center" data-label="Consultorio">
             <?php if ($idConsultorio !== null): ?>
@@ -159,7 +159,7 @@ require __DIR__ . '/../src/views/layout/header.php';
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
             <h1 class="ma-titulo mb-0">Equipo médico</h1>
-            <p class="text-secondary mb-0 mt-1">Directorio y control del personal del hospital.</p>
+            <p class="text-secondary mb-0 mt-1">Directorio y control del personal de la clínica.</p>
         </div>
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalPersonal">
             <i class="bi bi-person-plus-fill me-2"></i>Dar de alta
