@@ -155,7 +155,7 @@ $opcionesEspecialidad = static function () use ($especialidades): void {
 $tituloPagina = 'Equipo';
 require __DIR__ . '/../src/views/layout/header.php';
 ?>
-<div class="container ma-pagina">
+<div class="container-xxl ma-pagina px-lg-4">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
             <h1 class="ma-titulo mb-0">Equipo médico</h1>

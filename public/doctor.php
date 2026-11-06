@@ -133,19 +133,19 @@ require __DIR__ . '/../src/views/layout/header.php';
             <ul class="list-unstyled mb-0">
                 <?php foreach ($citasDelDia as $cita): ?>
                     <?php $momento = Tratamiento::momentoDelDia($dia . ' ' . $cita['hora_inicio']); ?>
-                    <li class="toma <?= e($momento) ?>" style="grid-template-columns: auto 64px 1fr auto;">
+                    <li class="toma cita-fila <?= e($momento) ?>">
                         <span class="toma-punto" aria-hidden="true"></span>
                         <span class="toma-hora"><?= e(substr((string) $cita['hora_inicio'], 0, 5)) ?></span>
-                        <div class="min-w-0">
+                        <div class="min-w-0 cita-cuerpo">
                             <div class="fw-bold">
                                 <?= e($cita['paciente_nombre'] . ' ' . $cita['paciente_apellido']) ?>
                                 <?php if (edad($cita['fecha_nacimiento'] ?? null) !== null): ?>
-                                    <span class="text-secondary fw-semibold">· <?= edad($cita['fecha_nacimiento']) ?> años</span>
+                                    <span class="cita-edad text-secondary fw-semibold"><?= edad($cita['fecha_nacimiento']) ?> años</span>
                                 <?php endif; ?>
                             </div>
-                            <div class="toma-detalle text-truncate" style="max-width: 52ch;"><?= e((string) $cita['motivo_consulta']) ?></div>
+                            <div class="toma-detalle cita-motivo"><?= e((string) $cita['motivo_consulta']) ?></div>
                         </div>
-                        <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+                        <div class="cita-acciones d-flex align-items-center gap-2 flex-wrap justify-content-end">
                             <span class="badge <?= e(clase_estado_cita((string) $cita['estado_cita'])) ?>"><?= e((string) $cita['estado_cita']) ?></span>
                             <?php if ($cita['id_receta'] !== null): ?>
                                 <button type="button" class="btn btn-sm btn-light" data-ver-receta="<?= (int) $cita['id_receta'] ?>"><i class="bi bi-file-earmark-medical me-1" aria-hidden="true"></i>Ver receta</button>

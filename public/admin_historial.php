@@ -34,7 +34,7 @@ $urlPdf = '../api/generar_pdf.php?' . http_build_query($filtro->parametrosUrl())
 $tituloPagina = 'Historial';
 require __DIR__ . '/../src/views/layout/header.php';
 ?>
-<div class="container-fluid ma-pagina px-lg-5">
+<div class="container-xxl ma-pagina px-lg-4">
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
         <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
             <h1 class="fs-5 fw-bold mb-0"><i class="bi bi-clock-history me-2 text-primary" aria-hidden="true"></i>Historial de citas pasadas</h1>

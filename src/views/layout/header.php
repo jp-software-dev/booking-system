@@ -57,6 +57,8 @@ $menuPorRol = [
 
 $menu = $autenticado ? ($menuPorRol[$rol] ?? []) : $menuPublico;
 $conTabbar = $rol === Sesion::ROL_PACIENTE;
+// La administración tiene más enlaces y tablas anchas: usa el contenedor amplio en encabezado, páginas y pie.
+$anchoContenedor = $rol === Sesion::ROL_ADMIN ? 'container-xxl px-lg-4' : 'container';
 
 /** Indica si la opción de menú corresponde a la página actual. */
 $esActiva = static fn (array $opcion): bool => $opcion['url'] === $paginaActual;
@@ -107,7 +109,7 @@ $inicial = mb_strtoupper(mb_substr(Sesion::nombre('U'), 0, 1));
 
 <!-- === ENCABEZADO === -->
 <header class="ma-header">
-    <div class="container ma-header-fila">
+    <div class="<?= e($anchoContenedor) ?> ma-header-fila">
         <a class="ma-marca" href="<?= $autenticado ? e(Sesion::paginaInicio()) : 'index.php' ?>">
             <img src="<?= e(asset('images/favicon.svg')) ?>" alt="" width="34" height="34">
             <span><?= e(APP_NAME) ?></span>

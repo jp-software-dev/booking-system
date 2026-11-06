@@ -295,6 +295,7 @@ code { color: var(--ma-accion-fuerte); font-size: 0.9em; }
     font-weight: 700; color: var(--ma-tinta);
 }
 .ma-usuario:hover { border-color: var(--ma-linea-fuerte); }
+.ma-usuario .lh-sm { white-space: nowrap; }
 .ma-avatar {
     width: 34px; height: 34px; border-radius: 50%;
     display: inline-grid; place-items: center;
@@ -393,6 +394,19 @@ body.con-tabbar { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
     padding: 0.75rem 0; border-bottom: 1px solid var(--ma-linea);
 }
 .toma:last-child { border-bottom: 0; }
+
+/* Fila de cita del médico: punto, hora, paciente y acciones. En pantallas angostas
+   las acciones pasan a su propia línea para que el nombre conserve el ancho. */
+.cita-fila { grid-template-columns: auto 3.5rem minmax(0, 1fr) auto; }
+.cita-edad::before { content: "· "; }
+.cita-motivo { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 52ch; }
+@media (max-width: 575.98px) {
+    .cita-fila { grid-template-columns: auto 3.4rem minmax(0, 1fr); row-gap: 0.5rem; align-items: start; }
+    .cita-fila .toma-punto { margin-top: 0.3rem; }
+    .cita-fila .cita-acciones { grid-column: 3; justify-content: flex-start !important; }
+    .cita-edad::before { content: ""; margin-left: 0.4rem; }
+    .cita-motivo { white-space: normal; }
+}
 .toma-punto { width: 14px; height: 14px; border-radius: 5px; background: var(--tapa); }
 .toma-hora { font-weight: 800; font-variant-numeric: tabular-nums; }
 .toma-detalle { font-size: 0.85rem; color: var(--ma-tinta-2); }
