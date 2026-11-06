@@ -32,11 +32,11 @@ $ejemplo = [
 ];
 
 $roles = [
-    ['momento' => 'noche', 'rol' => 'Paciente', 'usuario' => ModoDemo::PACIENTE_EMAIL, 'icono' => 'bi-capsule',
+    ['rol' => 'Paciente', 'usuario' => ModoDemo::PACIENTE_EMAIL, 'icono' => 'bi-capsule',
      'texto' => 'Agenda sus citas, ve su semana como un pastillero y recibe un aviso a la hora de cada toma.'],
-    ['momento' => 'tarde', 'rol' => 'Médico', 'usuario' => ModoDemo::DOCTOR_USUARIO, 'icono' => 'bi-heart-pulse',
+    ['rol' => 'Médico', 'usuario' => ModoDemo::DOCTOR_USUARIO, 'icono' => 'bi-heart-pulse',
      'texto' => 'Revisa su semana de consultas, receta en segundos y ve si el paciente sigue su tratamiento.'],
-    ['momento' => 'manana', 'rol' => 'Clínica', 'usuario' => ModoDemo::ADMIN_USUARIO, 'icono' => 'bi-clipboard2-pulse',
+    ['rol' => 'Clínica', 'usuario' => ModoDemo::ADMIN_USUARIO, 'icono' => 'bi-clipboard2-pulse',
      'texto' => 'Controla citas, equipo, consultorios y métricas, con una bitácora de cada acción.'],
 ];
 
@@ -134,9 +134,9 @@ require __DIR__ . '/../src/views/layout/header.php';
         <div class="row g-3">
             <?php foreach ($roles as $rol): ?>
                 <div class="col-md-4">
-                    <div class="compartimento <?= e($rol['momento']) ?> h-100 justify-content-start p-4 pt-5">
+                    <div class="compartimento h-100 justify-content-start p-4 pt-5">
                         <span class="tapa" style="height: 12px;"></span>
-                        <i class="bi <?= e($rol['icono']) ?> fs-2 mb-2" style="color: var(--tapa);" aria-hidden="true"></i>
+                        <i class="bi <?= e($rol['icono']) ?> fs-2 mb-2 text-secondary" aria-hidden="true"></i>
                         <h3 class="fs-5 fw-bold mb-1"><?= e($rol['rol']) ?></h3>
                         <p class="text-secondary mb-3"><?= e($rol['texto']) ?></p>
                         <?php if ($esDemo && !$autenticado): ?>

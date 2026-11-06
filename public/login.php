@@ -7,7 +7,7 @@
  * Envía las credenciales a api/auth.php.
  *
  * En modo demo, junto al formulario aparecen las tres cuentas de prueba como
- * compartimentos del pastillero (una tapa de color por rol): su botón rellena
+ * compartimentos del pastillero (neutros: el color de la tapa se reserva a la hora del día): su botón rellena
  * el formulario y entra con un solo clic.
  *
  * Acceso: público. Si ya hay sesión, redirige a la página de inicio del rol.
@@ -24,11 +24,11 @@ if (Sesion::estaAutenticado()) {
 
 $esDemo = ModoDemo::activo();
 $cuentasDemo = [
-    ['momento' => 'manana', 'rol' => 'Administración', 'usuario' => ModoDemo::ADMIN_USUARIO, 'icono' => 'bi-clipboard2-pulse',
+    ['rol' => 'Administración', 'usuario' => ModoDemo::ADMIN_USUARIO, 'icono' => 'bi-clipboard2-pulse',
      'descripcion' => 'Citas de toda la clínica, métricas, equipo médico y bitácora.'],
-    ['momento' => 'tarde', 'rol' => 'Médico', 'usuario' => ModoDemo::DOCTOR_USUARIO, 'icono' => 'bi-heart-pulse',
+    ['rol' => 'Médico', 'usuario' => ModoDemo::DOCTOR_USUARIO, 'icono' => 'bi-heart-pulse',
      'descripcion' => 'Su semana de consultas, recetas y apego de sus pacientes.'],
-    ['momento' => 'noche', 'rol' => 'Paciente', 'usuario' => ModoDemo::PACIENTE_EMAIL, 'icono' => 'bi-capsule',
+    ['rol' => 'Paciente', 'usuario' => ModoDemo::PACIENTE_EMAIL, 'icono' => 'bi-capsule',
      'descripcion' => 'Su pastillero semanal, recordatorios, citas y recetas.'],
 ];
 
@@ -84,9 +84,9 @@ require __DIR__ . '/../src/views/layout/header.php';
 
                         <div class="d-flex flex-column gap-3">
                             <?php foreach ($cuentasDemo as $cuenta): ?>
-                                <div class="compartimento <?= e($cuenta['momento']) ?> flex-row align-items-center gap-3 p-3 pt-4" style="min-height: 0;">
+                                <div class="compartimento flex-row align-items-center gap-3 p-3 pt-4" style="min-height: 0;">
                                     <span class="tapa" style="height: 10px;"></span>
-                                    <i class="bi <?= e($cuenta['icono']) ?> fs-3" style="color: var(--tapa);" aria-hidden="true"></i>
+                                    <i class="bi <?= e($cuenta['icono']) ?> fs-3 text-secondary" aria-hidden="true"></i>
                                     <div class="flex-grow-1 min-w-0">
                                         <div class="fw-bold"><?= e($cuenta['rol']) ?> · <code><?= e($cuenta['usuario']) ?></code></div>
                                         <div class="small text-secondary"><?= e($cuenta['descripcion']) ?></div>

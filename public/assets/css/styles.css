@@ -203,10 +203,8 @@ code { color: var(--ma-accion-fuerte); font-size: 0.9em; }
 .table thead th, .table-light th {
     background-color: var(--ma-superficie-2);
     color: var(--ma-tinta-2);
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
     border-bottom: 1px solid var(--ma-linea);
 }
 .table-hover > tbody > tr { transition: background-color var(--ma-rapido) var(--ma-curva); }
@@ -296,6 +294,8 @@ code { color: var(--ma-accion-fuerte); font-size: 0.9em; }
 }
 .ma-usuario:hover { border-color: var(--ma-linea-fuerte); }
 .ma-usuario .lh-sm { white-space: nowrap; }
+.ma-header .btn { white-space: nowrap; }
+@media (max-width: 575.98px) { .ma-header .btn-primary { --bs-btn-padding-x: 0.8rem; --bs-btn-padding-y: 0.45rem; font-size: 0.9rem; } }
 .ma-avatar {
     width: 34px; height: 34px; border-radius: 50%;
     display: inline-grid; place-items: center;
@@ -337,7 +337,7 @@ code { color: var(--ma-accion-fuerte); font-size: 0.9em; }
 body.con-tabbar { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 
 /* === 5. EL PASTILLERO (firma visual) === */
-.pastillero { display: grid; grid-template-columns: 92px repeat(7, minmax(0, 1fr)); gap: 10px; }
+.pastillero { display: grid; grid-template-columns: 80px repeat(7, minmax(0, 1fr)); gap: 8px; }
 .pastillero-dia { text-align: center; font-weight: 800; font-size: 0.8rem; color: var(--ma-tinta-2); line-height: 1.15; padding-bottom: 2px; }
 .pastillero-dia b { display: block; font-size: 1.25rem; color: var(--ma-tinta); }
 .pastillero-dia.hoy, .pastillero-dia.hoy b { color: var(--ma-accion); }
@@ -353,7 +353,7 @@ body.con-tabbar { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
     border-radius: var(--ma-radio-compartimento);
     background: var(--tapa-suave);
     border: 1.5px solid color-mix(in srgb, var(--tapa) 35%, transparent);
-    padding: 28px 8px 8px;
+    padding: 28px 6px 8px;
     display: flex; flex-direction: column; gap: 4px; justify-content: flex-end;
     overflow: hidden;
     perspective: 400px;
@@ -380,7 +380,7 @@ body.con-tabbar { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 /* Cada dosis: la hora arriba, en pequeño, y el medicamento completo debajo. */
 .dosis {
     display: flex; flex-direction: column; gap: 0;
-    font-size: 0.8rem; font-weight: 800; color: var(--ma-tinta);
+    font-size: 0.75rem; font-weight: 800; color: var(--ma-tinta);
     line-height: 1.15;
 }
 .dosis + .dosis { margin-top: 4px; }
@@ -442,7 +442,7 @@ body.con-tabbar { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 /* Fecha como tapa de compartimento: día grande y mes abreviado. */
 .ma-fecha { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; min-width: 64px; padding: 0.5rem 0.6rem; border-radius: 14px; background: var(--ma-accion-suave); color: var(--ma-accion-fuerte); line-height: 1; }
 .ma-fecha b { font-size: 1.7rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-.ma-fecha small { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 3px; }
+.ma-fecha small { font-size: 0.72rem; font-weight: 800; margin-top: 3px; }
 
 /* Selector de estado de cita en el panel administrativo. */
 .status-badge { padding: 6px 14px; border-radius: 999px; font-weight: 800; font-size: 0.75rem; display: inline-block; white-space: normal; text-align: center; }
@@ -478,7 +478,7 @@ body.con-tabbar .ma-avisos { bottom: calc(76px + env(safe-area-inset-bottom)); }
     .table-responsive table tbody tr { display: block; margin-bottom: 1rem; background: var(--ma-superficie); border-radius: var(--ma-radio-tarjeta); box-shadow: var(--ma-sombra); overflow: hidden; }
     .table-responsive table tbody td { display: flex; flex-direction: column; align-items: flex-start; text-align: left; border-bottom: 1px solid var(--ma-linea); padding: 0.75rem 1rem; font-size: 0.9rem; }
     .table-responsive table tbody td:last-child { border-bottom: 0; background: var(--ma-superficie-2); align-items: center; }
-    .table-responsive table tbody td[data-label]::before { content: attr(data-label); font-weight: 800; color: var(--ma-tinta-3); text-transform: uppercase; font-size: 0.68rem; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .table-responsive table tbody td[data-label]::before { content: attr(data-label); font-weight: 800; color: var(--ma-tinta-2); font-size: 0.75rem; margin-bottom: 4px; }
     .table-responsive .text-wrap { max-width: 100% !important; text-align: left; }
     .table-responsive table tbody td select.status-badge { width: 100% !important; max-width: 220px; padding: 6px; }
 
@@ -499,7 +499,7 @@ body.con-tabbar .ma-avisos { bottom: calc(76px + env(safe-area-inset-bottom)); }
 .portada-titulo { font-size: clamp(2.3rem, 1.4rem + 3.4vw, 4rem); line-height: 1.04; letter-spacing: -0.035em; font-weight: 800; margin-bottom: 1.25rem; }
 .portada-lema { font-size: clamp(1.05rem, 1rem + 0.35vw, 1.25rem); color: var(--ma-tinta-2); max-width: 52ch; margin-bottom: 2rem; }
 
-.portada-pastillero { position: relative; background: var(--ma-superficie); border-radius: 22px; box-shadow: var(--ma-sombra-alta); padding: 1.4rem; }
+.portada-pastillero { position: relative; background: var(--ma-superficie); border-radius: 22px; box-shadow: var(--ma-sombra-alta); padding: 1.4rem 1.4rem 3.6rem; } /* el aviso flota sobre el borde inferior sin tapar compartimentos */
 .portada-pastillero .compartimento { min-height: 86px; }
 /* La tapa de hoy se levanta sola cada pocos segundos: la firma de la app. */
 .portada-tapa-viva .tapa { animation: ma-tapa-viva 5.5s var(--ma-curva) 1s infinite; }
@@ -527,6 +527,7 @@ body.con-tabbar .ma-avisos { bottom: calc(76px + env(safe-area-inset-bottom)); }
 @media (max-width: 991.98px) {
     .portada-pasos { grid-template-columns: 1fr; gap: 1.5rem; }
     .portada-aviso { position: relative; right: auto; bottom: auto; width: 100%; margin-top: 1rem; }
+    .portada-pastillero { padding-bottom: 1.4rem; }
 }
 
 /* === 9. MOVIMIENTO === */
