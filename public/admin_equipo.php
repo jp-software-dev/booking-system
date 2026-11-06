@@ -67,22 +67,8 @@ $filaPersonal = static function (array $miembro) use ($nombresConsultorio, $acce
                 <span class="text-muted fst-italic">N/A</span>
             <?php endif; ?>
         </td>
-        <td class="pe-4 text-end">
-            <?php if ($esDoctor): ?>
-                <button type="button" class="btn btn-sm btn-light px-3 me-1" data-acceso-doctor
-                        data-id="<?= (int) $miembro['id'] ?>" data-nombre="<?= e($nombreCompleto) ?>" data-usuario="<?= e($usuarioAcceso ?? '') ?>">
-                    <i class="bi bi-key me-1" aria-hidden="true"></i>Acceso
-                </button>
-            <?php endif; ?>
-            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" title="Ver detalle" data-ver-personal
-                    data-nombre-completo="<?= e($nombreCompleto) ?>"
-                    data-puesto="<?= e($miembro['puesto']) ?>"
-                    data-especialidad="<?= e($esDoctor ? $miembro['detalle'] : 'N/A') ?>"
-                    data-turno="<?= e($esDoctor ? 'N/A' : $miembro['detalle']) ?>"
-                    data-consultorio="<?= e($consultorio) ?>">
-                <i class="bi bi-eye-fill"></i>
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 me-1" title="Editar" data-editar-personal
+        <td class="pe-4 text-end text-nowrap">
+            <button type="button" class="btn btn-sm btn-outline-primary" data-editar-personal
                     data-id="<?= (int) $miembro['id'] ?>"
                     data-tipo="<?= $esDoctor ? 'doctor' : 'enfermero' ?>"
                     data-nombre="<?= e($miembro['nombre']) ?>"
@@ -90,12 +76,41 @@ $filaPersonal = static function (array $miembro) use ($nombresConsultorio, $acce
                     data-especialidad="<?= e($miembro['id_especialidad']) ?>"
                     data-turno="<?= e($miembro['turno']) ?>"
                     data-consultorio="<?= e($idConsultorio) ?>">
-                <i class="bi bi-pencil-square me-1"></i>Editar
+                <i class="bi bi-pencil-square me-1" aria-hidden="true"></i>Editar
             </button>
-            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" data-baja-personal
-                    data-id="<?= (int) $miembro['id'] ?>" data-tipo="<?= $esDoctor ? 'doctor' : 'enfermero' ?>" data-nombre="<?= e($nombreCompleto) ?>">
-                <i class="bi bi-person-x-fill me-1"></i>Baja
-            </button>
+            <div class="dropdown d-inline-block ms-1">
+                <button class="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false"
+                        aria-label="Más acciones de <?= e($nombreCompleto) ?>">
+                    <i class="bi bi-three-dots" aria-hidden="true"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end text-start">
+                    <li>
+                        <button type="button" class="dropdown-item" data-ver-personal
+                                data-nombre-completo="<?= e($nombreCompleto) ?>"
+                                data-puesto="<?= e($miembro['puesto']) ?>"
+                                data-especialidad="<?= e($esDoctor ? $miembro['detalle'] : 'N/A') ?>"
+                                data-turno="<?= e($esDoctor ? 'N/A' : $miembro['detalle']) ?>"
+                                data-consultorio="<?= e($consultorio) ?>">
+                            <i class="bi bi-eye me-2" aria-hidden="true"></i>Ver detalle
+                        </button>
+                    </li>
+                    <?php if ($esDoctor): ?>
+                        <li>
+                            <button type="button" class="dropdown-item" data-acceso-doctor
+                                    data-id="<?= (int) $miembro['id'] ?>" data-nombre="<?= e($nombreCompleto) ?>" data-usuario="<?= e($usuarioAcceso ?? '') ?>">
+                                <i class="bi bi-key me-2" aria-hidden="true"></i>Acceso al sistema
+                            </button>
+                        </li>
+                    <?php endif; ?>
+                    <li><hr class="dropdown-divider my-1"></li>
+                    <li>
+                        <button type="button" class="dropdown-item text-danger" data-baja-personal
+                                data-id="<?= (int) $miembro['id'] ?>" data-tipo="<?= $esDoctor ? 'doctor' : 'enfermero' ?>" data-nombre="<?= e($nombreCompleto) ?>">
+                            <i class="bi bi-person-x me-2" aria-hidden="true"></i>Dar de baja
+                        </button>
+                    </li>
+                </ul>
+            </div>
         </td>
     </tr>
     <?php
