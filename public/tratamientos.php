@@ -121,7 +121,7 @@ require __DIR__ . '/../src/views/layout/header.php';
 
     <div class="row g-4">
         <!-- === EL PASTILLERO === -->
-        <section class="col-xl-8 order-2 order-xl-1" aria-label="Tomas de la semana por momento del día">
+        <section class="col-xl-9 order-2 order-xl-1" aria-label="Tomas de la semana por momento del día">
             <div class="ma-panel">
                 <div class="overflow-auto">
                     <div class="pastillero" style="min-width: 640px;">
@@ -142,7 +142,7 @@ require __DIR__ . '/../src/views/layout/header.php';
                                     <span class="tapa"></span>
                                     <?php foreach (array_slice($tomas, 0, 3) as $toma): ?>
                                         <span class="dosis" data-toma-dosis="<?= (int) $toma['id_toma'] ?>" data-estado="<?= e((string) $toma['estado']) ?>">
-                                            <span><?= e((string) $toma['medicamento']) ?></span><time><?= e($hora((string) $toma['programada_en'])) ?></time>
+                                            <span title="<?= e((string) $toma['medicamento']) ?>"><?= e((string) $toma['medicamento']) ?></span><time><?= e($hora((string) $toma['programada_en'])) ?></time>
                                         </span>
                                     <?php endforeach; ?>
                                     <?php if (count($tomas) > 3): ?>
@@ -157,10 +157,83 @@ require __DIR__ . '/../src/views/layout/header.php';
                     <p class="text-secondary small mt-3 mb-0">Esta semana no hay tomas programadas. Cuando tu médico te recete o agregues un recordatorio, aparecerán aquí.</p>
                 <?php endif; ?>
             </div>
+
+            <!-- === TRATAMIENTOS === -->
+            <section class="ma-panel mt-4" aria-labelledby="tituloTratamientos">
+                <h2 class="ma-panel-titulo" id="tituloTratamientos">Tratamientos <span class="ma-chip"><?= count($enCurso) ?> en curso</span></h2>
+                <?php if ($tratamientos === []): ?>
+                    <div class="ma-vacio">
+                        <i class="bi bi-capsule" aria-hidden="true"></i>
+                        <strong>Sin tratamientos</strong>
+                        Aquí verás los medicamentos que te recete tu médico y los recordatorios que agregues.
+                    </div>
+                <?php endif; ?>
+                <div class="d-flex flex-column gap-4">
+                    <?php foreach ([...$enCurso, ...$terminados] as $indice => $tratamiento): ?>
+                        <?php
+                        $terminado = (string) $tratamiento['fecha_fin'] <= $ahora;
+                        $momento = Tratamiento::momentoDelDia((string) $tratamiento['fecha_inicio']);
+                        $porcentajeDias = $tratamiento['duracion_dias'] / $maxDias * 100;
+                        $avance = $tratamiento['total_tomas'] > 0 ? ($tratamiento['tomadas'] + $tratamiento['omitidas']) / $tratamiento['total_tomas'] * 100 : 0;
+                        ?>
+                        <article class="<?= $terminado ? 'opacity-75' : '' ?>" data-tratamiento="<?= (int) $tratamiento['id_tratamiento'] ?>">
+                            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                                <div>
+                                    <h3 class="fs-6 fw-bold mb-1"><?= e($tratamiento['medicamento'] . ' · ' . $tratamiento['dosis']) ?></h3>
+                                    <div class="small text-secondary">
+                                        <?= e(ucfirst(Tratamiento::describirFrecuencia($tratamiento['frecuencia_horas']))) ?> · <?= $tratamiento['duracion_dias'] ?> día(s)
+                                        · <?= $tratamiento['origen'] === Tratamiento::ORIGEN_DOCTOR
+                                            ? 'recetado por Dr(a). ' . e($tratamiento['doctor_nombre'] . ' ' . $tratamiento['doctor_apellido'])
+                                            : 'recordatorio propio' ?>
+                                    </div>
+                                    <?php if (!empty($tratamiento['notas'])): ?>
+                                        <div class="small fst-italic text-secondary"><?= e((string) $tratamiento['notas']) ?></div>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <?php if ($terminado): ?>
+                                        <span class="ma-chip">Terminado</span>
+                                    <?php elseif ($tratamiento['estado'] === Tratamiento::PAUSADO): ?>
+                                        <span class="ma-chip aviso">Pausado</span>
+                                    <?php endif; ?>
+                                    <?php if ($tratamiento['apego'] !== null): ?>
+                                        <span class="ma-chip <?= $tratamiento['apego'] >= 80 ? 'exito' : 'aviso' ?>"><?= $tratamiento['apego'] ?> % de apego</span>
+                                    <?php endif; ?>
+                                    <?php if (!$terminado): ?>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Opciones de <?= e((string) $tratamiento['medicamento']) ?>"><i class="bi bi-three-dots" aria-hidden="true"></i></button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <?php if ($tratamiento['estado'] === Tratamiento::PAUSADO): ?>
+                                                    <li><button class="dropdown-item" type="button" data-accion-tratamiento="reanudar" data-id="<?= (int) $tratamiento['id_tratamiento'] ?>"><i class="bi bi-play me-2" aria-hidden="true"></i>Reanudar avisos</button></li>
+                                                <?php else: ?>
+                                                    <li><button class="dropdown-item" type="button" data-accion-tratamiento="pausar" data-id="<?= (int) $tratamiento['id_tratamiento'] ?>"><i class="bi bi-pause me-2" aria-hidden="true"></i>Pausar avisos</button></li>
+                                                <?php endif; ?>
+                                                <?php if ($tratamiento['origen'] === Tratamiento::ORIGEN_PACIENTE): ?>
+                                                    <li><button class="dropdown-item text-danger" type="button" data-accion-tratamiento="eliminar" data-id="<?= (int) $tratamiento['id_tratamiento'] ?>" data-nombre="<?= e((string) $tratamiento['medicamento']) ?>"><i class="bi bi-trash me-2" aria-hidden="true"></i>Eliminar</button></li>
+                                                <?php endif; ?>
+                                            </ul>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <!-- La barra mide exactamente los días del tratamiento; el relleno, las tomas ya registradas. -->
+                            <div class="tratamiento-barra <?= e($momento) ?>" style="width: <?= round($porcentajeDias, 2) ?>%;" role="img"
+                                 aria-label="<?= e($tratamiento['tomadas'] . ' de ' . $tratamiento['total_tomas'] . ' tomas tomadas') ?>">
+                                <i style="width: <?= round($avance, 2) ?>%;"></i>
+                            </div>
+                            <div class="d-flex justify-content-between small text-secondary mt-1 ma-cifras" style="width: <?= round($porcentajeDias, 2) ?>%; min-width: 220px;">
+                                <span><?= e(date('j', strtotime((string) $tratamiento['fecha_inicio'])) . ' ' . mes_corto((string) $tratamiento['fecha_inicio'])) ?></span>
+                                <span><?= $tratamiento['tomadas'] ?> de <?= $tratamiento['total_tomas'] ?> tomas</span>
+                                <span><?= e(date('j', strtotime((string) $tratamiento['fecha_fin'])) . ' ' . mes_corto((string) $tratamiento['fecha_fin'])) ?></span>
+                            </div>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            </section>
         </section>
 
         <!-- === COLUMNA LATERAL: PRÓXIMA CITA Y HOY === -->
-        <aside class="col-xl-4 order-1 order-xl-2">
+        <aside class="col-xl-3 order-1 order-xl-2">
             <div class="ma-panel">
                 <h2 class="ma-panel-titulo">Próxima cita</h2>
                 <?php if ($proximaCita !== null): ?>
@@ -215,79 +288,6 @@ require __DIR__ . '/../src/views/layout/header.php';
             </div>
         </aside>
     </div>
-
-    <!-- === TRATAMIENTOS === -->
-    <section class="ma-panel mt-4" aria-labelledby="tituloTratamientos">
-        <h2 class="ma-panel-titulo" id="tituloTratamientos">Tratamientos <span class="ma-chip"><?= count($enCurso) ?> en curso</span></h2>
-        <?php if ($tratamientos === []): ?>
-            <div class="ma-vacio">
-                <i class="bi bi-capsule" aria-hidden="true"></i>
-                <strong>Sin tratamientos</strong>
-                Aquí verás los medicamentos que te recete tu médico y los recordatorios que agregues.
-            </div>
-        <?php endif; ?>
-        <div class="d-flex flex-column gap-4">
-            <?php foreach ([...$enCurso, ...$terminados] as $indice => $tratamiento): ?>
-                <?php
-                $terminado = (string) $tratamiento['fecha_fin'] <= $ahora;
-                $momento = Tratamiento::momentoDelDia((string) $tratamiento['fecha_inicio']);
-                $porcentajeDias = $tratamiento['duracion_dias'] / $maxDias * 100;
-                $avance = $tratamiento['total_tomas'] > 0 ? ($tratamiento['tomadas'] + $tratamiento['omitidas']) / $tratamiento['total_tomas'] * 100 : 0;
-                ?>
-                <article class="<?= $terminado ? 'opacity-75' : '' ?>" data-tratamiento="<?= (int) $tratamiento['id_tratamiento'] ?>">
-                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
-                        <div>
-                            <h3 class="fs-6 fw-bold mb-1"><?= e($tratamiento['medicamento'] . ' · ' . $tratamiento['dosis']) ?></h3>
-                            <div class="small text-secondary">
-                                <?= e(ucfirst(Tratamiento::describirFrecuencia($tratamiento['frecuencia_horas']))) ?> · <?= $tratamiento['duracion_dias'] ?> día(s)
-                                · <?= $tratamiento['origen'] === Tratamiento::ORIGEN_DOCTOR
-                                    ? 'recetado por Dr(a). ' . e($tratamiento['doctor_nombre'] . ' ' . $tratamiento['doctor_apellido'])
-                                    : 'recordatorio propio' ?>
-                            </div>
-                            <?php if (!empty($tratamiento['notas'])): ?>
-                                <div class="small fst-italic text-secondary"><?= e((string) $tratamiento['notas']) ?></div>
-                            <?php endif; ?>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <?php if ($terminado): ?>
-                                <span class="ma-chip">Terminado</span>
-                            <?php elseif ($tratamiento['estado'] === Tratamiento::PAUSADO): ?>
-                                <span class="ma-chip aviso">Pausado</span>
-                            <?php endif; ?>
-                            <?php if ($tratamiento['apego'] !== null): ?>
-                                <span class="ma-chip <?= $tratamiento['apego'] >= 80 ? 'exito' : 'aviso' ?>"><?= $tratamiento['apego'] ?> % de apego</span>
-                            <?php endif; ?>
-                            <?php if (!$terminado): ?>
-                                <div class="dropdown">
-                                    <button class="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Opciones de <?= e((string) $tratamiento['medicamento']) ?>"><i class="bi bi-three-dots" aria-hidden="true"></i></button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <?php if ($tratamiento['estado'] === Tratamiento::PAUSADO): ?>
-                                            <li><button class="dropdown-item" type="button" data-accion-tratamiento="reanudar" data-id="<?= (int) $tratamiento['id_tratamiento'] ?>"><i class="bi bi-play me-2" aria-hidden="true"></i>Reanudar avisos</button></li>
-                                        <?php else: ?>
-                                            <li><button class="dropdown-item" type="button" data-accion-tratamiento="pausar" data-id="<?= (int) $tratamiento['id_tratamiento'] ?>"><i class="bi bi-pause me-2" aria-hidden="true"></i>Pausar avisos</button></li>
-                                        <?php endif; ?>
-                                        <?php if ($tratamiento['origen'] === Tratamiento::ORIGEN_PACIENTE): ?>
-                                            <li><button class="dropdown-item text-danger" type="button" data-accion-tratamiento="eliminar" data-id="<?= (int) $tratamiento['id_tratamiento'] ?>" data-nombre="<?= e((string) $tratamiento['medicamento']) ?>"><i class="bi bi-trash me-2" aria-hidden="true"></i>Eliminar</button></li>
-                                        <?php endif; ?>
-                                    </ul>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                    <!-- La barra mide exactamente los días del tratamiento; el relleno, las tomas ya registradas. -->
-                    <div class="tratamiento-barra <?= e($momento) ?>" style="width: <?= round($porcentajeDias, 2) ?>%;" role="img"
-                         aria-label="<?= e($tratamiento['tomadas'] . ' de ' . $tratamiento['total_tomas'] . ' tomas tomadas') ?>">
-                        <i style="width: <?= round($avance, 2) ?>%;"></i>
-                    </div>
-                    <div class="d-flex justify-content-between small text-secondary mt-1 ma-cifras" style="width: <?= round($porcentajeDias, 2) ?>%; min-width: 220px;">
-                        <span><?= e(date('j', strtotime((string) $tratamiento['fecha_inicio'])) . ' ' . mes_corto((string) $tratamiento['fecha_inicio'])) ?></span>
-                        <span><?= $tratamiento['tomadas'] ?> de <?= $tratamiento['total_tomas'] ?> tomas</span>
-                        <span><?= e(date('j', strtotime((string) $tratamiento['fecha_fin'])) . ' ' . mes_corto((string) $tratamiento['fecha_fin'])) ?></span>
-                    </div>
-                </article>
-            <?php endforeach; ?>
-        </div>
-    </section>
 
     <!-- === RECETAS RECIBIDAS === -->
     <section class="ma-panel mt-4" aria-labelledby="tituloRecetas">
