@@ -13,9 +13,8 @@
 </main>
 
 <footer class="ma-footer py-4 mt-auto">
-    <div class="<?= e($anchoContenedor ?? 'container') ?> d-flex flex-wrap justify-content-between gap-2">
-        <span>&copy; <?= date('Y') ?> <strong class="text-dark-blue"><?= e(APP_NAME) ?></strong></span>
-        <span>Citas, recetas y recordatorios de medicamentos</span>
+    <div class="<?= e($anchoContenedor ?? 'container') ?> text-center">
+        &copy; <?= date('Y') ?> <strong class="text-dark-blue"><?= e(APP_NAME) ?></strong>. Todos los derechos reservados.
     </div>
 </footer>
 
