@@ -9,8 +9,7 @@
  *
  * Método:    GET (enlace de descarga, sin efectos secundarios, por eso no usa CSRF)
  * Acceso:    paciente autenticado
- * Parámetro: formato = pdf (por defecto) | json
- * Respuesta: archivo PDF o JSON como descarga
+ * Respuesta: archivo PDF como descarga
  */
 
 require_once __DIR__ . '/../config/config.php';
@@ -35,21 +34,6 @@ if ($paciente === null) {
 
 $citas = (new Cita())->listarPorPaciente($idPaciente, true);
 
-// === FORMATO JSON (portabilidad) ===
-if (($_GET['formato'] ?? 'pdf') === 'json') {
-    unset($paciente['id_paciente'], $paciente['cuenta_eliminada']);
-
-    header('Content-Type: application/json; charset=utf-8');
-    header('Content-Disposition: attachment; filename="mis_datos_mediagenda.json"');
-    echo json_encode([
-        'datos_personales' => $paciente,
-        'historial_citas'  => $citas,
-        'generado_el'      => date('c'),
-    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-// === FORMATO PDF ===
 $html = PdfService::renderizarVista('datos_paciente', [
     'paciente'     => $paciente,
     'citas'        => $citas,

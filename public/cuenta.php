@@ -7,7 +7,7 @@
  *   - Datos personales (cambiar el correo exige la contraseña actual).
  *   - Cambio de contraseña con confirmación por correo.
  *   - Preferencia de notificaciones por correo.
- *   - Exportación de datos personales (PDF o JSON).
+ *   - Exportación de datos personales (PDF).
  *   - Historial de accesos (últimos inicios de sesión).
  *   - Eliminación de la cuenta.
  *
@@ -77,7 +77,10 @@ require __DIR__ . '/../src/views/layout/header.php';
                     <!-- Solo se muestra si el correo cambia: el servidor exige la contraseña para ese cambio. -->
                     <div class="col-12 d-none" id="grupoPasswordEmail">
                         <label for="perfil_password" class="form-label fw-bold text-secondary small">Contraseña actual (necesaria para cambiar el correo)</label>
-                        <input type="password" name="password_actual" id="perfil_password" class="form-control" autocomplete="current-password">
+                        <div class="input-group">
+                            <input type="password" name="password_actual" id="perfil_password" class="form-control" autocomplete="current-password">
+                            <button type="button" class="btn btn-light border" data-ver-password aria-label="Mostrar contraseña" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
+                        </div>
                     </div>
                 </div>
                 <button type="submit" class="btn btn-primary mt-4" id="btnGuardarPerfil">Guardar cambios</button>
@@ -96,15 +99,24 @@ require __DIR__ . '/../src/views/layout/header.php';
                 <div class="row g-3">
                     <div class="col-12">
                         <label for="pass_actual" class="form-label fw-bold text-secondary small">Contraseña actual</label>
-                        <input type="password" name="password_actual" id="pass_actual" class="form-control" autocomplete="current-password" required>
+                        <div class="input-group">
+                            <input type="password" name="password_actual" id="pass_actual" class="form-control" autocomplete="current-password" required>
+                            <button type="button" class="btn btn-light border" data-ver-password aria-label="Mostrar contraseña" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
+                        </div>
                     </div>
                     <div class="col-md-6">
                         <label for="pass_nueva" class="form-label fw-bold text-secondary small">Nueva contraseña</label>
-                        <input type="password" name="password_nueva" id="pass_nueva" class="form-control" minlength="8" maxlength="200" autocomplete="new-password" required>
+                        <div class="input-group">
+                            <input type="password" name="password_nueva" id="pass_nueva" class="form-control" minlength="8" maxlength="200" autocomplete="new-password" required>
+                            <button type="button" class="btn btn-light border" data-ver-password aria-label="Mostrar contraseña" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
+                        </div>
                     </div>
                     <div class="col-md-6">
                         <label for="pass_confirmar" class="form-label fw-bold text-secondary small">Confirma la nueva contraseña</label>
-                        <input type="password" name="password_confirmar" id="pass_confirmar" class="form-control" minlength="8" maxlength="200" autocomplete="new-password" required>
+                        <div class="input-group">
+                            <input type="password" name="password_confirmar" id="pass_confirmar" class="form-control" minlength="8" maxlength="200" autocomplete="new-password" required>
+                            <button type="button" class="btn btn-light border" data-ver-password aria-label="Mostrar contraseña" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
+                        </div>
                     </div>
                 </div>
                 <button type="submit" class="btn btn-primary mt-4" id="btnGuardarPassword">Actualizar contraseña</button>
@@ -136,10 +148,9 @@ require __DIR__ . '/../src/views/layout/header.php';
             <h2 class="fs-6 fw-bold mb-0"><i class="bi bi-download text-primary me-2" aria-hidden="true"></i>Exportar mis datos</h2>
         </div>
         <div class="card-body p-4">
-            <p class="text-secondary mb-3">Descarga una copia de tus datos personales y tu historial completo de citas (derecho de acceso y portabilidad).</p>
+            <p class="text-secondary mb-3">Descarga una copia de tus datos personales y tu historial completo de citas (derecho de acceso).</p>
             <div class="d-flex gap-2 flex-wrap">
-                <a href="../api/exportar_datos_paciente.php?formato=pdf" class="btn btn-outline-primary "><i class="bi bi-file-earmark-pdf me-2"></i>Descargar PDF</a>
-                <a href="../api/exportar_datos_paciente.php?formato=json" class="btn btn-outline-secondary "><i class="bi bi-filetype-json me-2"></i>Descargar JSON</a>
+                <a href="../api/exportar_datos_paciente.php" class="btn btn-outline-primary"><i class="bi bi-file-earmark-pdf me-2" aria-hidden="true"></i>Descargar PDF</a>
             </div>
         </div>
     </div>
@@ -196,7 +207,10 @@ require __DIR__ . '/../src/views/layout/header.php';
             <div class="modal-body p-4">
                 <p class="fw-medium">Esta acción es permanente y no podrás recuperar tu cuenta. ¿Deseas continuar?</p>
                 <label for="eliminar_password" class="form-label fw-bold text-secondary small">Escribe tu contraseña para confirmar</label>
-                <input type="password" id="eliminar_password" class="form-control mb-3" autocomplete="current-password">
+                <div class="input-group mb-3">
+                    <input type="password" id="eliminar_password" class="form-control" autocomplete="current-password">
+                    <button type="button" class="btn btn-light border" data-ver-password aria-label="Mostrar contraseña" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
+                </div>
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="chkEntiendo">
                     <label class="form-check-label small fw-medium" for="chkEntiendo">Entiendo que esta acción no se puede deshacer</label>
@@ -301,4 +315,7 @@ document.getElementById('btnConfirmarEliminar').addEventListener('click', async 
 });
 </script>
 
-<?php require __DIR__ . '/../src/views/layout/footer.php'; ?>
+<?php
+$scriptsExtra = ['js/ver_password.js'];
+require __DIR__ . '/../src/views/layout/footer.php';
+?>

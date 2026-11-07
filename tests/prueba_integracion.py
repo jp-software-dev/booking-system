@@ -205,10 +205,10 @@ codigo, r = p.api("update_perfil.php", {**perfil, "password_actual": password})
 check("cambiar correo con contraseña", r.get("status") == "success", r)
 email = nuevo_email
 
-codigo, cuerpo = p.pedir("/api/exportar_datos_paciente.php?formato=json")
-check("exportar datos en JSON", codigo == 200 and b"historial_citas" in cuerpo, codigo)
-codigo, cuerpo = p.pedir("/api/exportar_datos_paciente.php?formato=pdf")
+codigo, cuerpo = p.pedir("/api/exportar_datos_paciente.php")
 check("exportar datos en PDF", codigo == 200 and cuerpo[:4] == b"%PDF", cuerpo[:20])
+codigo, cuerpo = p.pedir("/api/exportar_datos_paciente.php?formato=json")
+check("el formato JSON ya no existe: se entrega el PDF", codigo == 200 and cuerpo[:4] == b"%PDF" and b"historial_citas" not in cuerpo, cuerpo[:20])
 codigo, r = p.api("update_status.php", {"id_cita": 1, "estado": "Confirmada"})
 check("paciente no puede usar endpoint de admin -> 403", codigo == 403, (codigo, r))
 
