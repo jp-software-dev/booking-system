@@ -13,7 +13,7 @@
 
 ## 🌐 Live Demo
 
-**[mediagenda.vanguarddevsec.com](https://mediagenda.vanguarddevsec.com)** — all data is fictitious and resets every day.
+**[mediagenda-demo.vercel.app](https://mediagenda-demo.vercel.app)** — all data is fictitious and resets every day.
 
 | Role | User | Password |
 |------|------|----------|
