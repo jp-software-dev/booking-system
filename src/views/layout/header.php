@@ -73,6 +73,7 @@ $inicial = mb_strtoupper(mb_substr(Sesion::nombre('U'), 0, 1));
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="<?= e($csrfToken) ?>">
     <meta name="theme-color" content="#ffffff">
+    <meta name="description" content="<?= e($descripcionPagina ?? 'MediAgenda: agenda de citas, tratamientos y seguimiento de pacientes para consultorios y clínicas.') ?>">
     <?php if (!empty($clavePushPublica)): ?>
         <!-- Clave pública VAPID: la usa el navegador para suscribirse a los avisos push. -->
         <meta name="vapid-public-key" content="<?= e($clavePushPublica) ?>">
