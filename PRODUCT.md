@@ -8,14 +8,14 @@ web
 
 ## Users
 
-- **Visitante del portafolio (audiencia principal):** cliente potencial de Vanguard DevSec que llega desde vanguarddevsec.com y prueba la demo pública con las cuentas de prueba. Decide en uno o dos minutos si la calidad le convence.
+- **Visitante del portafolio (audiencia principal):** reclutador o líder técnico que llega desde el perfil de GitHub del autor y prueba la demo pública con las cuentas de prueba. Decide en uno o dos minutos si la calidad le convence.
 - **Paciente:** agenda, reprograma y cancela citas; consulta su historial; recibe recetas y programa recordatorios de sus medicamentos. Usa sobre todo el celular.
 - **Doctor:** consulta sus citas y pacientes, emite recetas con medicamentos y revisa el historial de recetas emitidas.
 - **Administrador (recepción de la clínica):** gestiona citas, pacientes, consultorios y personal, crea los accesos de los doctores, revisa métricas y consulta la bitácora de auditoría.
 
 ## Product Purpose
 
-Plataforma de gestión de citas médicas para una clínica. Hoy su función principal es servir como demo de portafolio de Vanguard DevSec en https://mediagenda.vanguarddevsec.com: debe verse y comportarse como un producto real y terminado. Los datos de la demo son ficticios y se regeneran cada día.
+Plataforma de gestión de citas médicas para una clínica. Hoy su función principal es servir como demo de portafolio en https://mediagenda-demo.vercel.app: debe verse y comportarse como un producto real y terminado. Los datos de la demo son ficticios y se regeneran cada día.
 
 ## Operating Context
 

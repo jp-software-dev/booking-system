@@ -1,7 +1,7 @@
 # Despliegue de la demo en Vercel + Supabase
 
 Esta guía describe cómo está publicada la demo de MediAgenda en
-`https://mediagenda.vanguarddevsec.com` y cómo repetir el proceso desde cero.
+`https://mediagenda-demo.vercel.app` y cómo repetir el proceso desde cero.
 La instalación local con XAMPP está en el [README](../README.md).
 
 ## Arquitectura
@@ -88,7 +88,7 @@ propio usuario.
    | Variable | Valor |
    |----------|-------|
    | `APP_ENV` | `production` |
-   | `URL_BASE` | `https://mediagenda.vanguarddevsec.com` |
+   | `URL_BASE` | `https://mediagenda-demo.vercel.app` |
    | `DB_DRIVER` | `pgsql` |
    | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_SSLMODE` | los del paso 1.3 |
    | `DB_PASS` | contraseña de `mediagenda_app` (**Sensitive**) |
@@ -99,11 +99,11 @@ propio usuario.
    | `CRON_SECRET` | texto aleatorio de 32 caracteres o más (**Sensitive**) |
    | `VAPID_PUBLIC_KEY` | clave pública para los avisos push (ver sección 6) |
    | `VAPID_PRIVATE_KEY` | clave privada para los avisos push (**Sensitive**) |
-   | `VAPID_SUBJECT` | `https://mediagenda.vanguarddevsec.com` |
+   | `VAPID_SUBJECT` | `https://mediagenda-demo.vercel.app` |
    | `CONTACTO_TELEFONO`, `CONTACTO_EMAIL`, `CONTACTO_UBICACION` | opcionales; sin ellas se ven textos de ejemplo |
 
 4. En **Settings → Deployment Protection**, deja **Standard Protection**: las
-   vistas previas piden iniciar sesión en Vercel y el dominio propio es público.
+   vistas previas piden iniciar sesión en Vercel y la URL de producción es pública.
 
 ### Qué hace `vercel.json`
 
@@ -120,19 +120,22 @@ solo ejecuta páginas de `public/` y endpoints de `api/` que existen. Todo lo
 demás (`config/`, `src/`, `vendor/`, `.env`, `composer.json`...) responde 404.
 [`.vercelignore`](../.vercelignore) además deja fuera del despliegue `database/` y `.env`.
 
-## 3. Dominio propio
+## 3. Dominio
 
-En **Settings → Domains** agrega `mediagenda.vanguarddevsec.com`. Como el DNS de
-`vanguarddevsec.com` lo administra Vercel, el registro y el certificado HTTPS se
-crean solos. Si el DNS estuviera en otro proveedor, habría que crear un `CNAME`
-hacia `cname.vercel-dns.com`.
+Vercel asigna al proyecto la URL `mediagenda-demo.vercel.app` con certificado
+HTTPS, así que no hace falta configurar nada más para publicar la demo.
+
+Si prefieres un dominio propio, agrégalo en **Settings → Domains**. Si el DNS lo
+administra Vercel, el registro y el certificado se crean solos; si está en otro
+proveedor, crea un `CNAME` hacia `cname.vercel-dns.com`. Después actualiza
+`URL_BASE` y `VAPID_SUBJECT` con la nueva dirección.
 
 ## 4. Flujo de trabajo
 
 | Rama | Despliegue |
 |------|-----------|
 | `developer` | Vista previa en una URL `*.vercel.app` protegida (solo con sesión de Vercel). |
-| `main` | Producción en `mediagenda.vanguarddevsec.com`. |
+| `main` | Producción en `mediagenda-demo.vercel.app`. |
 
 Los cambios se suben a `developer`, se revisan en la vista previa y se integran a
 `main` con un pull request.
@@ -148,7 +151,7 @@ la hora programada.
 Para reiniciar a mano:
 
 ```bash
-curl -H "Authorization: Bearer $CRON_SECRET" https://mediagenda.vanguarddevsec.com/api/demo_reset.php
+curl -H "Authorization: Bearer $CRON_SECRET" https://mediagenda-demo.vercel.app/api/demo_reset.php
 ```
 
 ## 6. Recordatorios de medicamentos (avisos push)
@@ -187,7 +190,7 @@ las extensiones `pg_cron` y `pg_net`.
      '* * * * *',
      $$
      select net.http_post(
-       url := 'https://mediagenda.vanguarddevsec.com/api/enviar_recordatorios.php',
+       url := 'https://mediagenda-demo.vercel.app/api/enviar_recordatorios.php',
        headers := jsonb_build_object('Authorization', 'Bearer ' || s.decrypted_secret),
        body := '{}'::jsonb,
        timeout_milliseconds := 20000
