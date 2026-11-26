@@ -23,8 +23,6 @@
 
 Hosted on Vercel (PHP serverless runtime) with a PostgreSQL database on Supabase. See [`docs/DESPLIEGUE.md`](docs/DESPLIEGUE.md) (Spanish) for the full deployment guide.
 
-> The doctor account, prescriptions and medication reminders are complete on the `developer` branch; they reach the live demo when that branch is merged into `main`.
-
 ## ✨ Key Features
 
 ### Patients
