@@ -61,8 +61,30 @@ Hosted on Vercel (PHP serverless runtime) with a PostgreSQL database on Supabase
 * **Backend:** PHP 8.2+ (OOP), PDO.
 * **Database:** MySQL / MariaDB (XAMPP) or PostgreSQL (Supabase).
 * **Frontend:** HTML5, CSS3 (design tokens over Bootstrap 5), vanilla JavaScript, Chart.js, Bootstrap Icons.
-* **Dependencies:** Composer (Dompdf, PHPMailer).
+* **Dependencies:** Composer (Dompdf, PHPMailer, Web Push for browser notifications).
 * **Hosting:** Vercel (vercel-php runtime) + Supabase.
+
+## 📁 Project Structure
+
+```
+booking-system/
+├── public/               # Pages for each role (login, booking, history, doctor, admin…), PWA manifest and service worker
+├── api/                  # JSON endpoints (appointments, prescriptions, doses, staff, push, PDFs, auth)
+├── src/
+│   ├── Controllers/      # Appointment business rules
+│   ├── Models/           # Data access with PDO
+│   ├── Services/         # Email, PDF and push notification services
+│   ├── Core/ · Http/     # PDO connection, .env loader, JSON responses and sessions
+│   ├── Helpers/          # Shared utilities
+│   ├── Demo/             # Demo mode and fictitious data seeder
+│   └── views/            # Layouts, partials and PDF templates
+├── config/config.php     # Single bootstrap: .env, error handling and hardened session
+├── database/             # MySQL and PostgreSQL schema, migrations and demo seeder
+├── tests/                # End-to-end integration test (Python)
+├── docs/DESPLIEGUE.md    # Deployment guide (Vercel + Supabase)
+├── DESIGN.md · PRODUCT.md # Design system and product notes
+└── vercel.json           # Serverless PHP runtime and whitelist router
+```
 
 ## 🚀 Installation & Setup (XAMPP / WAMP)
 
